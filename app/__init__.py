@@ -13,6 +13,9 @@ def create_app(config_class=Config):
     db.init_app(app)
     login_manager.init_app(app)
 
+    # Import models to register user_loader
+    from app import models
+
     # Register blueprints
     from app.auth.routes import auth_bp
     from app.main.routes import main_bp
