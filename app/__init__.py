@@ -11,7 +11,15 @@ def create_app(config_class=Config):
     if os.environ.get('VERCEL'):
         app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:////tmp/campus.db'
     else:
-        app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///campus.db'
+        # For local development, use the database in the instance folder
+        db_path = os.path.join(app.instance_path, 'campus.db')
+        app.config['SQLALCHEMY_DATABASE_URI'] = f'sqlite:///{db_path}'
+
+    # Ensure the instance folder exists for local development
+    try:
+        os.makedirs(app.instance_path)
+    except OSError:
+        pass
 
     # Initialize extensions
     db.init_app(app)
