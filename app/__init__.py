@@ -41,6 +41,11 @@ def create_app(config_class=Config):
     app.register_blueprint(notes_bp)
     app.register_blueprint(chat_bp)
 
+    @app.errorhandler(500)
+    def internal_error(error):
+        import traceback
+        return f"<h1>Internal Server Error (500)</h1><pre>{traceback.format_exc()}</pre>", 500
+
     # Create the database tables if they don't exist
     with app.app_context():
         db.create_all()

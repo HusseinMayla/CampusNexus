@@ -7,6 +7,10 @@ main_bp = Blueprint('main', __name__)
 def index():
     return render_template('index.html')
 
+@main_bp.route('/test')
+def test_route():
+    return "App is running! If you see this, the basic Flask setup is working."
+
 @main_bp.route('/dashboard')
 def dashboard():
     return "Dashboard Page"
