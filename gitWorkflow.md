@@ -13,5 +13,3 @@ Make your changes, then:
     git commit -m "Commit Message"
     git push
 ```
-
-`
