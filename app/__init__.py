@@ -6,8 +6,11 @@ def create_app(config_class=Config):
     app = Flask(__name__)
     app.config.from_object(config_class)
 
-    # Use SQLite for simplicity and to avoid driver errors
-    app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///campus.db'
+    # Use SQLite. If on Vercel, we must use /tmp because the root is read-only.
+    if os.environ.get('VERCEL'):
+        app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:////tmp/campus.db'
+    else:
+        app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///campus.db'
 
     # Initialize extensions
     db.init_app(app)
