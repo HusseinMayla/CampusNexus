@@ -20,5 +20,5 @@ A campus event and note-sharing platform.
 
 4. **Run the app:**
    ```bash
-   python run.py
+   python app.py
    ```

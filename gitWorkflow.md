@@ -10,6 +10,6 @@ Make your changes, then:
 
 ```
     git add .
-    git commit -m "describe what you did"
+    git commit -m "Commit Message"
     git push
 ```
