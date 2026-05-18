@@ -48,6 +48,9 @@ def create_app(config_class=Config):
 
     # Create the database tables if they don't exist
     with app.app_context():
-        db.create_all()
+        try:
+            db.create_all()
+        except Exception as e:
+            app.logger.error(f"Database creation failed: {e}")
 
     return app
