@@ -32,14 +32,10 @@ def create_app(config_class=Config):
     from app.auth.routes import auth_bp
     from app.main.routes import main_bp
     from app.events.routes import events_bp
-    from app.notes.routes import notes_bp
-    from app.chat.routes import chat_bp
 
     app.register_blueprint(auth_bp)
     app.register_blueprint(main_bp)
     app.register_blueprint(events_bp)
-    app.register_blueprint(notes_bp)
-    app.register_blueprint(chat_bp)
 
     @app.errorhandler(500)
     def internal_error(error):

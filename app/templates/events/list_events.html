@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+
+{% block title %}Upcoming Events - CampusNexus{% endblock %}
+
+{% block content %}
+<h1 style="margin-bottom: 32px;">📅 Upcoming Events</h1>
+
+{% if events %}
+<div class="base-card-grid">
+    {% for event in events %}
+    <div class="base-card" style="padding: 24px;">
+        <h3 class="base-card-title">{{ event.title }}</h3>
+        <p style="color: var(--base-primary-color); font-weight: 600; margin-bottom: 8px;">{{ event.date }}</p>
+        <p style="color: var(--base-text-muted);">📍 {{ event.location }}</p>
+        <button class="base-button" style="margin-top: 16px; width: 100%;">Interested</button>
+    </div>
+    {% endfor %}
+</div>
+{% else %}
+<p>No upcoming events at the moment.</p>
+{% endif %}
+{% endblock %}

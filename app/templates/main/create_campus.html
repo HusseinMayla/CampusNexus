@@ -1,0 +1,101 @@
+{% extends "base.html" %}
+
+{% block title %}Create Campus - CampusNexus{% endblock %}
+
+{% block content %}
+<div class="base-container">
+    <h1 style="margin-bottom: 32px;">🛠 Create a New Campus</h1>
+    
+    <div style="display: grid; grid-template-columns: 1fr 400px; gap: 40px; align-items: start;">
+        <div class="base-form-side">
+            <form action="{{ url_for('main.create_campus') }}" method="post" enctype="multipart/form-data">
+                <div class="base-form-group">
+                    <label class="base-label" for="name">Campus Name</label>
+                    <input type="text" id="name" name="name" class="base-input" placeholder="e.g. Stanford University" required onkeyup="updateName(this.value)">
+                </div>
+
+                <div class="base-form-group">
+                    <label class="base-label" for="description">Description</label>
+                    <textarea id="description" name="description" class="base-textarea" placeholder="Tell us about the campus..." onkeyup="updateDesc(this.value)"></textarea>
+                </div>
+
+                <div class="base-form-group">
+                    <label class="base-label" for="banner_image">Banner Image</label>
+                    <input type="file" id="banner_image" name="banner_image" class="base-input" accept="image/*" onchange="previewBanner(this)">
+                    <small style="color: var(--base-text-muted); display: block; margin-top: 4px;">Wide image for the campus header.</small>
+                </div>
+
+                <div class="base-form-group">
+                    <label class="base-label" for="map_image">Square Map/Blueprint</label>
+                    <input type="file" id="map_image" name="map_image" class="base-input" accept="image/*" onchange="previewMap(this)">
+                    <small style="color: var(--base-text-muted); display: block; margin-top: 4px;">Upload a square image of the campus layout.</small>
+                </div>
+
+                <button type="submit" class="base-button" style="width: 100%; margin-top: 20px;">Create Campus</button>
+            </form>
+        </div>
+
+        <div class="base-preview-side">
+            <label class="base-label">Live Preview</label>
+            <div class="base-campus-profile-preview">
+                <div class="base-preview-banner-box" id="bannerPreviewBox">
+                    <div id="bannerPlaceholder">📷 Banner</div>
+                    <img id="bannerImg" class="base-preview-banner-img">
+                    
+                    <div class="base-preview-map-inset" id="mapPreviewBox">
+                        <div id="mapPlaceholder">🗺️</div>
+                        <img id="mapImg" class="base-preview-map-img">
+                    </div>
+                </div>
+                
+                <div class="base-preview-info">
+                    <div class="base-preview-name" id="previewName">New Campus</div>
+                    <div class="base-preview-desc" id="previewDesc">Description will appear here...</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function previewBanner(input) {
+    const placeholder = document.getElementById('bannerPlaceholder');
+    const img = document.getElementById('bannerImg');
+
+    if (input.files && input.files[0]) {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            img.src = e.target.result;
+            img.style.display = 'block';
+            placeholder.style.display = 'none';
+        }
+        reader.readAsDataURL(input.files[0]);
+    }
+}
+
+function previewMap(input) {
+    const placeholder = document.getElementById('mapPlaceholder');
+    const img = document.getElementById('mapImg');
+
+    if (input.files && input.files[0]) {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            img.src = e.target.result;
+            img.style.display = 'block';
+            placeholder.style.display = 'none';
+        }
+        reader.readAsDataURL(input.files[0]);
+    }
+}
+
+function updateName(val) {
+    document.getElementById('previewName').textContent = val || "New Campus";
+}
+
+function updateDesc(val) {
+    document.getElementById('previewDesc').textContent = val || "Description will appear here...";
+}
+</script>
+{% endblock %}

@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - CampusNexus{% endblock %}
+
+{% block content %}
+<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 32px;">
+    <h1>🏫 My Campuses</h1>
+    <a href="{{ url_for('main.create_campus') }}" class="base-button">Create New</a>
+</div>
+
+<div class="base-search-wrapper">
+    <span class="base-search-icon">🔍</span>
+    <input type="text" id="campusSearch" class="base-input base-search-input" placeholder="Search your campuses by name..." onkeyup="filterCampuses()">
+</div>
+
+{% if campuses %}
+<div class="base-card-grid" id="campusGrid">
+    {% for campus in campuses %}
+    <div class="base-card campus-item">
+        {% if campus.banner_image %}
+        <img src="{{ campus.banner_image }}" alt="{{ campus.name }}" class="base-card-image">
+        {% else %}
+        <div class="base-card-image" style="display: flex; align-items: center; justify-content: center; font-size: 3rem;">🏫</div>
+        {% endif %}
+        <div class="base-card-content">
+            <h3 class="base-card-title campus-name">{{ campus.name }}</h3>
+            <p class="base-card-desc">{{ campus.description or 'No description provided.' }}</p>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+<div id="noResults" style="display: none; text-align: center; padding: 48px; color: var(--base-text-muted);">
+    <div style="font-size: 3rem; margin-bottom: 16px;">🏜️</div>
+    <p>No campuses found matching your search.</p>
+</div>
+
+{% else %}
+<div style="text-align: center; padding: 64px; background: var(--base-card-bg); border-radius: 12px; border: 1px dashed var(--base-border-color);">
+    <div style="font-size: 3rem; margin-bottom: 16px;">🔍</div>
+    <h3>No campuses found</h3>
+    <p style="color: var(--base-text-muted); margin-bottom: 24px;">You haven't joined or created any campuses yet.</p>
+    <div style="display: flex; gap: 12px; justify-content: center;">
+        <a href="{{ url_for('main.join_campus') }}" class="base-button" style="background-color: var(--base-hover-bg); color: var(--base-text-color);">Join Campus</a>
+        <a href="{{ url_for('main.create_campus') }}" class="base-button">Create Campus</a>
+    </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function filterCampuses() {
+    const input = document.getElementById('campusSearch');
+    const filter = input.value.toLowerCase();
+    const grid = document.getElementById('campusGrid');
+    const items = grid.getElementsByClassName('campus-item');
+    const noResults = document.getElementById('noResults');
+    let visibleCount = 0;
+
+    for (let i = 0; i < items.length; i++) {
+        const name = items[i].querySelector('.campus-name').textContent.toLowerCase();
+        if (name.includes(filter)) {
+            items[i].style.display = "";
+            visibleCount++;
+        } else {
+            items[i].style.display = "none";
+        }
+    }
+
+    noResults.style.display = visibleCount === 0 ? "block" : "none";
+    grid.style.display = visibleCount === 0 ? "none" : "grid";
+}
+</script>
+{% endblock %}

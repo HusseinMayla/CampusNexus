@@ -3,31 +3,40 @@
 {% block title %}Login - CampusNexus{% endblock %}
 
 {% block content %}
-<div class="login-container">
-    <h1>Login</h1>
-    <form action="" method="post" novalidate>
-        {{ form.hidden_tag() }}
-        <div class="form-group">
-            {{ form.username.label }}
-            {{ form.username(placeholder="Enter your username") }}
-            {% for error in form.username.errors %}
-            <span class="error-message">[{{ error }}]</span>
-            {% endfor %}
-        </div>
-        <div class="form-group">
-            {{ form.password.label }}
-            {{ form.password(placeholder="Enter your password") }}
-            {% for error in form.password.errors %}
-            <span class="error-message">[{{ error }}]</span>
-            {% endfor %}
-        </div>
-        <div class="form-group">
-            {{ form.remember_me() }} {{ form.remember_me.label }}
-        </div>
-        <div class="form-group">
-            {{ form.submit() }}
-        </div>
-    </form>
-    <p>New User? <a href="{{ url_for('auth.register') }}">Click to Register!</a></p>
+<div style="max-width: 400px; margin: 64px auto;">
+    <div class="base-card" style="padding: 32px;">
+        <h1 style="margin-bottom: 24px; text-align: center;">Welcome Back</h1>
+        <form action="" method="post" novalidate>
+            {{ form.hidden_tag() }}
+            
+            <div class="base-form-group">
+                <label class="base-label">{{ form.username.label }}</label>
+                {{ form.username(class="base-input", placeholder="Enter your username") }}
+                {% for error in form.username.errors %}
+                <small style="color: #ef4444;">[{{ error }}]</small>
+                {% endfor %}
+            </div>
+
+            <div class="base-form-group">
+                <label class="base-label">{{ form.password.label }}</label>
+                {{ form.password(class="base-input", placeholder="Enter your password") }}
+                {% for error in form.password.errors %}
+                <small style="color: #ef4444;">[{{ error }}]</small>
+                {% endfor %}
+            </div>
+
+            <div class="base-form-group" style="display: flex; align-items: center; gap: 8px;">
+                {{ form.remember_me() }} 
+                <label class="base-label" style="margin-bottom: 0;">{{ form.remember_me.label }}</label>
+            </div>
+
+            <div class="base-form-group">
+                {{ form.submit(class="base-button", style="width: 100%;") }}
+            </div>
+        </form>
+        <p style="text-align: center; margin-top: 24px; color: var(--base-text-muted);">
+            New User? <a href="{{ url_for('auth.register') }}" style="color: var(--base-primary-color); text-decoration: none; font-weight: 600;">Register!</a>
+        </p>
+    </div>
 </div>
 {% endblock %}

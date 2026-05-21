@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+
+{% block title %}Join Campus - CampusNexus{% endblock %}
+
+{% block content %}
+<h1>➕ Join Campus</h1>
+<p style="color: var(--base-text-muted); margin-top: 8px;">Find and join campuses near you or by invitation code.</p>
+
+<div style="margin-top: 32px; max-width: 500px;">
+    <div class="base-form-group">
+        <label class="base-label">Invitation Code</label>
+        <div style="display: flex; gap: 8px;">
+            <input type="text" class="base-input" placeholder="e.g. CAMPUS-123">
+            <button class="base-button">Join</button>
+        </div>
+    </div>
+
+    <hr style="margin: 32px 0; border: none; border-top: 1px solid var(--base-border-color);">
+
+    <h3>Discover Campuses</h3>
+    <p style="color: var(--base-text-muted); margin-top: 8px;">Coming soon: Browse public campuses in your area.</p>
+</div>
+{% endblock %}

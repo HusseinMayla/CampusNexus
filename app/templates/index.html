@@ -1,6 +1,41 @@
 {% extends "base.html" %}
 
+{% block title %}Home - CampusNexus{% endblock %}
+
 {% block content %}
-    <h1>Welcome to CampusNexus</h1>
-    <p>Your campus companion.</p>
+<div style="text-align: center; padding: 48px 0;">
+    <h1 style="font-size: 2.5rem; margin-bottom: 16px;">Welcome to CampusNexus 🎓</h1>
+    <p style="font-size: 1.125rem; color: var(--base-text-muted); max-width: 600px; margin: 0 auto 32px;">
+        The all-in-one platform to manage your campus life, discover events, and connect with your community.
+    </p>
+    
+    <div style="display: flex; gap: 16px; justify-content: center;">
+        <a href="{{ url_for('main.dashboard') }}" class="base-button">Go to Dashboard</a>
+        <a href="{{ url_for('main.create_campus') }}" class="base-button" style="background-color: var(--base-card-bg); color: var(--base-primary-color); border: 1px solid var(--base-primary-color);">Create Campus</a>
+    </div>
+</div>
+
+<div style="margin-top: 64px;">
+    <h2 style="margin-bottom: 24px;">Featured Quick Actions</h2>
+    <div class="base-card-grid">
+        <div class="base-card" style="padding: 24px;">
+            <div style="font-size: 2rem; margin-bottom: 16px;">📅</div>
+            <h4>Check Events</h4>
+            <p style="color: var(--base-text-muted); margin-top: 8px;">Stay updated with upcoming campus activities.</p>
+            <a href="{{ url_for('events.list_events') }}" style="display: block; margin-top: 16px; color: var(--base-primary-color); font-weight: 600; text-decoration: none;">View Events →</a>
+        </div>
+        <div class="base-card" style="padding: 24px;">
+            <div style="font-size: 2rem; margin-bottom: 16px;">🏫</div>
+            <h4>Your Campuses</h4>
+            <p style="color: var(--base-text-muted); margin-top: 8px;">Quickly access the campuses you are part of.</p>
+            <a href="{{ url_for('main.dashboard') }}" style="display: block; margin-top: 16px; color: var(--base-primary-color); font-weight: 600; text-decoration: none;">Go to Dashboard →</a>
+        </div>
+        <div class="base-card" style="padding: 24px;">
+            <div style="font-size: 2rem; margin-bottom: 16px;">⚙</div>
+            <h4>Account Settings</h4>
+            <p style="color: var(--base-text-muted); margin-top: 8px;">Manage your profile and preferences.</p>
+            <a href="{{ url_for('main.settings') }}" style="display: block; margin-top: 16px; color: var(--base-primary-color); font-weight: 600; text-decoration: none;">Manage Settings →</a>
+        </div>
+    </div>
+</div>
 {% endblock %}
