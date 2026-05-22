@@ -24,6 +24,7 @@ def create_app(config_class=Config):
     # Initialize extensions
     db.init_app(app)
     login_manager.init_app(app)
+    login_manager.login_view = 'auth.page'
 
     # Import models to register user_loader
     from app import models
@@ -40,7 +41,8 @@ def create_app(config_class=Config):
     @app.errorhandler(500)
     def internal_error(error):
         import traceback
-        return f"<h1>Internal Server Error (500)</h1><pre>{traceback.format_exc()}</pre>", 500
+        app.logger.error(traceback.format_exc())
+        return "<h1>Something went wrong.</h1><p>Please try again later.</p>", 500
 
     # Create the database tables if they don't exist
     with app.app_context():

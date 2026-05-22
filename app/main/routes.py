@@ -1,5 +1,6 @@
 import os
 from flask import Blueprint, render_template, redirect, url_for, flash, request, current_app
+from flask_login import login_required
 from werkzeug.utils import secure_filename
 from app.extensions import db
 from app.models import Campus
@@ -13,10 +14,12 @@ def allowed_file(filename):
 
 @main_bp.route('/')
 @main_bp.route('/index')
+@login_required
 def index():
     return render_template('index.html')
 
 @main_bp.route('/dashboard')
+@login_required
 def dashboard():
     campuses = Campus.query.all()
     return render_template('main/dashboard.html', campuses=campuses)

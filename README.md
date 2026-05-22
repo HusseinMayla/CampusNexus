@@ -1,4 +1,4 @@
-# CampusNexus
+# LearnHive
 
 ## How to run
 

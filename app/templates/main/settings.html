@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}Settings - CampusNexus{% endblock %}
+{% block title %}Settings - LearnHive{% endblock %}
 
 {% block content %}
 <h1>⚙ Settings</h1>
@@ -12,7 +12,7 @@
         
         <div class="base-form-group">
             <label class="base-label">Display Name</label>
-            <input type="text" class="base-input" value="{{ current_user.username if current_user.is_authenticated else 'Guest' }}">
+            <input type="text" class="base-input" value="{{ current_user.name if current_user.is_authenticated else 'Guest' }}">
         </div>
 
         <div class="base-form-group">
