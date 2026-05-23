@@ -25,6 +25,11 @@
         <div class="base-card-content">
             <h3 class="base-card-title campus-name">{{ campus.name }}</h3>
             <p class="base-card-desc">{{ campus.description or 'No description provided.' }}</p>
+            {% if campus.id in created_ids %}
+            <p style="margin-top:10px; font-size:0.82rem; color:var(--base-text-muted);">
+                Invite code: <strong style="color:var(--base-primary-color); letter-spacing:0.08em;">{{ campus.invite_code }}</strong>
+            </p>
+            {% endif %}
         </div>
     </div>
     {% endfor %}
@@ -41,7 +46,7 @@
     <h3>No campuses found</h3>
     <p style="color: var(--base-text-muted); margin-bottom: 24px;">You haven't joined or created any campuses yet.</p>
     <div style="display: flex; gap: 12px; justify-content: center;">
-        <a href="{{ url_for('main.join_campus') }}" class="base-button" style="background-color: var(--base-hover-bg); color: var(--base-text-color);">Join Campus</a>
+        <a href="{{ url_for('main.join_campus') }}" class="base-button-secondary">Join Campus</a>
         <a href="{{ url_for('main.create_campus') }}" class="base-button">Create Campus</a>
     </div>
 </div>

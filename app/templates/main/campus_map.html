@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>{{ campus.name }} — Map | LearnHive</title>
+  <script>document.documentElement.setAttribute('data-theme', localStorage.getItem('theme') || 'dark');</script>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;600;700&family=Crimson+Pro:wght@300;400;500&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/map.css') }}"/>
+</head>
+<body>
+
+  <div id="map-config"
+       data-campus-id="{{ campus.id }}"
+       data-campus-name="{{ campus.name }}"
+       data-is-admin="{{ is_admin | lower }}"
+       data-center-lat="{{ campus.center_lat or '' }}"
+       data-center-lng="{{ campus.center_lng or '' }}">
+  </div>
+
+  <div class="map-page">
+
+    <aside class="map-sidebar">
+      <div class="sidebar-header">
+        <span class="sidebar-title">{{ campus.name }}</span>
+      </div>
+
+      {% if is_admin %}
+      <div class="search-section">
+        <label class="sidebar-label">Find your campus</label>
+        <div class="search-wrap">
+          <svg class="search-icon" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0016 9.5 6.5 6.5 0 109.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
+          <input type="text" id="campusSearch" placeholder="Type your university name…"/>
+        </div>
+        <button id="searchBtn" class="btn-search">Search</button>
+        <p class="search-hint" id="searchHint"></p>
+        <button id="setCenterBtn" class="btn-set-center hidden">Set as Campus Center</button>
+      </div>
+      {% endif %}
+
+      <div class="filter-section">
+        <label class="sidebar-label">Filter</label>
+        <div class="filter-group">
+          <button class="filter-btn active" data-filter="all">All</button>
+          <button class="filter-btn" data-filter="club">Clubs</button>
+          <button class="filter-btn" data-filter="office">Offices</button>
+          <button class="filter-btn" data-filter="event">Events</button>
+        </div>
+      </div>
+
+      <div class="legend-section">
+        <label class="sidebar-label">Legend</label>
+        <ul class="legend-list">
+          <li><span class="legend-dot legend-club"></span>Club</li>
+          <li><span class="legend-dot legend-office"></span>Office</li>
+          <li><span class="legend-dot legend-event"></span>Event</li>
+        </ul>
+      </div>
+
+      <div class="pin-list-section">
+        <label class="sidebar-label">On this map</label>
+        <ul class="pin-list" id="pinList">
+          <li class="pin-list-empty">No pins yet.</li>
+        </ul>
+      </div>
+    </aside>
+
+    <div class="map-wrap">
+      {% if is_admin %}
+      <button id="addPinBtn" class="btn-add-pin">+ Add Pin</button>
+      {% endif %}
+      <div id="map"></div>
+    </div>
+
+    {% if is_admin %}
+    <div class="pin-form-panel" id="pinFormPanel">
+      <div class="pin-form-inner">
+        <div class="pin-form-header">
+          <h3 class="pin-form-title">New Pin</h3>
+          <button class="pin-form-close" id="pinFormClose">&times;</button>
+        </div>
+
+        <div class="field-group">
+          <label class="field-label">Type</label>
+          <div class="type-options">
+            <label class="type-opt">
+              <input type="radio" name="pinType" value="club" checked/>
+              <span class="type-inner type-club">Club</span>
+            </label>
+            <label class="type-opt">
+              <input type="radio" name="pinType" value="office"/>
+              <span class="type-inner type-office">Office</span>
+            </label>
+            <label class="type-opt">
+              <input type="radio" name="pinType" value="event"/>
+              <span class="type-inner type-event">Event</span>
+            </label>
+          </div>
+        </div>
+
+        <div class="field-group">
+          <label class="field-label" for="pinName">Name</label>
+          <input type="text" id="pinName" placeholder="e.g. Drama Club"/>
+        </div>
+
+        <div class="field-group">
+          <label class="field-label" for="pinDesc">Description</label>
+          <textarea id="pinDesc" placeholder="Short description…" rows="3"></textarea>
+        </div>
+
+        <div class="field-group hidden" id="eventDateGroup">
+          <label class="field-label" for="pinDate">Event Date &amp; Time</label>
+          <input type="datetime-local" id="pinDate"/>
+        </div>
+
+        <p class="pin-hint">Click on the map to place the pin.</p>
+        <p class="pin-error" id="pinError"></p>
+
+        <div class="pin-form-actions">
+          <button id="pinSaveBtn" class="btn-pin-save">Save Pin</button>
+          <button id="pinCancelBtn" class="btn-pin-cancel">Cancel</button>
+        </div>
+      </div>
+    </div>
+    {% endif %}
+
+  </div>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="{{ url_for('static', filename='js/map.js') }}"></script>
+</body>
+</html>

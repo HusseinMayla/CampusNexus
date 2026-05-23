@@ -6,17 +6,24 @@
     <title>{% block title %}LearnHive{% endblock %}</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400&family=Crimson+Pro:wght@300;400;500&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/base-styles.css') }}">
     {% block extra_css %}{% endblock %}
 </head>
 <body>
     <header class="base-topbar">
+        <button class="base-hamburger" id="hamburger" aria-label="Menu">
+            <span></span><span></span><span></span>
+        </button>
         <a href="{{ url_for('main.index') }}" class="base-logo">
-            <img src="{{ url_for('static', filename='logo.png') }}" alt="LearnHive" style="height:32px;object-fit:contain;vertical-align:middle;margin-right:8px;"/>LearnHive
+            <img src="{{ url_for('static', filename='logo.png') }}" alt="LearnHive" style="height:44px;object-fit:contain;vertical-align:middle;margin-right:8px;"/>LearnHive
         </a>
         <div class="base-topbar-right">
             <button class="base-notification-btn" title="Notifications">🔔</button>
+            <button class="base-theme-toggle" id="themeToggle" title="Toggle theme">
+                <span class="theme-icon-sun">☀️</span>
+                <span class="theme-icon-moon">🌙</span>
+            </button>
             <div class="base-profile-avatar" title="Profile">
                 {% if current_user.is_authenticated %}
                     {{ current_user.name[0] | upper }}
@@ -72,6 +79,30 @@
         </div>
     </main>
 
+    <script>
+        const toggle    = document.getElementById('themeToggle');
+        const hamburger = document.getElementById('hamburger');
+        const sidebar   = document.querySelector('.base-sidebar');
+        const saved     = localStorage.getItem('theme') || 'dark';
+        document.documentElement.setAttribute('data-theme', saved);
+
+        toggle.addEventListener('click', () => {
+            const current = document.documentElement.getAttribute('data-theme');
+            const next    = current === 'dark' ? 'light' : 'dark';
+            document.documentElement.setAttribute('data-theme', next);
+            localStorage.setItem('theme', next);
+        });
+
+        hamburger.addEventListener('click', () => {
+            sidebar.classList.toggle('open');
+        });
+
+        document.addEventListener('click', (e) => {
+            if (!sidebar.contains(e.target) && !hamburger.contains(e.target)) {
+                sidebar.classList.remove('open');
+            }
+        });
+    </script>
     <script src="{{ url_for('static', filename='js/main.js') }}"></script>
     {% block extra_js %}{% endblock %}
 </body>
