@@ -2,7 +2,7 @@ import re
 from flask import Blueprint, render_template, redirect, url_for, flash, request
 from flask_login import login_user, logout_user, login_required, current_user
 from app.extensions import db
-from app.models import User
+from app.models import User, UserEmail
 import bcrypt
 
 auth_bp = Blueprint('auth', __name__, url_prefix='/auth')
@@ -83,3 +83,78 @@ def register():
 def logout():
     logout_user()
     return redirect(url_for('auth.page'))
+
+
+@auth_bp.route('/emails', methods=['POST'])
+@login_required
+def add_email():
+    email = request.form.get('email', '').strip().lower()
+    
+    if not email:
+        flash('Email address is required.', 'error')
+        return redirect(url_for('main.settings'))
+        
+    if not EMAIL_RE.match(email):
+        flash('Please enter a valid email address.', 'error')
+        return redirect(url_for('main.settings'))
+        
+    # Validation: No email can have more than one user (global uniqueness)
+    # 1. Check primary emails
+    if User.query.filter_by(email=email).first():
+        flash('This email address is already in use by another account.', 'error')
+        return redirect(url_for('main.settings'))
+        
+    # 2. Check secondary emails
+    if UserEmail.query.filter_by(email=email).first():
+        flash('This email address is already in use.', 'error')
+        return redirect(url_for('main.settings'))
+        
+    # Create the new secondary email
+    is_auto_verified = email.split('@')[0].lower() in ['admin', 'it']
+    new_email = UserEmail(user_id=current_user.id, email=email, is_verified=is_auto_verified)
+    db.session.add(new_email)
+    db.session.commit()
+    
+    if is_auto_verified:
+        flash(f'Added and auto-verified administrator email: {email}', 'success')
+    else:
+        flash(f'Added {email} to your account. Please verify it to enable multi-campus access.', 'success')
+    return redirect(url_for('main.settings'))
+
+
+@auth_bp.route('/emails/<int:email_id>/verify', methods=['POST'])
+@login_required
+def verify_email(email_id):
+    user_email = UserEmail.query.get_or_404(email_id)
+    
+    # Security check: Ensure it belongs to the current user
+    if user_email.user_id != current_user.id:
+        flash('Unauthorized action.', 'error')
+        return redirect(url_for('main.settings'))
+        
+    # Mock/TODO Verification:
+    # In production, this would validate a code/token sent to the email.
+    # For testing and development, we mock it by verifying it immediately.
+    user_email.is_verified = True
+    db.session.commit()
+    
+    flash(f'Email {user_email.email} has been verified successfully!', 'success')
+    return redirect(url_for('main.settings'))
+
+
+@auth_bp.route('/emails/<int:email_id>/delete', methods=['POST', 'DELETE'])
+@login_required
+def delete_email(email_id):
+    user_email = UserEmail.query.get_or_404(email_id)
+    
+    # Security check: Ensure it belongs to the current user
+    if user_email.user_id != current_user.id:
+        flash('Unauthorized action.', 'error')
+        return redirect(url_for('main.settings'))
+        
+    email_str = user_email.email
+    db.session.delete(user_email)
+    db.session.commit()
+    
+    flash(f'Email {email_str} has been removed.', 'success')
+    return redirect(url_for('main.settings'))

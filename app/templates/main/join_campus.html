@@ -3,23 +3,106 @@
 {% block title %}Join Campus - LearnHive{% endblock %}
 
 {% block content %}
-<h1>➕ Join Campus</h1>
-<p style="color: var(--base-text-muted); margin-top: 8px;">Find and join campuses near you or by invitation code.</p>
+<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 32px;">
+    <div>
+        <h1>➕ Join Campus</h1>
+        <p style="color: var(--base-text-muted); margin-top: 8px;">Explore active campuses and connect with their communities.</p>
+    </div>
+</div>
 
-<div style="margin-top: 32px; max-width: 500px;">
-    <form method="POST">
-        <div class="base-form-group">
-            <label class="base-label">Invitation Code</label>
-            <div style="display: flex; gap: 8px;">
-                <input type="text" name="code" class="base-input" placeholder="Enter invite code" required>
-                <button type="submit" class="base-button">Join</button>
+<div class="base-search-wrapper" style="margin-bottom: 32px;">
+    <span class="base-search-icon">🔍</span>
+    <input type="text" id="campusSearch" class="base-input base-search-input" placeholder="Search campuses by name or domain suffix..." onkeyup="filterCampuses()">
+</div>
+
+{% if campuses %}
+<div class="base-card-grid" id="campusGrid">
+    {% for item in campuses %}
+    <div class="base-card campus-item" style="display: flex; flex-direction: column; justify-content: space-between; height: 100%;">
+        <div>
+            {% if item.campus.banner_image %}
+            <img src="{{ item.campus.banner_image }}" alt="{{ item.campus.name }}" class="base-card-image">
+            {% else %}
+            <div class="base-card-image" style="display: flex; align-items: center; justify-content: center; font-size: 3rem; background: #e2e8f0; color: #475569; height: 160px; border-radius: 8px 8px 0 0;">🏫</div>
+            {% endif %}
+            
+            <div class="base-card-content" style="padding: 20px;">
+                <h3 class="base-card-title campus-name" style="margin-bottom: 8px; font-size: 1.25rem; font-weight: 600;">{{ item.campus.name }}</h3>
+                <p class="base-card-desc" style="color: var(--base-text-muted); font-size: 0.92rem; line-height: 1.5; margin-bottom: 16px;">
+                    {{ item.campus.description or 'No description provided.' }}
+                </p>
+                
+                {% if item.campus.domain %}
+                <div style="display: flex; align-items: center; gap: 6px; margin-bottom: 12px;">
+                    <span style="font-size: 0.85rem; padding: 4px 10px; border-radius: 6px; background: #fee2e2; color: #991b1b; font-weight: 500; border: 1px solid #fca5a5;">
+                        🔒 @{{ item.campus.domain }}
+                    </span>
+                </div>
+                {% endif %}
             </div>
         </div>
-    </form>
-
-    <hr style="margin: 32px 0; border: none; border-top: 1px solid var(--base-border-color);">
-
-    <h3>Discover Campuses</h3>
-    <p style="color: var(--base-text-muted); margin-top: 8px;">Coming soon: Browse public campuses in your area.</p>
+        
+        <div style="padding: 16px 20px 20px 20px; display: flex; justify-content: space-between; align-items: center; border-top: 1px solid var(--base-border-color); padding-top: 16px; margin-top: auto;">
+            <div style="font-size: 0.9rem; color: var(--base-text-muted); font-weight: 500;">
+                👥 {{ item.member_count }} member{% if item.member_count != 1 %}s{% endif %}
+            </div>
+            
+            {% if item.is_joined %}
+                <span style="font-size: 0.88rem; padding: 6px 16px; border-radius: 8px; background: #dcfce7; color: #15803d; font-weight: 600;">
+                    ✓ {% if item.role == 'owner' %}Owner{% elif item.role == 'admin' %}Admin{% else %}Joined{% endif %}
+                </span>
+            {% else %}
+                <form action="{{ url_for('main.join_campus_by_id', campus_id=item.campus.id) }}" method="POST" style="margin: 0;">
+                    <button type="submit" class="base-button" style="font-size: 0.88rem; padding: 8px 20px;">Join Campus</button>
+                </form>
+            {% endif %}
+        </div>
+    </div>
+    {% endfor %}
 </div>
+
+<div id="noResults" style="display: none; text-align: center; padding: 64px 24px; color: var(--base-text-muted); background: var(--base-card-bg); border-radius: 12px; border: 1px dashed var(--base-border-color);">
+    <div style="font-size: 3.5rem; margin-bottom: 16px;">🏝️</div>
+    <h3>No campuses found</h3>
+    <p>We couldn't find any campuses matching your search term.</p>
+</div>
+
+{% else %}
+<div style="text-align: center; padding: 64px 24px; background: var(--base-card-bg); border-radius: 12px; border: 1px dashed var(--base-border-color);">
+    <div style="font-size: 3.5rem; margin-bottom: 16px;">🏫</div>
+    <h3>No campuses created yet</h3>
+    <p style="color: var(--base-text-muted); margin-bottom: 24px;">Be the first one to start a community on LearnHive!</p>
+    <a href="{{ url_for('main.create_campus') }}" class="base-button">Create Campus</a>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function filterCampuses() {
+    const input = document.getElementById('campusSearch');
+    const filter = input.value.toLowerCase();
+    const grid = document.getElementById('campusGrid');
+    const items = grid ? grid.getElementsByClassName('campus-item') : [];
+    const noResults = document.getElementById('noResults');
+    let visibleCount = 0;
+ 
+    for (let i = 0; i < items.length; i++) {
+        const name = items[i].querySelector('.campus-name').textContent.toLowerCase();
+        const desc = items[i].querySelector('.base-card-desc').textContent.toLowerCase();
+        
+        if (name.includes(filter) || desc.includes(filter)) {
+            items[i].style.display = "";
+            visibleCount++;
+        } else {
+            items[i].style.display = "none";
+        }
+    }
+ 
+    if (noResults && grid) {
+        noResults.style.display = visibleCount === 0 ? "block" : "none";
+        grid.style.display = visibleCount === 0 ? "none" : "grid";
+    }
+}
+</script>
 {% endblock %}

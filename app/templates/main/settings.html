@@ -1,32 +1,104 @@
 {% extends "base.html" %}
 
-{% block title %}Settings - LearnHive{% endblock %}
+{% block title %}Settings - CampusNexus{% endblock %}
 
 {% block content %}
-<h1>⚙ Settings</h1>
+<div style="max-width: 800px; margin: 0 auto; padding: 24px 0;">
+    <h1 style="margin-bottom: 8px;">⚙ Settings</h1>
+    <p style="color: var(--base-text-muted); margin-bottom: 32px;">Manage your account, profile, secondary emails, and preferences.</p>
 
-<div style="margin-top: 32px; max-width: 600px;">
-    <div class="base-card" style="padding: 24px;">
-        <h3>Profile Settings</h3>
-        <p style="color: var(--base-text-muted); margin-bottom: 24px;">Update your personal information and preferences.</p>
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+                <div style="padding: 12px 16px; border-radius: 8px; margin-bottom: 24px; background: {% if category == 'success' %}#dcfce7; color: #166534{% elif category == 'error' %}#fee2e2; color: #991b1b{% else %}#f1f5f9; color: #334155{% endif %}; border: 1px solid {% if category == 'success' %}#bbf7d0{% elif category == 'error' %}#fecaca{% else %}#e2e8f0{% endif %};">
+                    {{ message }}
+                </div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+
+    <div style="display: flex; flex-direction: column; gap: 32px;">
         
-        <div class="base-form-group">
-            <label class="base-label">Display Name</label>
-            <input type="text" class="base-input" value="{{ current_user.name if current_user.is_authenticated else 'Guest' }}">
+        <!-- Profile Settings Card -->
+        <div class="base-card" style="padding: 28px;">
+            <h3 style="margin-top: 0; margin-bottom: 6px; font-size: 1.3rem;">Profile Settings</h3>
+            <p style="color: var(--base-text-muted); margin-bottom: 24px; font-size: 0.92rem;">Update your name and primary login credentials.</p>
+            
+            <form action="{{ url_for('main.update_profile') }}" method="POST">
+                <div class="base-form-group" style="margin-bottom: 20px;">
+                    <label class="base-label" style="font-weight: 500; font-size: 0.9rem; margin-bottom: 8px; display: block;">Display Name</label>
+                    <input type="text" name="name" class="base-input" value="{{ current_user.name }}" required style="width: 100%;">
+                </div>
+
+                <div class="base-form-group" style="margin-bottom: 24px;">
+                    <label class="base-label" style="font-weight: 500; font-size: 0.9rem; margin-bottom: 8px; display: block;">Login Email Address</label>
+                    <input type="email" name="email" class="base-input" value="{{ current_user.email }}" required style="width: 100%;">
+                </div>
+
+                <button type="submit" class="base-button" style="padding: 10px 24px; font-size: 0.92rem;">Save Changes</button>
+            </form>
         </div>
 
-        <div class="base-form-group">
-            <label class="base-label">Email Address</label>
-            <input type="email" class="base-input" value="{{ current_user.email if current_user.is_authenticated else 'guest@example.com' }}">
+        <!-- Institutional/Secondary Emails Card -->
+        <div class="base-card" style="padding: 28px;">
+            <h3 style="margin-top: 0; margin-bottom: 6px; font-size: 1.3rem;">Linked University Emails</h3>
+            <p style="color: var(--base-text-muted); margin-bottom: 24px; font-size: 0.92rem;">Add institutional email addresses to unlock campuses you belong to.</p>
+
+            <!-- Linked Emails List -->
+            {% if current_user.secondary_emails %}
+            <div style="display: flex; flex-direction: column; gap: 12px; margin-bottom: 24px;">
+                {% for email in current_user.secondary_emails %}
+                <div style="display: flex; justify-content: space-between; align-items: center; padding: 14px 18px; background: var(--base-card-bg); border: 1px solid var(--base-border-color); border-radius: 8px;">
+                    <div style="display: flex; align-items: center; gap: 12px;">
+                        <span style="font-size: 1.1rem;">✉</span>
+                        <span style="font-weight: 500; font-size: 0.95rem;">{{ email.email }}</span>
+                        {% if email.is_verified %}
+                            <span style="font-size: 0.72rem; padding: 3px 8px; border-radius: 6px; background: #dcfce7; color: #166534; font-weight: 600; border: 1px solid #bbf7d0;">Verified</span>
+                        {% else %}
+                            <span style="font-size: 0.72rem; padding: 3px 8px; border-radius: 6px; background: #f1f5f9; color: #475569; font-weight: 600; border: 1px solid #e2e8f0;">Unverified</span>
+                        {% endif %}
+                    </div>
+                    
+                    <div style="display: flex; gap: 8px;">
+                        {% if not email.is_verified %}
+                        <form action="{{ url_for('auth.verify_email', email_id=email.id) }}" method="POST" style="margin: 0;">
+                            <button type="submit" class="base-button-secondary" style="font-size: 0.8rem; padding: 6px 12px; border-color: #3b82f6; color: #3b82f6; background: transparent;">Verify</button>
+                        </form>
+                        {% endif %}
+                        <form action="{{ url_for('auth.delete_email', email_id=email.id) }}" method="POST" style="margin: 0;">
+                            <button type="submit" class="base-button-secondary" style="font-size: 0.8rem; padding: 6px 12px; border-color: #ef4444; color: #ef4444; background: transparent;">Remove</button>
+                        </form>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <p style="color: var(--base-text-muted); font-style: italic; font-size: 0.92rem; margin-bottom: 24px;">No secondary emails linked yet.</p>
+            {% endif %}
+
+            <!-- Add Email Form -->
+            <form action="{{ url_for('auth.add_email') }}" method="POST">
+                <div class="base-form-group">
+                    <label class="base-label" style="font-weight: 500; font-size: 0.9rem; margin-bottom: 8px; display: block;">Add Institutional Email</label>
+                    <div style="display: flex; gap: 8px;">
+                        <input type="email" name="email" class="base-input" placeholder="e.g. you@aub.edu.lb" required style="flex: 1;">
+                        <button type="submit" class="base-button" style="padding: 10px 20px; font-size: 0.92rem; white-space: nowrap;">Add Email</button>
+                    </div>
+                </div>
+            </form>
         </div>
 
-        <button class="base-button">Save Changes</button>
-    </div>
+        <!-- Danger Zone / Account Actions Card -->
+        <div class="base-card" style="padding: 28px; border-color: #fee2e2; background: #fffcfc;">
+            <h3 style="margin-top: 0; margin-bottom: 6px; font-size: 1.3rem; color: #991b1b;">Account Actions</h3>
+            <p style="color: var(--base-text-muted); margin-bottom: 24px; font-size: 0.92rem;">Log out of your session or permanently delete your account.</p>
 
-    <div class="base-card" style="padding: 24px; margin-top: 24px; border-color: #fee2e2;">
-        <h3 style="color: #991b1b;">Danger Zone</h3>
-        <p style="color: var(--base-text-muted); margin-bottom: 24px;">Irreversible actions for your account.</p>
-        <button class="base-button-danger">Delete Account</button>
+            <div style="display: flex; gap: 12px; flex-wrap: wrap;">
+                <a href="{{ url_for('auth.logout') }}" class="base-button-secondary" style="padding: 10px 24px; font-size: 0.92rem; text-decoration: none; border-color: #475569; color: #475569; font-weight: 500; display: inline-flex; align-items: center; justify-content: center; background: white;">Log Out</a>
+                <button class="base-button-danger" style="padding: 10px 24px; font-size: 0.92rem;">Delete Account</button>
+            </div>
+        </div>
+
     </div>
 </div>
 {% endblock %}
