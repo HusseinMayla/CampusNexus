@@ -1,4 +1,4 @@
-from flask import Blueprint, render_template, request, jsonify
+from flask import Blueprint, render_template, request, jsonify, redirect, url_for, flash
 from flask_login import login_required, current_user
 from app.extensions import db
 from app.models import Campus, Club, Office, Event
@@ -14,7 +14,89 @@ map_bp = Blueprint('map', __name__)
 def campus_map(campus_id):
     campus   = Campus.query.get_or_404(campus_id)
     is_admin = (campus.creator_id == current_user.id)
-    return render_template('main/campus_map.html', campus=campus, is_admin=is_admin)
+    return render_template('main/campus_map.html', campus=campus, is_admin=is_admin, active_page='map')
+
+
+@map_bp.route('/campus/<int:campus_id>/add-club', methods=['POST'])
+@login_required
+def add_club(campus_id):
+    campus = Campus.query.get_or_404(campus_id)
+    if campus.creator_id != current_user.id:
+        flash('Unauthorized action.', 'error')
+        return redirect(url_for('map.campus_map', campus_id=campus_id))
+    
+    name = request.form.get('name', '').strip()
+    description = request.form.get('description', '').strip()
+    
+    if not name:
+        flash('Club name is required.', 'error')
+        return redirect(url_for('map.campus_map', campus_id=campus_id))
+        
+    club = Club(name=name, description=description, campus_id=campus.id)
+    db.session.add(club)
+    db.session.commit()
+    flash(f'Club "{name}" added successfully!', 'success')
+    return redirect(url_for('map.campus_map', campus_id=campus_id))
+
+
+@map_bp.route('/campus/<int:campus_id>/add-office', methods=['POST'])
+@login_required
+def add_office(campus_id):
+    campus = Campus.query.get_or_404(campus_id)
+    if campus.creator_id != current_user.id:
+        flash('Unauthorized action.', 'error')
+        return redirect(url_for('map.campus_map', campus_id=campus_id))
+    
+    name = request.form.get('name', '').strip()
+    description = request.form.get('description', '').strip()
+    
+    if not name:
+        flash('Office name is required.', 'error')
+        return redirect(url_for('map.campus_map', campus_id=campus_id))
+        
+    office = Office(name=name, description=description, campus_id=campus.id)
+    db.session.add(office)
+    db.session.commit()
+    flash(f'Office "{name}" added successfully!', 'success')
+    return redirect(url_for('map.campus_map', campus_id=campus_id))
+
+
+@map_bp.route('/campus/<int:campus_id>/delete-club/<int:club_id>', methods=['POST'])
+@login_required
+def delete_club(campus_id, club_id):
+    campus = Campus.query.get_or_404(campus_id)
+    if campus.creator_id != current_user.id:
+        flash('Unauthorized action.', 'error')
+        return redirect(url_for('map.campus_map', campus_id=campus_id))
+        
+    club = Club.query.get_or_404(club_id)
+    if club.campus_id != campus.id:
+        flash('Invalid action.', 'error')
+        return redirect(url_for('map.campus_map', campus_id=campus_id))
+        
+    db.session.delete(club)
+    db.session.commit()
+    flash(f'Club "{club.name}" deleted successfully.', 'success')
+    return redirect(url_for('map.campus_map', campus_id=campus_id))
+
+
+@map_bp.route('/campus/<int:campus_id>/delete-office/<int:office_id>', methods=['POST'])
+@login_required
+def delete_office(campus_id, office_id):
+    campus = Campus.query.get_or_404(campus_id)
+    if campus.creator_id != current_user.id:
+        flash('Unauthorized action.', 'error')
+        return redirect(url_for('map.campus_map', campus_id=campus_id))
+        
+    office = Office.query.get_or_404(office_id)
+    if office.campus_id != campus.id:
+        flash('Invalid action.', 'error')
+        return redirect(url_for('map.campus_map', campus_id=campus_id))
+        
+    db.session.delete(office)
+    db.session.commit()
+    flash(f'Office "{office.name}" deleted successfully.', 'success')
+    return redirect(url_for('map.campus_map', campus_id=campus_id))
 
 
 # ── API: fetch all pins ───────────────────────────────────────────────────────

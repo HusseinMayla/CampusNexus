@@ -1,0 +1,94 @@
+{% extends "base.html" %}
+
+{% block title %}Resources — {{ campus.name }} | LearnHive{% endblock %}
+
+{% block content %}
+<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 32px; flex-wrap: wrap; gap: 16px;">
+    <div>
+        <h1 style="margin: 0; font-size: 2.2rem;">📚 Study Share Hub</h1>
+        <p style="color: var(--base-text-muted); margin-top: 4px;">Collaborate and share research papers, study notes, or reference links with your fellow students at {{ campus.name }}.</p>
+    </div>
+    <button onclick="toggleUploadForm()" class="base-button" id="uploadBtn">➕ Share Resource</button>
+</div>
+
+<!-- Upload Form Card (Hidden by default) -->
+<div id="uploadFormContainer" style="display: none; background: linear-gradient(160deg, #0f2040 0%, #0a1628 100%); border: 1px solid rgba(200,169,110,0.2); border-radius: 12px; padding: 24px; margin-bottom: 32px; box-shadow: 0 8px 32px rgba(0,0,0,0.3); max-width: 600px;">
+    <h3 style="margin-top: 0; margin-bottom: 20px; color: var(--base-tan);">🔗 Share a Study Resource</h3>
+    <form action="{{ url_for('main.campus_resources', campus_id=campus.id) }}" method="POST">
+        <div class="base-form-group">
+            <label class="base-label" for="title">Resource Title *</label>
+            <input type="text" id="title" name="title" class="base-input" placeholder="e.g. Calculus II Midterm Review Notes" required>
+        </div>
+        
+        <div class="base-form-group">
+            <label class="base-label" for="description">Description</label>
+            <textarea id="description" name="description" class="base-textarea" placeholder="Provide a brief summary of what this resource covers..."></textarea>
+        </div>
+        
+        <div class="base-form-group">
+            <label class="base-label" for="file_url">Resource Link / URL</label>
+            <input type="url" id="file_url" name="file_url" class="base-input" placeholder="e.g. https://drive.google.com/file/... or https://github.com/...">
+            <small style="color: var(--base-text-muted); display: block; margin-top: 4px; font-style: italic;">Provide a Google Drive, Dropbox, or GitHub link containing your file.</small>
+        </div>
+        
+        <div style="display: flex; gap: 12px; margin-top: 24px;">
+            <button type="submit" class="base-button">Submit Resource</button>
+            <button type="button" onclick="toggleUploadForm()" class="base-button-secondary">Cancel</button>
+        </div>
+    </form>
+</div>
+
+<!-- Resources Grid -->
+{% if resources %}
+<div class="base-card-grid">
+    {% for resource in resources %}
+    <div class="base-card" style="display: flex; flex-direction: column; justify-content: space-between;">
+        <div class="base-card-content">
+            <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px;">
+                <span style="font-size: 1.5rem;">📄</span>
+                <span style="font-size: 0.8rem; background: rgba(200,169,110,0.15); color: var(--base-tan); padding: 2px 8px; border-radius: 12px; font-weight: bold;">
+                    {{ resource.uploaded_at.strftime('%b %d, %Y') }}
+                </span>
+            </div>
+            <h3 class="base-card-title" style="margin-bottom: 12px;">{{ resource.title }}</h3>
+            <p class="base-card-desc" style="margin-bottom: 16px;">{{ resource.description or 'No description provided.' }}</p>
+        </div>
+        
+        <div style="padding: 0 20px 20px 20px;">
+            <div style="border-top: 1px solid rgba(200,169,110,0.1); padding-top: 12px; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; font-size: 0.85rem; color: var(--base-text-muted);">
+                <span>Shared by: <strong>{{ resource.uploader.name }}</strong></span>
+            </div>
+            
+            {% if resource.file_url %}
+            <a href="{{ resource.file_url }}" target="_blank" class="base-button" style="width: 100%; text-align: center; display: block; font-size: 0.9rem; padding: 8px 16px;">🌐 View Resource</a>
+            {% else %}
+            <button class="base-button-secondary" style="width: 100%; text-align: center; display: block; font-size: 0.9rem; padding: 8px 16px; cursor: default; opacity: 0.5;">No external link</button>
+            {% endif %}
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% else %}
+<div style="text-align: center; padding: 64px; background: var(--base-card-bg); border-radius: 12px; border: 1px dashed var(--base-border-color);">
+    <div style="font-size: 3rem; margin-bottom: 16px;">📚</div>
+    <h3>No study resources shared yet</h3>
+    <p style="color: var(--base-text-muted); margin-bottom: 24px;">Be the first to share study sheets, research papers, or syllabus guides with this campus!</p>
+    <button onclick="toggleUploadForm()" class="base-button">Share a Resource</button>
+</div>
+{% endif %}
+
+<script>
+function toggleUploadForm() {
+    const container = document.getElementById('uploadFormContainer');
+    const uploadBtn = document.getElementById('uploadBtn');
+    if (container.style.display === 'none') {
+        container.style.display = 'block';
+        uploadBtn.innerText = '❌ Close Form';
+        container.scrollIntoView({ behavior: 'smooth' });
+    } else {
+        container.style.display = 'none';
+        uploadBtn.innerText = '➕ Share Resource';
+    }
+}
+</script>
+{% endblock %}

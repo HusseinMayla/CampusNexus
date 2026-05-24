@@ -3,7 +3,7 @@ from flask import Blueprint, render_template, redirect, url_for, flash, request,
 from flask_login import login_required, current_user
 from werkzeug.utils import secure_filename
 from app.extensions import db
-from app.models import Campus, CampusMember, CampusReport, Notification
+from app.models import Campus, CampusMember, CampusReport, Notification, Resource, MarketListing
 from sqlalchemy import func
 
 main_bp = Blueprint('main', __name__)
@@ -402,3 +402,84 @@ def update_profile():
     
     flash('Profile updated successfully!', 'success')
     return redirect(url_for('main.settings'))
+
+
+@main_bp.route('/campus/<int:campus_id>/resources', methods=['GET', 'POST'])
+@login_required
+def campus_resources(campus_id):
+    campus = Campus.query.get_or_404(campus_id)
+    is_member = CampusMember.query.filter_by(user_id=current_user.id, campus_id=campus.id).first() is not None or campus.creator_id == current_user.id
+    if not is_member:
+        flash('You must join this campus to view its resources.', 'error')
+        return redirect(url_for('main.join_campus'))
+        
+    if request.method == 'POST':
+        title = request.form.get('title', '').strip()
+        description = request.form.get('description', '').strip()
+        file_url = request.form.get('file_url', '').strip()
+        
+        if not title:
+            flash('Title is required.', 'error')
+            return redirect(url_for('main.campus_resources', campus_id=campus_id))
+            
+        new_resource = Resource(
+            title=title,
+            description=description,
+            file_url=file_url if file_url else None,
+            campus_id=campus.id,
+            uploader_id=current_user.id
+        )
+        db.session.add(new_resource)
+        db.session.commit()
+        flash('Resource uploaded successfully!', 'success')
+        return redirect(url_for('main.campus_resources', campus_id=campus_id))
+        
+    # Get all resources for this campus
+    resources = Resource.query.filter_by(campus_id=campus.id).order_by(Resource.uploaded_at.desc()).all()
+    return render_template('main/campus_resources.html', campus=campus, resources=resources, active_page='resources')
+
+
+@main_bp.route('/campus/<int:campus_id>/market', methods=['GET', 'POST'])
+@login_required
+def campus_market(campus_id):
+    campus = Campus.query.get_or_404(campus_id)
+    is_member = CampusMember.query.filter_by(user_id=current_user.id, campus_id=campus.id).first() is not None or campus.creator_id == current_user.id
+    if not is_member:
+        flash('You must join this campus to view its marketplace.', 'error')
+        return redirect(url_for('main.join_campus'))
+        
+    if request.method == 'POST':
+        title = request.form.get('title', '').strip()
+        description = request.form.get('description', '').strip()
+        price_str = request.form.get('price', '').strip()
+        contact = request.form.get('contact', '').strip()
+        image_url = request.form.get('image_url', '').strip()
+        
+        if not title or not price_str or not contact:
+            flash('Title, Price, and Contact information are required.', 'error')
+            return redirect(url_for('main.campus_market', campus_id=campus_id))
+            
+        try:
+            price = float(price_str)
+        except ValueError:
+            flash('Please enter a valid price.', 'error')
+            return redirect(url_for('main.campus_market', campus_id=campus_id))
+            
+        new_listing = MarketListing(
+            title=title,
+            description=description,
+            price=price,
+            contact=contact,
+            image_url=image_url if image_url else None,
+            campus_id=campus.id,
+            seller_id=current_user.id
+        )
+        db.session.add(new_listing)
+        db.session.commit()
+        flash('Item listed successfully!', 'success')
+        return redirect(url_for('main.campus_market', campus_id=campus_id))
+        
+    # Get all market listings for this campus
+    listings = MarketListing.query.filter_by(campus_id=campus.id).order_by(MarketListing.created_at.desc()).all()
+    return render_template('main/campus_market.html', campus=campus, listings=listings, active_page='market')
+

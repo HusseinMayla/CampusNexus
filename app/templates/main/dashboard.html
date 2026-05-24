@@ -16,7 +16,7 @@
 {% if campuses %}
 <div class="base-card-grid" id="campusGrid">
     {% for campus in campuses %}
-    <div class="base-card campus-item">
+    <a href="{{ url_for('map.campus_map', campus_id=campus.id) }}" class="base-card campus-item" style="text-decoration: none; display: block; color: inherit;">
         {% if campus.banner_image %}
         <img src="{{ campus.banner_image }}" alt="{{ campus.name }}" class="base-card-image">
         {% else %}
@@ -25,9 +25,8 @@
         <div class="base-card-content">
             <h3 class="base-card-title campus-name">{{ campus.name }}</h3>
             <p class="base-card-desc">{{ campus.description or 'No description provided.' }}</p>
-
         </div>
-    </div>
+    </a>
     {% endfor %}
 </div>
 

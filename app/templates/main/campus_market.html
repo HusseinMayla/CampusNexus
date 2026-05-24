@@ -1,0 +1,111 @@
+{% extends "base.html" %}
+
+{% block title %}Market Place — {{ campus.name }} | LearnHive{% endblock %}
+
+{% block content %}
+<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 32px; flex-wrap: wrap; gap: 16px;">
+    <div>
+        <h1 style="margin: 0; font-size: 2.2rem;">🛍️ Student Marketplace</h1>
+        <p style="color: var(--base-text-muted); margin-top: 4px;">Buy or sell textbooks, calculators, dorm furniture, and tickets directly with other students on campus.</p>
+    </div>
+    <button onclick="togglePostForm()" class="base-button" id="postBtn">➕ List an Item</button>
+</div>
+
+<!-- Post Form Card (Hidden by default) -->
+<div id="postFormContainer" style="display: none; background: linear-gradient(160deg, #0f2040 0%, #0a1628 100%); border: 1px solid rgba(200,169,110,0.2); border-radius: 12px; padding: 24px; margin-bottom: 32px; box-shadow: 0 8px 32px rgba(0,0,0,0.3); max-width: 600px;">
+    <h3 style="margin-top: 0; margin-bottom: 20px; color: var(--base-tan);">🏷️ List an Item for Sale</h3>
+    <form action="{{ url_for('main.campus_market', campus_id=campus.id) }}" method="POST">
+        <div class="base-form-group">
+            <label class="base-label" for="title">Item Name / Title *</label>
+            <input type="text" id="title" name="title" class="base-input" placeholder="e.g. iPad Pro (11-inch) with Apple Pencil" required>
+        </div>
+        
+        <div class="base-form-group" style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+            <div>
+                <label class="base-label" for="price">Price ($) *</label>
+                <input type="number" step="0.01" id="price" name="price" class="base-input" placeholder="e.g. 350.00" required>
+            </div>
+            <div>
+                <label class="base-label" for="contact">Contact Info *</label>
+                <input type="text" id="contact" name="contact" class="base-input" placeholder="e.g. Send email to user@test.edu" required>
+            </div>
+        </div>
+        
+        <div class="base-form-group">
+            <label class="base-label" for="description">Description</label>
+            <textarea id="description" name="description" class="base-textarea" placeholder="Describe the item condition, transaction meeting place, etc..."></textarea>
+        </div>
+        
+        <div class="base-form-group">
+            <label class="base-label" for="image_url">Image Link / URL (Optional)</label>
+            <input type="url" id="image_url" name="image_url" class="base-input" placeholder="e.g. https://images.unsplash.com/... or a hosted image link">
+        </div>
+        
+        <div style="display: flex; gap: 12px; margin-top: 24px;">
+            <button type="submit" class="base-button">Post Listing</button>
+            <button type="button" onclick="togglePostForm()" class="base-button-secondary">Cancel</button>
+        </div>
+    </form>
+</div>
+
+<!-- Marketplace Items Grid -->
+{% if listings %}
+<div class="base-card-grid">
+    {% for listing in listings %}
+    <div class="base-card" style="display: flex; flex-direction: column; justify-content: space-between;">
+        <div>
+            {% if listing.image_url %}
+            <img src="{{ listing.image_url }}" alt="{{ listing.title }}" class="base-card-image">
+            {% else %}
+            <div class="base-card-image" style="display: flex; align-items: center; justify-content: center; font-size: 3rem; background: #162a52;">🏷️</div>
+            {% endif %}
+            
+            <div class="base-card-content">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                    <span style="font-weight: bold; color: var(--base-tan); font-size: 1.25rem;">
+                        ${{ "%.2f" | format(listing.price) }}
+                    </span>
+                    <span style="font-size: 0.8rem; background: rgba(200,169,110,0.1); color: var(--base-text-muted); padding: 2px 8px; border-radius: 12px;">
+                        {{ listing.created_at.strftime('%b %d') }}
+                    </span>
+                </div>
+                <h3 class="base-card-title" style="margin-bottom: 8px;">{{ listing.title }}</h3>
+                <p class="base-card-desc" style="margin-bottom: 12px; font-size: 0.92rem; line-height: 1.5;">{{ listing.description or 'No description provided.' }}</p>
+            </div>
+        </div>
+        
+        <div style="padding: 0 20px 20px 20px;">
+            <div style="border-top: 1px solid rgba(200,169,110,0.1); padding-top: 12px; font-size: 0.85rem; color: var(--base-text-muted);">
+                <div style="margin-bottom: 4px;">Seller: <strong>{{ listing.seller.name }}</strong></div>
+                <div style="background: rgba(200,169,110,0.06); padding: 8px 12px; border-radius: 6px; border-left: 3px solid var(--base-tan); margin-top: 8px; word-break: break-all;">
+                    📞 {{ listing.contact }}
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% else %}
+<div style="text-align: center; padding: 64px; background: var(--base-card-bg); border-radius: 12px; border: 1px dashed var(--base-border-color);">
+    <div style="font-size: 3rem; margin-bottom: 16px;">🛍️</div>
+    <h3>No listings active right now</h3>
+    <p style="color: var(--base-text-muted); margin-bottom: 24px;">Got a textbook to pass on or looking to sell some dorm gear? Add a listing now!</p>
+    <button onclick="togglePostForm()" class="base-button">Post a Listing</button>
+</div>
+{% endif %}
+
+<script>
+function togglePostForm() {
+    const container = document.getElementById('postFormContainer');
+    const postBtn = document.getElementById('postBtn');
+    if (container.style.display === 'none') {
+        container.style.display = 'block';
+        postBtn.innerText = '❌ Close Form';
+        container.scrollIntoView({ behavior: 'smooth' });
+    } else {
+        container.style.display = 'none';
+        postBtn.innerText = '➕ List an Item';
+    }
+}
+</script>
+{% endblock %}

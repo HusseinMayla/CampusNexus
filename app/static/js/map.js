@@ -19,6 +19,7 @@ const IS_ADMIN  = cfg.isAdmin === 'true';
 const CAMPUS_NAME = cfg.campusName;
 const centerLat = cfg.centerLat ? parseFloat(cfg.centerLat) : null;
 const centerLng = cfg.centerLng ? parseFloat(cfg.centerLng) : null;
+const MAP_IMAGE = cfg.mapImage;
 
 // ── SVG icons per type ─────────────────────────────────────────
 const ICONS = {
@@ -40,15 +41,21 @@ function makeIcon(type) {
 
 // ── Init map ───────────────────────────────────────────────────
 function initMap() {
-  const defaultCenter = (centerLat && centerLng) ? [centerLat, centerLng] : [20, 0];
-  const defaultZoom   = (centerLat && centerLng) ? 16 : 2;
+  const bounds = [[0, 0], [1000, 1000]];
+  const defaultCenter = (centerLat && centerLng) ? [centerLat, centerLng] : [500, 500];
+  const defaultZoom   = (centerLat && centerLng) ? 0 : 0;
 
-  map = L.map('map', { zoomControl: false }).setView(defaultCenter, defaultZoom);
+  map = L.map('map', { 
+    crs: L.CRS.Simple,
+    zoomControl: false,
+    minZoom: -2,
+    maxZoom: 3
+  }).setView(defaultCenter, defaultZoom);
 
-  L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-    maxZoom: 19,
-  }).addTo(map);
+  L.imageOverlay(MAP_IMAGE, bounds).addTo(map);
+  if (!centerLat || !centerLng) {
+    map.fitBounds(bounds);
+  }
 
   L.control.zoom({ position: 'bottomright' }).addTo(map);
 
@@ -122,13 +129,6 @@ function setupAdminControls() {
         .classList.toggle('hidden', this.value !== 'event');
     });
   });
-
-  document.getElementById('searchBtn').addEventListener('click', searchCampus);
-  document.getElementById('campusSearch').addEventListener('keydown', e => {
-    if (e.key === 'Enter') searchCampus();
-  });
-
-  document.getElementById('setCenterBtn').addEventListener('click', saveCampusCenter);
 
   map.on('click', function (e) {
     if (!placementMode) return;
@@ -238,63 +238,7 @@ async function deletePin(type, id) {
   }
 }
 
-// ── Search / Nominatim geocoding ───────────────────────────────
-async function searchCampus() {
-  const query     = document.getElementById('campusSearch').value.trim();
-  const hintEl    = document.getElementById('searchHint');
-  const centerBtn = document.getElementById('setCenterBtn');
-
-  if (!query) return;
-  hintEl.textContent = 'Searching…';
-  centerBtn.classList.add('hidden');
-
-  try {
-    const res     = await fetch(
-      `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&limit=1`,
-      { headers: { 'Accept-Language': 'en' } }
-    );
-    const results = await res.json();
-
-    if (!results.length) {
-      hintEl.textContent = 'Location not found. Try a more specific name.';
-      return;
-    }
-
-    const { lat, lon, display_name } = results[0];
-    searchedCenter = { lat: parseFloat(lat), lng: parseFloat(lon) };
-    map.flyTo([searchedCenter.lat, searchedCenter.lng], 16, { duration: 1.5 });
-
-    const shortName = display_name.split(',').slice(0, 2).join(',');
-    hintEl.textContent = `Found: ${shortName}`;
-    centerBtn.classList.remove('hidden');
-  } catch {
-    hintEl.textContent = 'Search failed. Check your connection.';
-  }
-}
-
-async function saveCampusCenter() {
-  if (!searchedCenter) return;
-  const btn = document.getElementById('setCenterBtn');
-
-  try {
-    const res = await fetch('/api/campus/set-center', {
-      method:  'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body:    JSON.stringify({ campus_id: CAMPUS_ID, ...searchedCenter }),
-    });
-    if (res.ok) {
-      btn.textContent  = '✓ Center Saved';
-      btn.style.cursor = 'default';
-      setTimeout(() => {
-        btn.classList.add('hidden');
-        btn.textContent  = 'Set as Campus Center';
-        btn.style.cursor = '';
-      }, 2500);
-    }
-  } catch {
-    document.getElementById('searchHint').textContent = 'Failed to save. Try again.';
-  }
-}
+// Search geocoding fully removed as we operate on local blueprint coordinates
 
 // ── Filter pins ────────────────────────────────────────────────
 function setupFilters() {
