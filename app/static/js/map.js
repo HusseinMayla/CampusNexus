@@ -4,18 +4,18 @@
 
 // ── State ──────────────────────────────────────────────────────
 let map;
-const markers      = {};
-let placementMode  = false;
-let tempMarker     = null;
-let pendingLatLng  = null;
-let currentFilter  = 'all';
-let allPins        = [];
+const markers = {};
+let placementMode = false;
+let tempMarker = null;
+let pendingLatLng = null;
+let currentFilter = "all";
+let allPins = [];
 let searchedCenter = null;
 
 // ── Config from DOM ────────────────────────────────────────────
-const cfg       = document.getElementById('map-config').dataset;
+const cfg = document.getElementById("map-config").dataset;
 const CAMPUS_ID = cfg.campusId;
-const IS_ADMIN  = cfg.isAdmin === 'true';
+const IS_ADMIN = cfg.isAdmin === "true";
 const CAMPUS_NAME = cfg.campusName;
 const centerLat = cfg.centerLat ? parseFloat(cfg.centerLat) : null;
 const centerLng = cfg.centerLng ? parseFloat(cfg.centerLng) : null;
@@ -31,25 +31,29 @@ const ICONS = {
 // ── Build custom Leaflet DivIcon ───────────────────────────────
 function makeIcon(type) {
   return L.divIcon({
-    className: '',
+    className: "",
     html: `<div class="map-marker map-marker-${type}">${ICONS[type]}</div>`,
-    iconSize:    [34, 34],
-    iconAnchor:  [12, 34],
+    iconSize: [34, 34],
+    iconAnchor: [12, 34],
     popupAnchor: [5, -34],
   });
 }
 
 // ── Init map ───────────────────────────────────────────────────
 function initMap() {
-  const bounds = [[0, 0], [1000, 1000]];
-  const defaultCenter = (centerLat && centerLng) ? [centerLat, centerLng] : [500, 500];
-  const defaultZoom   = (centerLat && centerLng) ? 0 : 0;
+  const bounds = [
+    [0, 0],
+    [1000, 1000],
+  ];
+  const defaultCenter =
+    centerLat && centerLng ? [centerLat, centerLng] : [500, 500];
+  const defaultZoom = centerLat && centerLng ? 0 : 0;
 
-  map = L.map('map', { 
+  map = L.map("map", {
     crs: L.CRS.Simple,
     zoomControl: false,
     minZoom: -2,
-    maxZoom: 3
+    maxZoom: 3,
   }).setView(defaultCenter, defaultZoom);
 
   L.imageOverlay(MAP_IMAGE, bounds).addTo(map);
@@ -57,7 +61,7 @@ function initMap() {
     map.fitBounds(bounds);
   }
 
-  L.control.zoom({ position: 'bottomright' }).addTo(map);
+  L.control.zoom({ position: "bottomright" }).addTo(map);
 
   fetchPins();
 
@@ -70,19 +74,19 @@ function initMap() {
 // ── Fetch and render all pins ──────────────────────────────────
 async function fetchPins() {
   try {
-    const res  = await fetch(`/api/map-data/${CAMPUS_ID}`);
+    const res = await fetch(`/api/map-data/${CAMPUS_ID}`);
     const pins = await res.json();
     allPins = pins;
     pins.forEach(renderPin);
     updatePinList();
   } catch (err) {
-    console.error('Failed to fetch pins:', err);
+    console.error("Failed to fetch pins:", err);
   }
 }
 
 function renderPin(pin) {
   const marker = L.marker([pin.lat, pin.lng], { icon: makeIcon(pin.type) });
-  marker.bindPopup(buildPopup(pin), { className: 'lh-popup', maxWidth: 260 });
+  marker.bindPopup(buildPopup(pin), { className: "lh-popup", maxWidth: 260 });
   marker.pinData = pin;
   marker.addTo(map);
   markers[`${pin.type}-${pin.id}`] = marker;
@@ -90,13 +94,14 @@ function renderPin(pin) {
 
 // ── Build popup HTML ───────────────────────────────────────────
 function buildPopup(pin) {
-  const dateRow = (pin.type === 'event' && pin.date)
-    ? `<p class="popup-date">📅 ${formatDate(pin.date)}</p>`
-    : '';
+  const dateRow =
+    pin.type === "event" && pin.date
+      ? `<p class="popup-date">📅 ${formatDate(pin.date)}</p>`
+      : "";
 
   const deleteBtn = IS_ADMIN
     ? `<button class="popup-delete" data-type="${pin.type}" data-id="${pin.id}">Remove pin</button>`
-    : '';
+    : "";
 
   return `
     <div class="popup-type-bar popup-type-bar-${pin.type}"></div>
@@ -109,56 +114,66 @@ function buildPopup(pin) {
 }
 
 // ── Event delegation for popup delete buttons ──────────────────
-document.getElementById('map').addEventListener('click', function (e) {
-  if (!e.target.classList.contains('popup-delete')) return;
+document.getElementById("map").addEventListener("click", function (e) {
+  if (!e.target.classList.contains("popup-delete")) return;
   const type = e.target.dataset.type;
-  const id   = parseInt(e.target.dataset.id, 10);
+  const id = parseInt(e.target.dataset.id, 10);
   deletePin(type, id);
 });
 
 // ── Admin controls ─────────────────────────────────────────────
 function setupAdminControls() {
-  document.getElementById('addPinBtn').addEventListener('click', togglePlacementMode);
-  document.getElementById('pinFormClose').addEventListener('click', cancelPlacement);
-  document.getElementById('pinCancelBtn').addEventListener('click', cancelPlacement);
-  document.getElementById('pinSaveBtn').addEventListener('click', savePin);
+  document
+    .getElementById("addPinBtn")
+    .addEventListener("click", togglePlacementMode);
+  document
+    .getElementById("pinFormClose")
+    .addEventListener("click", cancelPlacement);
+  document
+    .getElementById("pinCancelBtn")
+    .addEventListener("click", cancelPlacement);
+  document.getElementById("pinSaveBtn").addEventListener("click", savePin);
 
-  document.querySelectorAll('input[name="pinType"]').forEach(radio => {
-    radio.addEventListener('change', function () {
-      document.getElementById('eventDateGroup')
-        .classList.toggle('hidden', this.value !== 'event');
+  document.querySelectorAll('input[name="pinType"]').forEach((radio) => {
+    radio.addEventListener("change", function () {
+      document
+        .getElementById("eventDateGroup")
+        .classList.toggle("hidden", this.value !== "event");
     });
   });
 
-  map.on('click', function (e) {
+  map.on("click", function (e) {
     if (!placementMode) return;
     pendingLatLng = e.latlng;
 
     if (tempMarker) map.removeLayer(tempMarker);
     tempMarker = L.marker(e.latlng, {
       icon: L.divIcon({
-        className: '',
+        className: "",
         html: '<div class="temp-marker-inner"></div>',
         iconSize: [16, 16],
         iconAnchor: [8, 8],
       }),
     }).addTo(map);
 
-    document.getElementById('pinFormPanel').classList.add('open');
+    document.getElementById("pinFormPanel").classList.add("open");
   });
 }
 
 function togglePlacementMode() {
   placementMode = !placementMode;
-  const btn  = document.getElementById('addPinBtn');
-  const wrap = document.querySelector('.map-wrap');
-  btn.classList.toggle('active', placementMode);
-  btn.textContent = placementMode ? '✕ Cancel' : '+ Add Pin';
-  wrap.classList.toggle('placement-cursor', placementMode);
+  const btn = document.getElementById("addPinBtn");
+  const wrap = document.querySelector(".map-wrap");
+  btn.classList.toggle("active", placementMode);
+  btn.textContent = placementMode ? "✕ Cancel" : "+ Add Pin";
+  wrap.classList.toggle("placement-cursor", placementMode);
 
   if (!placementMode) {
-    document.getElementById('pinFormPanel').classList.remove('open');
-    if (tempMarker) { map.removeLayer(tempMarker); tempMarker = null; }
+    document.getElementById("pinFormPanel").classList.remove("open");
+    if (tempMarker) {
+      map.removeLayer(tempMarker);
+      tempMarker = null;
+    }
     pendingLatLng = null;
   }
 }
@@ -169,72 +184,91 @@ function cancelPlacement() {
 }
 
 async function savePin() {
-  const name  = document.getElementById('pinName').value.trim();
-  const desc  = document.getElementById('pinDesc').value.trim();
-  const type  = document.querySelector('input[name="pinType"]:checked').value;
-  const date  = document.getElementById('pinDate').value;
-  const errEl = document.getElementById('pinError');
+  const name = document.getElementById("pinName").value.trim();
+  const desc = document.getElementById("pinDesc").value.trim();
+  const type = document.querySelector('input[name="pinType"]:checked').value;
+  const date = document.getElementById("pinDate").value;
+  const errEl = document.getElementById("pinError");
 
-  errEl.textContent = '';
+  errEl.textContent = "";
 
-  if (!name)          { errEl.textContent = 'Name is required.'; return; }
-  if (!pendingLatLng) { errEl.textContent = 'Click on the map to place the pin first.'; return; }
-  if (type === 'event' && !date) { errEl.textContent = 'Please select a date for the event.'; return; }
+  if (!name) {
+    errEl.textContent = "Name is required.";
+    return;
+  }
+  if (!pendingLatLng) {
+    errEl.textContent = "Click on the map to place the pin first.";
+    return;
+  }
+  if (type === "event" && !date) {
+    errEl.textContent = "Please select a date for the event.";
+    return;
+  }
 
   const payload = {
-    type, name, description: desc,
-    lat:       pendingLatLng.lat,
-    lng:       pendingLatLng.lng,
+    type,
+    name,
+    description: desc,
+    lat: pendingLatLng.lat,
+    lng: pendingLatLng.lng,
     campus_id: CAMPUS_ID,
-    date:      date || null,
+    date: date || null,
   };
 
   try {
-    const res = await fetch('/api/pin/add', {
-      method:  'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body:    JSON.stringify(payload),
+    const res = await fetch("/api/pin/add", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
     });
 
     if (res.ok) {
       const newPin = await res.json();
-      if (tempMarker) { map.removeLayer(tempMarker); tempMarker = null; }
+      if (tempMarker) {
+        map.removeLayer(tempMarker);
+        tempMarker = null;
+      }
       allPins.push(newPin);
       renderPin(newPin);
       updatePinList();
       cancelPlacement();
     } else {
       const err = await res.json();
-      errEl.textContent = err.error || 'Failed to save pin.';
+      errEl.textContent = err.error || "Failed to save pin.";
     }
   } catch {
-    errEl.textContent = 'Network error. Please try again.';
+    errEl.textContent = "Network error. Please try again.";
   }
 }
 
 function clearPinForm() {
-  document.getElementById('pinName').value  = '';
-  document.getElementById('pinDesc').value  = '';
-  document.getElementById('pinDate').value  = '';
-  document.getElementById('pinError').textContent = '';
+  document.getElementById("pinName").value = "";
+  document.getElementById("pinDesc").value = "";
+  document.getElementById("pinDate").value = "";
+  document.getElementById("pinError").textContent = "";
   document.querySelector('input[name="pinType"][value="club"]').checked = true;
-  document.getElementById('eventDateGroup').classList.add('hidden');
+  document.getElementById("eventDateGroup").classList.add("hidden");
 }
 
 async function deletePin(type, id) {
   if (!confirm(`Remove this ${type}?`)) return;
 
   try {
-    const res = await fetch(`/api/pin/delete/${type}/${id}`, { method: 'DELETE' });
+    const res = await fetch(`/api/pin/delete/${type}/${id}`, {
+      method: "DELETE",
+    });
     if (res.ok) {
       const key = `${type}-${id}`;
-      if (markers[key]) { map.removeLayer(markers[key]); delete markers[key]; }
+      if (markers[key]) {
+        map.removeLayer(markers[key]);
+        delete markers[key];
+      }
       map.closePopup();
-      allPins = allPins.filter(p => !(p.type === type && p.id === id));
+      allPins = allPins.filter((p) => !(p.type === type && p.id === id));
       updatePinList();
     }
   } catch {
-    alert('Failed to remove pin. Please try again.');
+    alert("Failed to remove pin. Please try again.");
   }
 }
 
@@ -242,11 +276,13 @@ async function deletePin(type, id) {
 
 // ── Filter pins ────────────────────────────────────────────────
 function setupFilters() {
-  document.querySelectorAll('.filter-btn').forEach(btn => {
-    btn.addEventListener('click', function () {
+  document.querySelectorAll(".filter-btn").forEach((btn) => {
+    btn.addEventListener("click", function () {
       currentFilter = this.dataset.filter;
-      document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
-      this.classList.add('active');
+      document
+        .querySelectorAll(".filter-btn")
+        .forEach((b) => b.classList.remove("active"));
+      this.classList.add("active");
       applyFilter();
     });
   });
@@ -255,7 +291,7 @@ function setupFilters() {
 function applyFilter() {
   Object.entries(markers).forEach(([key, marker]) => {
     const type = marker.pinData.type;
-    const show = currentFilter === 'all' || type === currentFilter;
+    const show = currentFilter === "all" || type === currentFilter;
     if (show && !map.hasLayer(marker)) marker.addTo(map);
     if (!show && map.hasLayer(marker)) map.removeLayer(marker);
   });
@@ -263,27 +299,27 @@ function applyFilter() {
 
 // ── Sidebar pin list ───────────────────────────────────────────
 function updatePinList() {
-  const list = document.getElementById('pinList');
-  list.innerHTML = '';
+  const list = document.getElementById("pinList");
+  list.innerHTML = "";
 
   if (!allPins.length) {
-    const li = document.createElement('li');
-    li.className = 'pin-list-empty';
-    li.textContent = 'No pins yet.';
+    const li = document.createElement("li");
+    li.className = "pin-list-empty";
+    li.textContent = "No pins yet.";
     list.appendChild(li);
     return;
   }
 
-  allPins.forEach(pin => {
-    const li  = document.createElement('li');
-    li.className = 'pin-list-item';
+  allPins.forEach((pin) => {
+    const li = document.createElement("li");
+    li.className = "pin-list-item";
     li.dataset.type = pin.type;
-    li.dataset.id   = pin.id;
+    li.dataset.id = pin.id;
 
-    const dot = document.createElement('span');
+    const dot = document.createElement("span");
     dot.className = `pin-list-dot dot-${pin.type}`;
 
-    const name = document.createElement('span');
+    const name = document.createElement("span");
     name.textContent = pin.name;
 
     li.appendChild(dot);
@@ -293,10 +329,10 @@ function updatePinList() {
 }
 
 function setupPinListClicks() {
-  document.getElementById('pinList').addEventListener('click', function (e) {
-    const item = e.target.closest('.pin-list-item');
+  document.getElementById("pinList").addEventListener("click", function (e) {
+    const item = e.target.closest(".pin-list-item");
     if (!item) return;
-    const key    = `${item.dataset.type}-${item.dataset.id}`;
+    const key = `${item.dataset.type}-${item.dataset.id}`;
     const marker = markers[key];
     if (!marker) return;
     map.flyTo(marker.getLatLng(), 18, { duration: 0.8 });
@@ -306,19 +342,22 @@ function setupPinListClicks() {
 
 // ── Helpers ────────────────────────────────────────────────────
 function formatDate(isoStr) {
-  return new Date(isoStr).toLocaleString('en-US', {
-    weekday: 'short', month: 'short', day: 'numeric',
-    hour: '2-digit', minute: '2-digit',
+  return new Date(isoStr).toLocaleString("en-US", {
+    weekday: "short",
+    month: "short",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
   });
 }
 
 function escapeHtml(str) {
   return String(str)
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;');
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
 }
 
 // ── Boot ───────────────────────────────────────────────────────
-document.addEventListener('DOMContentLoaded', initMap);
+document.addEventListener("DOMContentLoaded", initMap);
