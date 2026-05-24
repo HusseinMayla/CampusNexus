@@ -126,6 +126,12 @@
         const saved     = localStorage.getItem('theme') || 'dark';
         document.documentElement.setAttribute('data-theme', saved);
 
+        document.querySelectorAll('.base-nav-item').forEach(link => {
+            if (link.href && new URL(link.href).pathname === window.location.pathname) {
+                link.classList.add('active');
+            }
+        });
+
         toggle.addEventListener('click', () => {
             const current = document.documentElement.getAttribute('data-theme');
             const next    = current === 'dark' ? 'light' : 'dark';

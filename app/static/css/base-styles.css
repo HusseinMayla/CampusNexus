@@ -38,72 +38,72 @@
 
 /* ── Light Mode ──────────────────────────────────────────────── */
 [data-theme="light"] {
-    --base-bg-color:         #c4975a;
-    --base-card-bg:          #d0a868;
-    --base-card-bg-alt:      #ba8c50;
-    --base-topbar-bg:        #9e7234;
-    --base-sidebar-bg:       #9e7234;
+    --base-bg-color:         #dde2ed;
+    --base-card-bg:          #cdd4e4;
+    --base-card-bg-alt:      #bdc8da;
+    --base-topbar-bg:        #4a5568;
+    --base-sidebar-bg:       #4a5568;
     --base-text-color:       #0a1628;
-    --base-text-muted:       #1a3456;
+    --base-text-muted:       #2a3a55;
     --base-text-on-primary:  #e8e0d0;
-    --base-border-color:     rgba(10,22,40,0.22);
-    --base-hover-bg:         rgba(10,22,40,0.09);
-    --base-success-bg:       rgba(74,103,65,0.2);
+    --base-border-color:     rgba(10,22,40,0.18);
+    --base-hover-bg:         rgba(10,22,40,0.07);
+    --base-success-bg:       rgba(74,103,65,0.15);
     --base-success-text:     #1a3010;
     --base-success-border:   #3a5630;
-    --base-tan-dim:          #5a3c1a;
+    --base-tan-dim:          #8a7048;
     --base-primary-light:    #0f2040;
 }
 
 [data-theme="light"] body {
-    background-color: #c4975a;
+    background-color: #dde2ed;
     background-image:
-        radial-gradient(at 0% 0%,    rgba(10,22,40,0.18)    0px, transparent 45%),
-        radial-gradient(at 100% 0%,  rgba(186,140,80,0.5)   0px, transparent 50%),
-        radial-gradient(at 0% 100%,  rgba(10,22,40,0.1)     0px, transparent 45%),
-        radial-gradient(at 100% 100%,rgba(186,140,80,0.25)  0px, transparent 40%);
+        radial-gradient(at 0% 0%,    rgba(10,22,40,0.1)     0px, transparent 45%),
+        radial-gradient(at 100% 0%,  rgba(74,85,104,0.3)    0px, transparent 50%),
+        radial-gradient(at 0% 100%,  rgba(10,22,40,0.06)    0px, transparent 45%),
+        radial-gradient(at 100% 100%,rgba(74,85,104,0.15)   0px, transparent 40%);
 }
 
 [data-theme="light"] .base-topbar {
-    background: linear-gradient(90deg, #8a6228 0%, #9e7234 100%);
-    border-bottom-color: rgba(10,22,40,0.35);
+    background: linear-gradient(90deg, #3d4a5c 0%, #4a5568 100%);
+    border-bottom-color: rgba(10,22,40,0.3);
 }
 
 [data-theme="light"] .base-sidebar {
-    background: linear-gradient(180deg, #8a6228 0%, #9e7234 100%);
-    border-right-color: rgba(10,22,40,0.25);
+    background: linear-gradient(180deg, #3d4a5c 0%, #4a5568 100%);
+    border-right-color: rgba(10,22,40,0.2);
 }
 
 [data-theme="light"] .base-card {
-    background: linear-gradient(160deg, #d0a868 0%, #c4975a 100%);
-    border-color: rgba(10,22,40,0.18);
+    background: linear-gradient(160deg, #cdd4e4 0%, #dde2ed 100%);
+    border-color: rgba(10,22,40,0.12);
     border-top-color: #0f2040;
 }
 
 [data-theme="light"] .base-campus-profile-preview {
-    background: linear-gradient(160deg, #d0a868 0%, #c4975a 100%);
+    background: linear-gradient(160deg, #cdd4e4 0%, #dde2ed 100%);
 }
 
 [data-theme="light"] .base-input,
 [data-theme="light"] .base-textarea {
-    background-color: rgba(186,140,80,0.35);
-    border-color: rgba(10,22,40,0.25);
+    background-color: rgba(221,226,237,0.8);
+    border-color: rgba(10,22,40,0.2);
     color: #0a1628;
 }
 
-[data-theme="light"] .base-nav-item { color: #e0d0b8; }
+[data-theme="light"] .base-nav-item { color: #c8d4e4; }
 [data-theme="light"] .base-nav-item:hover {
-    background-color: rgba(10,22,40,0.12);
-    color: #f0e8d4;
+    background-color: rgba(10,22,40,0.15);
+    color: #e8f0f8;
     border-left-color: #0f2040;
 }
 [data-theme="light"] .base-nav-item.active {
-    background-color: rgba(10,22,40,0.2);
-    color: #fdf4e3;
+    background-color: rgba(10,22,40,0.25);
+    color: #ffffff;
     border-left-color: #0a1628;
 }
 
-[data-theme="light"] .base-logo { color: #fdf4e3; }
+[data-theme="light"] .base-logo { color: #e8f0f8; }
 
 [data-theme="light"] .base-profile-avatar { color: #0a1628; }
 
@@ -117,16 +117,29 @@
 [data-theme="light"] h3, [data-theme="light"] h4 { color: #162a52; }
 
 [data-theme="light"] .base-card-title { color: #0f2040; }
-[data-theme="light"] .base-card-desc  { color: #1a3456; }
+[data-theme="light"] .base-card-desc  { color: #2a3a55; }
 [data-theme="light"] .base-preview-name { color: #0f2040; }
 
 [data-theme="light"] .base-button {
-    background: linear-gradient(135deg, #0a1628, #162a52);
-    color: #c8a96e;
-    box-shadow: 0 2px 12px rgba(10,22,40,0.3);
+    background: transparent;
+    color: #0a1628;
+    border: 2px solid #0a1628;
+    box-shadow: none;
 }
 [data-theme="light"] .base-button:hover {
-    box-shadow: 0 4px 18px rgba(10,22,40,0.4);
+    background: rgba(10,22,40,0.08);
+    box-shadow: none;
+}
+
+[data-theme="light"] .base-button-secondary {
+    background: transparent;
+    color: #0a1628;
+    border-color: #0a1628;
+}
+[data-theme="light"] .base-button-secondary:hover {
+    background: rgba(10,22,40,0.08);
+    color: #0a1628;
+    border-color: #0a1628;
 }
 
 /* ── Theme toggle button ─────────────────────────────────────── */

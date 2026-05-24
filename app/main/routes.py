@@ -17,8 +17,7 @@ def allowed_file(filename):
 @main_bp.route('/index')
 @login_required
 def index():
-    campus = Campus.query.filter_by(creator_id=current_user.id).first()
-    return render_template('index.html', campus=campus)
+    return render_template('index.html', active_page='home')
 
 @main_bp.route('/dashboard')
 @login_required
