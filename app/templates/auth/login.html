@@ -1,127 +1,249 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>LearnHive — Sign In</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com"/>
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
-  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400&family=Crimson+Pro:wght@300;400;500&display=swap" rel="stylesheet"/>
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/auth.css') }}"/>
-</head>
-<body>
-  <div class="bg-orb orb-1"></div>
-  <div class="bg-orb orb-2"></div>
-  <div class="bg-orb orb-3"></div>
-  <div class="noise"></div>
-  <main class="auth-shell">
-    <aside class="brand-panel">
-      <div class="brand-inner">
-        <div class="logo-slot">
-          <div class="logo-placeholder">
-            <img src="{{ url_for('static', filename='logo.png') }}" alt="LearnHive" style="width:80px;height:80px;object-fit:contain;"/>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>LearnHive — Sign In</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400&family=Crimson+Pro:wght@300;400;500&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      rel="stylesheet"
+      href="{{ url_for('static', filename='css/auth.css') }}"
+    />
+  </head>
+  <body>
+    <div class="bg-orb orb-1"></div>
+    <div class="bg-orb orb-2"></div>
+    <div class="bg-orb orb-3"></div>
+    <div class="noise"></div>
+    <main class="auth-shell">
+      <aside class="brand-panel">
+        <div class="brand-inner">
+          <div class="logo-slot">
+            <div class="logo-placeholder">
+              <img
+                src="{{ url_for('static', filename='logo.png') }}"
+                alt="LearnHive"
+                style="width: 80px; height: 80px; object-fit: contain"
+              />
+            </div>
           </div>
+          <div class="brand-text">
+            <h1 class="site-name">
+              <span class="name-l">Campus</span
+              ><span class="name-h">Nexus</span>
+            </h1>
+            <p class="site-tagline">Your campus, connected.</p>
+          </div>
+          <div class="brand-divider"></div>
+          <ul class="brand-features">
+            <li><span class="feat-dot"></span>Join your university hub</li>
+            <li>
+              <span class="feat-dot"></span>Connect with courses &amp; clubs
+            </li>
+            <li><span class="feat-dot"></span>Find tutors &amp; share notes</li>
+            <li><span class="feat-dot"></span>Chat with classmates, live</li>
+          </ul>
         </div>
-        <div class="brand-text">
-          <h1 class="site-name"><span class="name-l">Campus</span><span class="name-h">Nexus</span></h1>
-          <p class="site-tagline">Your campus, connected.</p>
-        </div>
-        <div class="brand-divider"></div>
-        <ul class="brand-features">
-          <li><span class="feat-dot"></span>Join your university hub</li>
-          <li><span class="feat-dot"></span>Connect with courses &amp; clubs</li>
-          <li><span class="feat-dot"></span>Find tutors &amp; share notes</li>
-          <li><span class="feat-dot"></span>Chat with classmates, live</li>
-        </ul>
-      </div>
-      <p class="brand-footer">LearnHive</p>
-    </aside>
-    <section class="form-panel">
-      <div class="form-card">
-        <div class="tab-bar">
-          <button class="tab active" id="tabLogin" onclick="switchTab('login')">Sign In</button>
-          <button class="tab" id="tabSignup" onclick="switchTab('signup')">Sign Up</button>
-          <div class="tab-indicator" id="tabIndicator"></div>
-        </div>
+        <p class="brand-footer">LearnHive</p>
+      </aside>
+      <section class="form-panel">
+        <div class="form-card">
+          <div class="tab-bar">
+            <button
+              class="tab active"
+              id="tabLogin"
+              onclick="switchTab('login')"
+            >
+              Sign In
+            </button>
+            <button class="tab" id="tabSignup" onclick="switchTab('signup')">
+              Sign Up
+            </button>
+            <div class="tab-indicator" id="tabIndicator"></div>
+          </div>
 
-        {% with messages = get_flashed_messages(with_categories=true) %}
-        {% if messages %}
-          {% for category, message in messages %}
+          {% with messages = get_flashed_messages(with_categories=true) %} {% if
+          messages %} {% for category, message in messages %}
           <div class="flash flash-{{ category }}">{{ message }}</div>
-          {% endfor %}
-        {% endif %}
-        {% endwith %}
+          {% endfor %} {% endif %} {% endwith %}
 
-        <form id="formLogin" class="auth-form active" action="{{ url_for('auth.login') }}" method="POST" novalidate>
-          <div class="field-group">
-            <label for="loginEmail">Email address</label>
-            <div class="input-wrap">
-              <svg class="input-icon" viewBox="0 0 20 20"><path d="M2.5 5.5A1.5 1.5 0 014 4h12a1.5 1.5 0 011.5 1.5v9A1.5 1.5 0 0116 16H4a1.5 1.5 0 01-1.5-1.5v-9zm1.5 0v.511l6 3.6 6-3.6V5.5A.5.5 0 0016 5H4a.5.5 0 00-.5.5zm12.5 1.85l-5.724 3.434a.5.5 0 01-.552 0L4.5 7.35V14.5a.5.5 0 00.5.5h10a.5.5 0 00.5-.5V7.35z"/></svg>
-              <input type="email" id="loginEmail" name="email" placeholder="you@university.edu"/>
+          <form
+            id="formLogin"
+            class="auth-form active"
+            action="{{ url_for('auth.login') }}"
+            method="POST"
+            novalidate
+          >
+            <div class="field-group">
+              <label for="loginEmail">Email address</label>
+              <div class="input-wrap">
+                <svg class="input-icon" viewBox="0 0 20 20">
+                  <path
+                    d="M2.5 5.5A1.5 1.5 0 014 4h12a1.5 1.5 0 011.5 1.5v9A1.5 1.5 0 0116 16H4a1.5 1.5 0 01-1.5-1.5v-9zm1.5 0v.511l6 3.6 6-3.6V5.5A.5.5 0 0016 5H4a.5.5 0 00-.5.5zm12.5 1.85l-5.724 3.434a.5.5 0 01-.552 0L4.5 7.35V14.5a.5.5 0 00.5.5h10a.5.5 0 00.5-.5V7.35z"
+                  />
+                </svg>
+                <input
+                  type="email"
+                  id="loginEmail"
+                  name="email"
+                  placeholder="you@university.edu"
+                />
+              </div>
+              <span class="field-error" id="loginEmailErr"></span>
             </div>
-            <span class="field-error" id="loginEmailErr"></span>
-          </div>
-          <div class="field-group">
-            <label for="loginPassword">Password</label>
-            <div class="input-wrap">
-              <svg class="input-icon" viewBox="0 0 20 20"><path d="M10 2a4 4 0 00-4 4v2H5a1.5 1.5 0 00-1.5 1.5v7A1.5 1.5 0 005 18h10a1.5 1.5 0 001.5-1.5v-7A1.5 1.5 0 0015 9h-1V6a4 4 0 00-4-4zm3 8H7v6h6v-6zm-3-7a3 3 0 013 3v2H7V6a3 3 0 013-3zm0 8a1 1 0 110 2 1 1 0 010-2z"/></svg>
-              <input type="password" id="loginPassword" name="password" placeholder="••••••••"/>
-              <button type="button" class="eye-btn" onclick="togglePassword('loginPassword',this)" tabindex="-1">
-                <svg class="eye-icon eye-closed" viewBox="0 0 20 20"><path d="M10 3C5.5 3 2 7 2 10s3.5 7 8 7 8-4 8-7-3.5-7-8-7zm0 12.5C6.4 15.5 3.5 12.6 3.5 10S6.4 4.5 10 4.5 16.5 7.4 16.5 10 13.6 15.5 10 15.5zm0-9a3.5 3.5 0 100 7 3.5 3.5 0 000-7zm0 5.5a2 2 0 110-4 2 2 0 010 4z"/></svg>
-                <svg class="eye-icon eye-open eye-hidden" viewBox="0 0 20 20"><path d="M3.28 2.22a.75.75 0 00-1.06 1.06l14.5 14.5a.75.75 0 101.06-1.06l-1.72-1.72A9.6 9.6 0 0019 10c-1.07-3.1-4.5-6-9-6a9.4 9.4 0 00-4.42 1.1L3.28 2.22zM7.35 6.29l1.12 1.12A3.5 3.5 0 0113.6 12.6l1.12 1.12A5.5 5.5 0 007.35 6.3zM10 5c3.86 0 6.76 2.44 7.95 5-.5 1.44-1.4 2.74-2.6 3.74l-1.08-1.08A5.5 5.5 0 006.34 6.34 8.1 8.1 0 0110 5zm-7.95 5c.44 1.26 1.19 2.42 2.18 3.36l-1.06 1.06A9.7 9.7 0 011 10c.3-.87.7-1.7 1.05-2.4z"/></svg>
+            <div class="field-group">
+              <label for="loginPassword">Password</label>
+              <div class="input-wrap">
+                <svg class="input-icon" viewBox="0 0 20 20">
+                  <path
+                    d="M10 2a4 4 0 00-4 4v2H5a1.5 1.5 0 00-1.5 1.5v7A1.5 1.5 0 005 18h10a1.5 1.5 0 001.5-1.5v-7A1.5 1.5 0 0015 9h-1V6a4 4 0 00-4-4zm3 8H7v6h6v-6zm-3-7a3 3 0 013 3v2H7V6a3 3 0 013-3zm0 8a1 1 0 110 2 1 1 0 010-2z"
+                  />
+                </svg>
+                <input
+                  type="password"
+                  id="loginPassword"
+                  name="password"
+                  placeholder="••••••••"
+                />
+                <button
+                  type="button"
+                  class="eye-btn"
+                  onclick="togglePassword('loginPassword', this)"
+                  tabindex="-1"
+                >
+                  <svg class="eye-icon eye-closed" viewBox="0 0 20 20">
+                    <path
+                      d="M10 3C5.5 3 2 7 2 10s3.5 7 8 7 8-4 8-7-3.5-7-8-7zm0 12.5C6.4 15.5 3.5 12.6 3.5 10S6.4 4.5 10 4.5 16.5 7.4 16.5 10 13.6 15.5 10 15.5zm0-9a3.5 3.5 0 100 7 3.5 3.5 0 000-7zm0 5.5a2 2 0 110-4 2 2 0 010 4z"
+                    />
+                  </svg>
+                  <svg class="eye-icon eye-open eye-hidden" viewBox="0 0 20 20">
+                    <path
+                      d="M3.28 2.22a.75.75 0 00-1.06 1.06l14.5 14.5a.75.75 0 101.06-1.06l-1.72-1.72A9.6 9.6 0 0019 10c-1.07-3.1-4.5-6-9-6a9.4 9.4 0 00-4.42 1.1L3.28 2.22zM7.35 6.29l1.12 1.12A3.5 3.5 0 0113.6 12.6l1.12 1.12A5.5 5.5 0 007.35 6.3zM10 5c3.86 0 6.76 2.44 7.95 5-.5 1.44-1.4 2.74-2.6 3.74l-1.08-1.08A5.5 5.5 0 006.34 6.34 8.1 8.1 0 0110 5zm-7.95 5c.44 1.26 1.19 2.42 2.18 3.36l-1.06 1.06A9.7 9.7 0 011 10c.3-.87.7-1.7 1.05-2.4z"
+                    />
+                  </svg>
+                </button>
+              </div>
+              <span class="field-error" id="loginPasswordErr"></span>
+            </div>
+            <button type="submit" class="btn-submit">
+              <span class="btn-label">Sign In</span>
+              <svg class="btn-arrow" viewBox="0 0 20 20">
+                <path d="M4 10h12m-5-5l5 5-5 5" />
+              </svg>
+            </button>
+            <p class="form-switch">
+              New to LearnHive?
+              <button type="button" onclick="switchTab('signup')">
+                Create an account
               </button>
-            </div>
-            <span class="field-error" id="loginPasswordErr"></span>
-          </div>
-          <button type="submit" class="btn-submit">
-            <span class="btn-label">Sign In</span>
-            <svg class="btn-arrow" viewBox="0 0 20 20"><path d="M4 10h12m-5-5l5 5-5 5"/></svg>
-          </button>
-          <p class="form-switch">New to LearnHive? <button type="button" onclick="switchTab('signup')">Create an account</button></p>
-        </form>
+            </p>
+          </form>
 
-        <form id="formSignup" class="auth-form" action="{{ url_for('auth.register') }}" method="POST" novalidate>
-          <div class="field-group">
-            <label for="signupName">Full name</label>
-            <div class="input-wrap">
-              <svg class="input-icon" viewBox="0 0 20 20"><path d="M10 2a4 4 0 100 8 4 4 0 000-8zm-6 9a2 2 0 00-2 2c0 2.21 3.582 4 8 4s8-1.79 8-4a2 2 0 00-2-2H4z"/></svg>
-              <input type="text" id="signupName" name="name" placeholder="Your full name"/>
+          <form
+            id="formSignup"
+            class="auth-form"
+            action="{{ url_for('auth.register') }}"
+            method="POST"
+            novalidate
+          >
+            <div class="field-group">
+              <label for="signupName">Full name</label>
+              <div class="input-wrap">
+                <svg class="input-icon" viewBox="0 0 20 20">
+                  <path
+                    d="M10 2a4 4 0 100 8 4 4 0 000-8zm-6 9a2 2 0 00-2 2c0 2.21 3.582 4 8 4s8-1.79 8-4a2 2 0 00-2-2H4z"
+                  />
+                </svg>
+                <input
+                  type="text"
+                  id="signupName"
+                  name="name"
+                  placeholder="Your full name"
+                />
+              </div>
+              <span class="field-error" id="signupNameErr"></span>
             </div>
-            <span class="field-error" id="signupNameErr"></span>
-          </div>
-          <div class="field-group">
-            <label for="signupEmail">Email address</label>
-            <div class="input-wrap">
-              <svg class="input-icon" viewBox="0 0 20 20"><path d="M2.5 5.5A1.5 1.5 0 014 4h12a1.5 1.5 0 011.5 1.5v9A1.5 1.5 0 0116 16H4a1.5 1.5 0 01-1.5-1.5v-9zm1.5 0v.511l6 3.6 6-3.6V5.5A.5.5 0 0016 5H4a.5.5 0 00-.5.5zm12.5 1.85l-5.724 3.434a.5.5 0 01-.552 0L4.5 7.35V14.5a.5.5 0 00.5.5h10a.5.5 0 00.5-.5V7.35z"/></svg>
-              <input type="email" id="signupEmail" name="email" placeholder="you@university.edu"/>
+            <div class="field-group">
+              <label for="signupEmail">Email address</label>
+              <div class="input-wrap">
+                <svg class="input-icon" viewBox="0 0 20 20">
+                  <path
+                    d="M2.5 5.5A1.5 1.5 0 014 4h12a1.5 1.5 0 011.5 1.5v9A1.5 1.5 0 0116 16H4a1.5 1.5 0 01-1.5-1.5v-9zm1.5 0v.511l6 3.6 6-3.6V5.5A.5.5 0 0016 5H4a.5.5 0 00-.5.5zm12.5 1.85l-5.724 3.434a.5.5 0 01-.552 0L4.5 7.35V14.5a.5.5 0 00.5.5h10a.5.5 0 00.5-.5V7.35z"
+                  />
+                </svg>
+                <input
+                  type="email"
+                  id="signupEmail"
+                  name="email"
+                  placeholder="you@university.edu"
+                />
+              </div>
+              <span class="field-error" id="signupEmailErr"></span>
             </div>
-            <span class="field-error" id="signupEmailErr"></span>
-          </div>
-          <div class="field-group">
-            <label for="signupPassword">Password <span class="label-hint">min. 8 characters</span></label>
-            <div class="input-wrap">
-              <svg class="input-icon" viewBox="0 0 20 20"><path d="M10 2a4 4 0 00-4 4v2H5a1.5 1.5 0 00-1.5 1.5v7A1.5 1.5 0 005 18h10a1.5 1.5 0 001.5-1.5v-7A1.5 1.5 0 0015 9h-1V6a4 4 0 00-4-4zm3 8H7v6h6v-6zm-3-7a3 3 0 013 3v2H7V6a3 3 0 013-3zm0 8a1 1 0 110 2 1 1 0 010-2z"/></svg>
-              <input type="password" id="signupPassword" name="password" placeholder="••••••••"/>
-              <button type="button" class="eye-btn" onclick="togglePassword('signupPassword',this)" tabindex="-1">
-                <svg class="eye-icon eye-closed" viewBox="0 0 20 20"><path d="M10 3C5.5 3 2 7 2 10s3.5 7 8 7 8-4 8-7-3.5-7-8-7zm0 12.5C6.4 15.5 3.5 12.6 3.5 10S6.4 4.5 10 4.5 16.5 7.4 16.5 10 13.6 15.5 10 15.5zm0-9a3.5 3.5 0 100 7 3.5 3.5 0 000-7zm0 5.5a2 2 0 110-4 2 2 0 010 4z"/></svg>
-                <svg class="eye-icon eye-open eye-hidden" viewBox="0 0 20 20"><path d="M3.28 2.22a.75.75 0 00-1.06 1.06l14.5 14.5a.75.75 0 101.06-1.06l-1.72-1.72A9.6 9.6 0 0019 10c-1.07-3.1-4.5-6-9-6a9.4 9.4 0 00-4.42 1.1L3.28 2.22zM7.35 6.29l1.12 1.12A3.5 3.5 0 0113.6 12.6l1.12 1.12A5.5 5.5 0 007.35 6.3zM10 5c3.86 0 6.76 2.44 7.95 5-.5 1.44-1.4 2.74-2.6 3.74l-1.08-1.08A5.5 5.5 0 006.34 6.34 8.1 8.1 0 0110 5zm-7.95 5c.44 1.26 1.19 2.42 2.18 3.36l-1.06 1.06A9.7 9.7 0 011 10c.3-.87.7-1.7 1.05-2.4z"/></svg>
+            <div class="field-group">
+              <label for="signupPassword"
+                >Password
+                <span class="label-hint">min. 8 characters</span></label
+              >
+              <div class="input-wrap">
+                <svg class="input-icon" viewBox="0 0 20 20">
+                  <path
+                    d="M10 2a4 4 0 00-4 4v2H5a1.5 1.5 0 00-1.5 1.5v7A1.5 1.5 0 005 18h10a1.5 1.5 0 001.5-1.5v-7A1.5 1.5 0 0015 9h-1V6a4 4 0 00-4-4zm3 8H7v6h6v-6zm-3-7a3 3 0 013 3v2H7V6a3 3 0 013-3zm0 8a1 1 0 110 2 1 1 0 010-2z"
+                  />
+                </svg>
+                <input
+                  type="password"
+                  id="signupPassword"
+                  name="password"
+                  placeholder="••••••••"
+                />
+                <button
+                  type="button"
+                  class="eye-btn"
+                  onclick="togglePassword('signupPassword', this)"
+                  tabindex="-1"
+                >
+                  <svg class="eye-icon eye-closed" viewBox="0 0 20 20">
+                    <path
+                      d="M10 3C5.5 3 2 7 2 10s3.5 7 8 7 8-4 8-7-3.5-7-8-7zm0 12.5C6.4 15.5 3.5 12.6 3.5 10S6.4 4.5 10 4.5 16.5 7.4 16.5 10 13.6 15.5 10 15.5zm0-9a3.5 3.5 0 100 7 3.5 3.5 0 000-7zm0 5.5a2 2 0 110-4 2 2 0 010 4z"
+                    />
+                  </svg>
+                  <svg class="eye-icon eye-open eye-hidden" viewBox="0 0 20 20">
+                    <path
+                      d="M3.28 2.22a.75.75 0 00-1.06 1.06l14.5 14.5a.75.75 0 101.06-1.06l-1.72-1.72A9.6 9.6 0 0019 10c-1.07-3.1-4.5-6-9-6a9.4 9.4 0 00-4.42 1.1L3.28 2.22zM7.35 6.29l1.12 1.12A3.5 3.5 0 0113.6 12.6l1.12 1.12A5.5 5.5 0 007.35 6.3zM10 5c3.86 0 6.76 2.44 7.95 5-.5 1.44-1.4 2.74-2.6 3.74l-1.08-1.08A5.5 5.5 0 006.34 6.34 8.1 8.1 0 0110 5zm-7.95 5c.44 1.26 1.19 2.42 2.18 3.36l-1.06 1.06A9.7 9.7 0 011 10c.3-.87.7-1.7 1.05-2.4z"
+                    />
+                  </svg>
+                </button>
+              </div>
+              <div class="password-strength" id="strengthBar">
+                <div class="strength-track">
+                  <div class="strength-fill" id="strengthFill"></div>
+                </div>
+                <span class="strength-label" id="strengthLabel"></span>
+              </div>
+              <span class="field-error" id="signupPasswordErr"></span>
+            </div>
+            <button type="submit" class="btn-submit">
+              <span>Create Account</span>
+              <svg class="btn-arrow" viewBox="0 0 20 20">
+                <path d="M4 10h12m-5-5l5 5-5 5" />
+              </svg>
+            </button>
+            <p class="form-switch">
+              Already have an account?
+              <button type="button" onclick="switchTab('login')">
+                Sign in
               </button>
-            </div>
-            <div class="password-strength" id="strengthBar">
-              <div class="strength-track"><div class="strength-fill" id="strengthFill"></div></div>
-              <span class="strength-label" id="strengthLabel"></span>
-            </div>
-            <span class="field-error" id="signupPasswordErr"></span>
-          </div>
-          <button type="submit" class="btn-submit">
-            <span>Create Account</span>
-            <svg class="btn-arrow" viewBox="0 0 20 20"><path d="M4 10h12m-5-5l5 5-5 5"/></svg>
-          </button>
-          <p class="form-switch">Already have an account? <button type="button" onclick="switchTab('login')">Sign in</button></p>
-        </form>
-      </div>
-    </section>
-  </main>
-  <script src="{{ url_for('static', filename='js/auth.js') }}"></script>
-</body>
+            </p>
+          </form>
+        </div>
+      </section>
+    </main>
+    <script src="{{ url_for('static', filename='js/auth.js') }}"></script>
+  </body>
 </html>
