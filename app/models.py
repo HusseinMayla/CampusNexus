@@ -1,7 +1,6 @@
 from app.extensions import db, login_manager
 from flask_login import UserMixin
 from datetime import datetime
-import secrets
 
 @login_manager.user_loader
 def load_user(id):
@@ -50,7 +49,6 @@ class Campus(db.Model):
     creator_id   = db.Column(db.Integer, db.ForeignKey('user.id'))
     center_lat   = db.Column(db.Float)
     center_lng   = db.Column(db.Float)
-    invite_code  = db.Column(db.String(10), unique=True, default=lambda: secrets.token_urlsafe(6))
     domain       = db.Column(db.String(64), nullable=True)
 
     clubs   = db.relationship('Club',   backref='campus', lazy=True, cascade='all, delete-orphan')

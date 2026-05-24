@@ -25,11 +25,7 @@
         <div class="base-card-content">
             <h3 class="base-card-title campus-name">{{ campus.name }}</h3>
             <p class="base-card-desc">{{ campus.description or 'No description provided.' }}</p>
-            {% if campus.id in created_ids %}
-            <p style="margin-top:10px; font-size:0.82rem; color:var(--base-text-muted);">
-                Invite code: <strong style="color:var(--base-primary-color); letter-spacing:0.08em;">{{ campus.invite_code }}</strong>
-            </p>
-            {% endif %}
+
         </div>
     </div>
     {% endfor %}

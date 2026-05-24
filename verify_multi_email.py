@@ -16,15 +16,15 @@ def run_tests():
         print("Cleaned and initialized database tables successfully.")
 
         # 2. Create target campuses with domain restrictions
-        aub = Campus(name="American University of Beirut", invite_code="AUB123", domain="aub.edu.lb")
-        lau = Campus(name="Lebanese American University", invite_code="LAU456", domain="lau.edu.lb")
-        lu  = Campus(name="Lebanese University", invite_code="LU789", domain="ul.edu.lb")
+        aub = Campus(name="American University of Beirut", domain="aub.edu.lb")
+        lau = Campus(name="Lebanese American University", domain="lau.edu.lb")
+        lu  = Campus(name="Lebanese University", domain="ul.edu.lb")
         db.session.add_all([aub, lau, lu])
         db.session.commit()
         print("Created Campuses:")
-        print(f"  - {aub.name} (invite code: {aub.invite_code}, domain: {aub.domain})")
-        print(f"  - {lau.name} (invite code: {lau.invite_code}, domain: {lau.domain})")
-        print(f"  - {lu.name} (invite code: {lu.invite_code}, domain: {lu.domain})")
+        print(f"  - {aub.name} (domain: {aub.domain})")
+        print(f"  - {lau.name} (domain: {lau.domain})")
+        print(f"  - {lu.name} (domain: {lu.domain})")
 
         # 3. Create a test user with a personal primary email
         user = User(name="Hussein Mayla", email="hussein@gmail.com", password_hash="dummy_hash")
@@ -129,7 +129,7 @@ def run_tests():
 
         # 11. Unique Campus Names Test
         print("\n--- [TEST] Testing Unique Campus Names ---")
-        duplicate_campus = Campus(name="American University of Beirut", invite_code="DUP123")
+        duplicate_campus = Campus(name="American University of Beirut")
         db.session.add(duplicate_campus)
         try:
             db.session.commit()
@@ -252,7 +252,7 @@ def run_tests():
         # 16. Owner Role Auto-Assignment Test
         print("\n--- [TEST] Testing Owner Role Auto-Assignment ---")
         # Let's create a new campus by user "user"
-        mu = Campus(name="Mind University", invite_code="MU999", creator_id=user.id)
+        mu = Campus(name="Mind University", creator_id=user.id)
         db.session.add(mu)
         db.session.commit()
         
