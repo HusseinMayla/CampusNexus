@@ -192,3 +192,17 @@ class TutorPost(db.Model):
     poster = db.relationship('User', backref=db.backref('tutor_posts', lazy=True))
     campus = db.relationship('Campus', backref=db.backref('tutor_posts', lazy=True, cascade='all, delete-orphan'))
 
+
+class ResourceRequest(db.Model):
+    __tablename__ = 'resource_request'
+    id          = db.Column(db.Integer, primary_key=True)
+    campus_id   = db.Column(db.Integer, db.ForeignKey('campus.id'), nullable=False)
+    poster_id   = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    email       = db.Column(db.String(128), nullable=False)
+    course_code = db.Column(db.String(32), nullable=False)
+    chapters    = db.Column(db.String(512), nullable=True)
+    created_at  = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+
+    poster = db.relationship('User', backref=db.backref('resource_requests', lazy=True))
+    campus = db.relationship('Campus', backref=db.backref('resource_requests', lazy=True, cascade='all, delete-orphan'))
+

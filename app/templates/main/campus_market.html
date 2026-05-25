@@ -69,7 +69,7 @@
     display: flex;
     align-items: center;
     gap: 10px;
-    margin-bottom: 14px;
+    margin-bottom: 0;
 }
 .post-avatar {
     width: 38px; height: 38px; border-radius: 50%;
@@ -82,11 +82,17 @@
 .post-username {
     font-family: var(--font-display);
     font-weight: 600;
-    font-size: 1rem;
+    font-size: 1.15rem;
     color: var(--base-text-color);
 }
-.post-body { display: flex; flex-direction: column; gap: 8px; }
-.post-row  { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.post-divider {
+    border: none;
+    border-top: 1px solid var(--base-border-color);
+    margin: 12px 0;
+}
+.post-body { padding-left: 48px; }
+.post-row  { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-bottom: 8px; }
+.post-row:last-child { margin-bottom: 0; }
 
 /* Tags */
 .tag {
@@ -99,7 +105,8 @@
 .tag-email:hover { background: rgba(59,130,246,0.1); }
 .tag-tutor   { border-color: #16a34a; color: #16a34a; }
 .tag-student { border-color: #9333ea; color: #9333ea; }
-.tag-course  { border-color: #c8a96e; color: #c8a96e; }
+#postFeed .tag-course,
+[data-theme="light"] #postFeed .tag-course { border-color: #9333ea !important; color: #9333ea !important; }
 .tag-method  { border-color: #0e7490; color: #0e7490; }
 
 /* Delete btn */
@@ -239,6 +246,7 @@
         <div class="post-avatar">{{ post.poster.name[0] | upper }}</div>
         <span class="post-username">{{ post.poster.name }}</span>
     </div>
+    <hr class="post-divider">
     <div class="post-body">
         <div class="post-row">
             <span class="tag tag-{{ post.role }}">{{ post.role | capitalize }}</span>
@@ -433,6 +441,7 @@ function prependCard(post) {
             <div class="post-avatar">${initial}</div>
             <span class="post-username">${esc(post.poster_name)}</span>
         </div>
+        <hr class="post-divider">
         <div class="post-body">
             <div class="post-row"><span class="tag ${roleCls}">${cap(post.role)}</span></div>
             <div class="post-row">${courseTags}</div>

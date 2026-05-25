@@ -547,6 +547,8 @@ h1 span {
     -webkit-text-fill-color: initial !important;
 }
 
+[data-theme="light"] .tag-course { border-color: #0a1628 !important; color: #0a1628 !important; }
+
 h2 { font-family: var(--font-display); color: var(--base-tan-light); letter-spacing: 0.02em; }
 h3, h4 { font-family: var(--font-display); color: var(--base-tan); letter-spacing: 0.02em; }
 
