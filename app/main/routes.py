@@ -5,7 +5,7 @@ from flask import Blueprint, render_template, redirect, url_for, flash, request,
 from flask_login import login_required, current_user
 from werkzeug.utils import secure_filename
 from app.extensions import db
-from app.models import Campus, CampusMember, CampusReport, Notification, Resource, TutorPost
+from app.models import Campus, CampusMember, CampusReport, Notification, Resource, TutorPost, ResourceRequest
 from sqlalchemy import func
 
 main_bp = Blueprint('main', __name__)
@@ -415,8 +415,61 @@ def campus_resources(campus_id):
     if not is_member:
         flash('You must join this campus to view its resources.', 'error')
         return redirect(url_for('main.join_campus'))
-    resources = Resource.query.filter_by(campus_id=campus.id).order_by(Resource.uploaded_at.desc()).all()
-    return render_template('main/campus_resources.html', campus=campus, resources=resources, active_page='resources')
+    resources = Resource.query.filter_by(campus_id=campus.id).all()
+    requests  = ResourceRequest.query.filter_by(campus_id=campus.id).all()
+    posts = [('resource', r, r.uploaded_at) for r in resources] + \
+            [('request',  r, r.created_at)  for r in requests]
+    posts.sort(key=lambda x: x[2], reverse=True)
+    return render_template('main/campus_resources.html', campus=campus, posts=posts, active_page='resources')
+
+
+@main_bp.route('/campus/<int:campus_id>/resources/request', methods=['POST'])
+@login_required
+def resource_request_create(campus_id):
+    campus = Campus.query.get_or_404(campus_id)
+    is_member = CampusMember.query.filter_by(user_id=current_user.id, campus_id=campus.id).first() is not None or campus.creator_id == current_user.id
+    if not is_member:
+        return jsonify({'error': 'Unauthorized'}), 403
+
+    data        = request.get_json()
+    email       = data.get('email', '').strip()
+    course_code = data.get('course_code', '').strip().upper()
+    chapters    = [c.strip() for c in data.get('chapters', []) if c.strip()]
+
+    if not re.match(r'^[\w.+\-]+@[\w\-]+(\.[a-zA-Z]{2,}){1,3}$', email):
+        return jsonify({'error': 'Invalid email address.'}), 400
+    if not course_code:
+        return jsonify({'error': 'Course code is required.'}), 400
+
+    rr = ResourceRequest(
+        campus_id=campus_id,
+        poster_id=current_user.id,
+        email=email,
+        course_code=course_code,
+        chapters=','.join(chapters) if chapters else None
+    )
+    db.session.add(rr)
+    db.session.commit()
+
+    return jsonify({
+        'id':          rr.id,
+        'email':       rr.email,
+        'course_code': rr.course_code,
+        'chapters':    rr.chapters.split(',') if rr.chapters else [],
+        'poster_id':   rr.poster_id,
+        'poster_name': current_user.name,
+    }), 201
+
+
+@main_bp.route('/campus/<int:campus_id>/resources/request/<int:request_id>', methods=['DELETE'])
+@login_required
+def resource_request_delete(campus_id, request_id):
+    rr = ResourceRequest.query.filter_by(id=request_id, campus_id=campus_id).first_or_404()
+    if rr.poster_id != current_user.id:
+        return jsonify({'error': 'Unauthorized'}), 403
+    db.session.delete(rr)
+    db.session.commit()
+    return jsonify({'success': True})
 
 
 @main_bp.route('/campus/<int:campus_id>/resources/upload', methods=['POST'])
