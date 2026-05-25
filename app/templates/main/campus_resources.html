@@ -2,93 +2,394 @@
 
 {% block title %}Resources — {{ campus.name }} | LearnHive{% endblock %}
 
+{% block extra_css %}
+<style>
+.res-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 28px;
+    flex-wrap: wrap;
+    gap: 16px;
+}
+
+.compose-bar {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    background: var(--base-card-bg);
+    border: 1px solid var(--base-border-color);
+    border-radius: 12px;
+    padding: 14px 20px;
+    margin-bottom: 20px;
+    cursor: pointer;
+    transition: border-color 0.2s, box-shadow 0.2s;
+}
+.compose-bar:hover { border-color: var(--base-tan); box-shadow: 0 2px 12px rgba(200,169,110,0.12); }
+.compose-avatar {
+    width: 36px; height: 36px; border-radius: 50%;
+    background: linear-gradient(135deg, var(--base-tan), var(--base-tan-light));
+    color: #0a1628;
+    display: flex; align-items: center; justify-content: center;
+    font-family: var(--font-display); font-weight: 700; font-size: 1rem; flex-shrink: 0;
+}
+.compose-placeholder { color: var(--base-text-muted); font-style: italic; font-size: 0.95rem; font-family: var(--font-body); }
+
+.post-card {
+    background: var(--base-card-bg);
+    border: 1px solid var(--base-border-color);
+    border-radius: 14px;
+    padding: 18px 20px;
+    margin-bottom: 12px;
+    position: relative;
+    transition: border-color 0.2s;
+}
+.post-card:hover { border-color: rgba(200,169,110,0.3); }
+.post-header { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; }
+.post-avatar {
+    width: 38px; height: 38px; border-radius: 50%;
+    background: linear-gradient(135deg, var(--base-tan), var(--base-tan-light));
+    color: #0a1628;
+    display: flex; align-items: center; justify-content: center;
+    font-family: var(--font-display); font-weight: 700; font-size: 1rem; flex-shrink: 0;
+}
+.post-username { font-family: var(--font-display); font-weight: 600; font-size: 1rem; color: var(--base-text-color); }
+.post-body { display: flex; flex-direction: column; gap: 10px; }
+.post-row  { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.post-filename { font-size: 0.9rem; color: var(--base-text-muted); word-break: break-all; }
+
+.tag {
+    display: inline-flex; align-items: center; gap: 5px;
+    padding: 4px 12px; border-radius: 20px;
+    font-size: 0.85rem; font-family: var(--font-body);
+    border: 1.5px solid; white-space: nowrap;
+}
+.tag-course            { border-color: #c8a96e; color: #c8a96e; }
+.tag-ft-pdf            { border-color: #dc2626; color: #dc2626; }
+.tag-ft-pptx,
+.tag-ft-ppt            { border-color: #ea580c; color: #ea580c; }
+.tag-ft-docx,
+.tag-ft-doc            { border-color: #2563eb; color: #2563eb; }
+.tag-ft-xlsx           { border-color: #16a34a; color: #16a34a; }
+
+.btn-download {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 5px 14px; border-radius: 20px;
+    border: 1.5px solid var(--base-border-color);
+    background: transparent; color: var(--base-text-muted);
+    font-family: var(--font-body); font-size: 0.85rem; cursor: pointer;
+    text-decoration: none; transition: all 0.2s;
+}
+.btn-download:hover { border-color: var(--base-tan); color: var(--base-tan); }
+
+.post-delete-btn {
+    position: absolute; top: 16px; right: 16px;
+    background: none; border: none; color: var(--base-text-muted);
+    font-size: 0.95rem; cursor: pointer; padding: 4px 8px; border-radius: 4px;
+    transition: color 0.2s, background 0.2s; line-height: 1;
+}
+.post-delete-btn:hover { color: #ef4444; background: rgba(239,68,68,0.1); }
+
+.res-empty { text-align: center; padding: 80px 24px; color: var(--base-text-muted); }
+
+.modal-overlay {
+    display: none; position: fixed; inset: 0;
+    background: rgba(0,0,0,0.55); z-index: 1000;
+    align-items: center; justify-content: center;
+}
+.modal-overlay.open { display: flex; }
+.modal-box {
+    background: var(--base-card-bg); border: 1px solid var(--base-border-color);
+    border-radius: 16px; width: 100%; max-width: 480px;
+    padding: 28px; position: relative;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+}
+.modal-title { font-family: var(--font-display); font-size: 1.3rem; font-weight: 700; color: var(--base-tan-light); margin-bottom: 4px; }
+.modal-close {
+    position: absolute; top: 16px; right: 20px;
+    background: none; border: none; font-size: 1.5rem;
+    color: var(--base-text-muted); cursor: pointer; line-height: 1;
+}
+.modal-close:hover { color: var(--base-text-color); }
+.modal-label {
+    display: block; font-family: var(--font-display); font-size: 0.8rem;
+    font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase;
+    color: var(--base-tan-dim); margin-bottom: 8px; margin-top: 18px;
+}
+.field-err { display: block; font-size: 0.8rem; color: #ef4444; min-height: 1rem; margin-top: 4px; }
+
+.file-drop {
+    border: 1.5px dashed var(--base-border-color); border-radius: 8px;
+    padding: 24px; text-align: center; cursor: pointer;
+    transition: border-color 0.2s;
+}
+.file-drop:hover, .file-drop.has-file { border-color: var(--base-tan); }
+.file-drop input[type="file"] { display: none; }
+.file-drop-label { font-size: 0.9rem; color: var(--base-text-muted); }
+.file-name-display { font-size: 0.88rem; color: var(--base-tan); margin-top: 8px; word-break: break-all; }
+
+.btn-post-submit {
+    width: 100%; margin-top: 22px; padding: 12px;
+    background: linear-gradient(135deg, var(--base-tan), var(--base-tan-light));
+    border: none; border-radius: 8px; color: #0a1628;
+    font-family: var(--font-display); font-size: 1rem; font-weight: 700;
+    letter-spacing: 0.04em; cursor: pointer; transition: opacity 0.2s;
+}
+.btn-post-submit:hover { opacity: 0.88; }
+.btn-post-submit:disabled { opacity: 0.45; cursor: not-allowed; }
+
+.confirm-overlay {
+    display: none; position: fixed; inset: 0;
+    background: rgba(0,0,0,0.6); z-index: 1100;
+    align-items: center; justify-content: center;
+}
+.confirm-overlay.open { display: flex; }
+.confirm-box {
+    background: var(--base-card-bg); border: 1px solid var(--base-border-color);
+    border-radius: 14px; padding: 32px 28px; max-width: 360px; width: 90%;
+    text-align: center; box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+}
+.confirm-box h3 { font-family: var(--font-display); color: var(--base-text-color); margin: 0 0 10px; }
+.confirm-box p  { color: var(--base-text-muted); font-size: 0.95rem; margin: 0 0 24px; }
+.confirm-actions { display: flex; gap: 10px; justify-content: center; }
+.btn-del-yes { padding: 9px 26px; background: #dc2626; border: none; border-radius: 8px; color: white; font-family: var(--font-display); font-weight: 700; cursor: pointer; }
+.btn-del-no  { padding: 9px 26px; background: none; border: 1.5px solid var(--base-border-color); border-radius: 8px; color: var(--base-text-muted); font-family: var(--font-display); font-weight: 700; cursor: pointer; }
+.btn-del-no:hover { border-color: var(--base-tan-dim); color: var(--base-text-color); }
+</style>
+{% endblock %}
+
 {% block content %}
-<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 32px; flex-wrap: wrap; gap: 16px;">
+
+<div class="res-header">
     <div>
-        <h1 style="margin: 0; font-size: 2.2rem;">📚 Study Share Hub</h1>
-        <p style="color: var(--base-text-muted); margin-top: 4px;">Collaborate and share research papers, study notes, or reference links with your fellow students at {{ campus.name }}.</p>
+        <h1><span style="color: initial">📚</span> Resources</h1>
+        <p style="color: var(--base-text-muted); margin-top: 4px; font-size: 0.95rem;">Share notes, slides, and study materials with your campus.</p>
     </div>
-    <button onclick="toggleUploadForm()" class="base-button" id="uploadBtn">➕ Share Resource</button>
+    <button class="base-button" onclick="openModal()" style="padding: 9px 18px; font-size: 0.9rem;">+ Share File</button>
 </div>
 
-<!-- Upload Form Card (Hidden by default) -->
-<div id="uploadFormContainer" style="display: none; background: linear-gradient(160deg, #0f2040 0%, #0a1628 100%); border: 1px solid rgba(200,169,110,0.2); border-radius: 12px; padding: 24px; margin-bottom: 32px; box-shadow: 0 8px 32px rgba(0,0,0,0.3); max-width: 600px;">
-    <h3 style="margin-top: 0; margin-bottom: 20px; color: var(--base-tan);">🔗 Share a Study Resource</h3>
-    <form action="{{ url_for('main.campus_resources', campus_id=campus.id) }}" method="POST">
-        <div class="base-form-group">
-            <label class="base-label" for="title">Resource Title *</label>
-            <input type="text" id="title" name="title" class="base-input" placeholder="e.g. Calculus II Midterm Review Notes" required>
-        </div>
-        
-        <div class="base-form-group">
-            <label class="base-label" for="description">Description</label>
-            <textarea id="description" name="description" class="base-textarea" placeholder="Provide a brief summary of what this resource covers..."></textarea>
-        </div>
-        
-        <div class="base-form-group">
-            <label class="base-label" for="file_url">Resource Link / URL</label>
-            <input type="url" id="file_url" name="file_url" class="base-input" placeholder="e.g. https://drive.google.com/file/... or https://github.com/...">
-            <small style="color: var(--base-text-muted); display: block; margin-top: 4px; font-style: italic;">Provide a Google Drive, Dropbox, or GitHub link containing your file.</small>
-        </div>
-        
-        <div style="display: flex; gap: 12px; margin-top: 24px;">
-            <button type="submit" class="base-button">Submit Resource</button>
-            <button type="button" onclick="toggleUploadForm()" class="base-button-secondary">Cancel</button>
-        </div>
-    </form>
-</div>
-
-<!-- Resources Grid -->
 {% if resources %}
-<div class="base-card-grid">
-    {% for resource in resources %}
-    <div class="base-card" style="display: flex; flex-direction: column; justify-content: space-between;">
-        <div class="base-card-content">
-            <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px;">
-                <span style="font-size: 1.5rem;">📄</span>
-                <span style="font-size: 0.8rem; background: rgba(200,169,110,0.15); color: var(--base-tan); padding: 2px 8px; border-radius: 12px; font-weight: bold;">
-                    {{ resource.uploaded_at.strftime('%b %d, %Y') }}
-                </span>
-            </div>
-            <h3 class="base-card-title" style="margin-bottom: 12px;">{{ resource.title }}</h3>
-            <p class="base-card-desc" style="margin-bottom: 16px;">{{ resource.description or 'No description provided.' }}</p>
-        </div>
-        
-        <div style="padding: 0 20px 20px 20px;">
-            <div style="border-top: 1px solid rgba(200,169,110,0.1); padding-top: 12px; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; font-size: 0.85rem; color: var(--base-text-muted);">
-                <span>Shared by: <strong>{{ resource.uploader.name }}</strong></span>
-            </div>
-            
-            {% if resource.file_url %}
-            <a href="{{ resource.file_url }}" target="_blank" class="base-button" style="width: 100%; text-align: center; display: block; font-size: 0.9rem; padding: 8px 16px;">🌐 View Resource</a>
-            {% else %}
-            <button class="base-button-secondary" style="width: 100%; text-align: center; display: block; font-size: 0.9rem; padding: 8px 16px; cursor: default; opacity: 0.5;">No external link</button>
-            {% endif %}
-        </div>
-    </div>
-    {% endfor %}
-</div>
-{% else %}
-<div style="text-align: center; padding: 64px; background: var(--base-card-bg); border-radius: 12px; border: 1px dashed var(--base-border-color);">
-    <div style="font-size: 3rem; margin-bottom: 16px;">📚</div>
-    <h3>No study resources shared yet</h3>
-    <p style="color: var(--base-text-muted); margin-bottom: 24px;">Be the first to share study sheets, research papers, or syllabus guides with this campus!</p>
-    <button onclick="toggleUploadForm()" class="base-button">Share a Resource</button>
+<div class="compose-bar" onclick="openModal()">
+    <div class="compose-avatar">{{ current_user.name[0] | upper }}</div>
+    <span class="compose-placeholder">Have a file to share? Upload it here…</span>
 </div>
 {% endif %}
 
+<div id="resFeed">
+{% for r in resources %}
+<div class="post-card" data-id="{{ r.id }}">
+    {% if r.uploader_id == current_user.id %}
+    <button class="post-delete-btn" onclick="confirmDelete({{ r.id }})" title="Delete">✕</button>
+    {% endif %}
+    <div class="post-header">
+        <div class="post-avatar">{{ r.uploader.name[0] | upper }}</div>
+        <span class="post-username">{{ r.uploader.name }}</span>
+    </div>
+    <div class="post-body">
+        <div class="post-row">
+            {% if r.course_code %}
+            <span class="tag tag-course">{{ r.course_code }}</span>
+            {% endif %}
+            {% if r.file_type %}
+            <span class="tag tag-ft-{{ r.file_type }}">{{ r.file_type | upper }}</span>
+            {% endif %}
+        </div>
+        <div class="post-row">
+            <span class="post-filename">{{ r.original_filename or r.title }}</span>
+        </div>
+        <div class="post-row">
+            <a href="{{ url_for('main.resource_download', campus_id=campus.id, resource_id=r.id) }}" class="btn-download">↓ Download</a>
+        </div>
+    </div>
+</div>
+{% endfor %}
+</div>
+
+{% if not resources %}
+<div class="res-empty" id="emptyState">
+    <div style="font-size: 3rem; margin-bottom: 16px;">📂</div>
+    <h3 style="margin-bottom: 8px;">No files shared yet</h3>
+    <p style="margin-bottom: 24px;">Be the first to share notes, slides, or study materials.</p>
+    <button class="base-button" onclick="openModal()">+ Share File</button>
+</div>
+{% endif %}
+
+<!-- Upload Modal -->
+<div class="modal-overlay" id="modalOverlay" onclick="overlayClick(event)">
+    <div class="modal-box">
+        <button class="modal-close" onclick="closeModal()">×</button>
+        <div class="modal-title">Share a File</div>
+        <p style="color: var(--base-text-muted); font-size: 0.9rem; margin-bottom: 4px;">PDF, PPTX, PPT, DOCX, DOC, XLSX only.</p>
+
+        <label class="modal-label">Course Code</label>
+        <input type="text" id="f-code" class="base-input" placeholder="e.g. CS101" oninput="validate()" style="text-transform: uppercase;">
+        <span class="field-err" id="err-code"></span>
+
+        <label class="modal-label">File</label>
+        <div class="file-drop" id="fileDrop" onclick="document.getElementById('f-file').click()">
+            <input type="file" id="f-file" accept=".pdf,.pptx,.ppt,.docx,.doc,.xlsx" onchange="onFileChange(this)">
+            <div class="file-drop-label" id="fileDropLabel">Click to choose a file</div>
+            <div class="file-name-display" id="fileNameDisplay" style="display:none;"></div>
+        </div>
+        <span class="field-err" id="err-file"></span>
+
+        <span class="field-err" id="err-general"></span>
+        <button class="btn-post-submit" id="submitBtn" onclick="submitUpload()" disabled>Upload</button>
+    </div>
+</div>
+
+<!-- Confirm Delete -->
+<div class="confirm-overlay" id="confirmOverlay">
+    <div class="confirm-box">
+        <h3>Delete this file?</h3>
+        <p>This is permanent and cannot be undone.</p>
+        <div class="confirm-actions">
+            <button class="btn-del-yes" id="confirmYes">Delete</button>
+            <button class="btn-del-no" onclick="closeConfirm()">Cancel</button>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
 <script>
-function toggleUploadForm() {
-    const container = document.getElementById('uploadFormContainer');
-    const uploadBtn = document.getElementById('uploadBtn');
-    if (container.style.display === 'none') {
-        container.style.display = 'block';
-        uploadBtn.innerText = '❌ Close Form';
-        container.scrollIntoView({ behavior: 'smooth' });
-    } else {
-        container.style.display = 'none';
-        uploadBtn.innerText = '➕ Share Resource';
+const CAMPUS_ID   = {{ campus.id }};
+const ALLOWED_EXT = ['pdf','pptx','ppt','docx','doc','xlsx'];
+
+function openModal()  { document.getElementById('modalOverlay').classList.add('open'); document.getElementById('f-code').focus(); }
+function closeModal() { document.getElementById('modalOverlay').classList.remove('open'); resetForm(); }
+function overlayClick(e) { if (e.target === document.getElementById('modalOverlay')) closeModal(); }
+
+function resetForm() {
+    document.getElementById('f-code').value = '';
+    document.getElementById('f-file').value = '';
+    document.getElementById('fileNameDisplay').style.display = 'none';
+    document.getElementById('fileDropLabel').style.display = '';
+    document.getElementById('fileDrop').classList.remove('has-file');
+    ['code','file','general'].forEach(k => document.getElementById('err-'+k).textContent = '');
+    document.getElementById('submitBtn').disabled = true;
+    document.getElementById('submitBtn').textContent = 'Upload';
+}
+
+function onFileChange(input) {
+    const file = input.files[0];
+    if (!file) return;
+    const ext = file.name.split('.').pop().toLowerCase();
+    if (!ALLOWED_EXT.includes(ext)) {
+        document.getElementById('err-file').textContent = 'File type not allowed.';
+        input.value = '';
+        return;
+    }
+    document.getElementById('err-file').textContent = '';
+    document.getElementById('fileNameDisplay').textContent = file.name;
+    document.getElementById('fileNameDisplay').style.display = '';
+    document.getElementById('fileDropLabel').style.display = 'none';
+    document.getElementById('fileDrop').classList.add('has-file');
+    validate();
+}
+
+function validate() {
+    const code = document.getElementById('f-code').value.trim();
+    const file = document.getElementById('f-file').files[0];
+    const ok   = code.length > 0 && !!file;
+    document.getElementById('submitBtn').disabled = !ok;
+    return ok;
+}
+
+async function submitUpload() {
+    if (!validate()) return;
+    document.getElementById('submitBtn').disabled = true;
+    document.getElementById('submitBtn').textContent = 'Uploading…';
+
+    const fd = new FormData();
+    fd.append('course_code', document.getElementById('f-code').value.trim().toUpperCase());
+    fd.append('file', document.getElementById('f-file').files[0]);
+
+    try {
+        const res  = await fetch(`/campus/${CAMPUS_ID}/resources/upload`, { method: 'POST', body: fd });
+        const data = await res.json();
+        if (!res.ok) {
+            document.getElementById('err-general').textContent = data.error || 'Something went wrong.';
+            document.getElementById('submitBtn').disabled = false;
+            document.getElementById('submitBtn').textContent = 'Upload';
+            return;
+        }
+        prependCard(data);
+        closeModal();
+        ensureComposeBar();
+    } catch {
+        document.getElementById('err-general').textContent = 'Network error. Try again.';
+        document.getElementById('submitBtn').disabled = false;
+        document.getElementById('submitBtn').textContent = 'Upload';
     }
 }
+
+function ftClass(ext) {
+    if (ext === 'pdf')  return 'tag-ft-pdf';
+    if (ext === 'pptx' || ext === 'ppt') return 'tag-ft-pptx';
+    if (ext === 'docx' || ext === 'doc') return 'tag-ft-docx';
+    if (ext === 'xlsx') return 'tag-ft-xlsx';
+    return 'tag-course';
+}
+
+function prependCard(r) {
+    const card    = document.createElement('div');
+    card.className = 'post-card'; card.dataset.id = r.id;
+    const initial = esc(r.uploader_name.charAt(0).toUpperCase());
+    const dlUrl   = `/campus/${CAMPUS_ID}/resources/${r.id}/download`;
+    card.innerHTML = `
+        <button class="post-delete-btn" onclick="confirmDelete(${r.id})" title="Delete">✕</button>
+        <div class="post-header">
+            <div class="post-avatar">${initial}</div>
+            <span class="post-username">${esc(r.uploader_name)}</span>
+        </div>
+        <div class="post-body">
+            <div class="post-row">
+                <span class="tag tag-course">${esc(r.course_code)}</span>
+                <span class="tag ${ftClass(r.file_type)}">${esc(r.file_type.toUpperCase())}</span>
+            </div>
+            <div class="post-row">
+                <span class="post-filename">${esc(r.original_filename)}</span>
+            </div>
+            <div class="post-row">
+                <a href="${dlUrl}" class="btn-download">↓ Download</a>
+            </div>
+        </div>`;
+    document.getElementById('resFeed').prepend(card);
+    const empty = document.getElementById('emptyState');
+    if (empty) empty.style.display = 'none';
+}
+
+function ensureComposeBar() {
+    if (document.querySelector('.compose-bar')) return;
+    const bar  = document.createElement('div');
+    bar.className = 'compose-bar'; bar.onclick = openModal;
+    bar.innerHTML = `<div class="compose-avatar">{{ current_user.name[0] | upper }}</div><span class="compose-placeholder">Have a file to share? Upload it here…</span>`;
+    document.getElementById('resFeed').before(bar);
+}
+
+function confirmDelete(id) {
+    document.getElementById('confirmOverlay').classList.add('open');
+    document.getElementById('confirmYes').onclick = () => doDelete(id);
+}
+function closeConfirm() { document.getElementById('confirmOverlay').classList.remove('open'); }
+
+async function doDelete(id) {
+    closeConfirm();
+    try {
+        const res = await fetch(`/campus/${CAMPUS_ID}/resources/${id}`, { method: 'DELETE' });
+        if (res.ok) {
+            document.querySelector(`.post-card[data-id="${id}"]`)?.remove();
+            if (!document.querySelector('.post-card')) {
+                const empty = document.getElementById('emptyState');
+                if (empty) empty.style.display = '';
+                document.querySelector('.compose-bar')?.remove();
+            }
+        }
+    } catch { alert('Failed to delete. Try again.'); }
+}
+
+function esc(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 </script>
 {% endblock %}

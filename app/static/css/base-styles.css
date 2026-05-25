@@ -288,7 +288,11 @@ body {
     border-left-color: var(--base-tan);
 }
 
-.base-nav-icon { font-size: 1.2rem; }
+.base-nav-icon {
+    font-size: 1.2rem;
+    color: initial;
+    -webkit-text-fill-color: initial;
+}
 
 /* ── Main Content ────────────────────────────────────────────── */
 .base-main-content {
@@ -534,6 +538,13 @@ h1 {
     -webkit-text-fill-color: transparent;
     background-clip: text;
     letter-spacing: 0.02em;
+}
+
+h1 span {
+    background: none !important;
+    -webkit-background-clip: unset !important;
+    background-clip: unset !important;
+    -webkit-text-fill-color: initial !important;
 }
 
 h2 { font-family: var(--font-display); color: var(--base-tan-light); letter-spacing: 0.02em; }

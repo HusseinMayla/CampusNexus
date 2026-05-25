@@ -1,6 +1,7 @@
 import os
 import re
-from flask import Blueprint, render_template, redirect, url_for, flash, request, current_app, jsonify
+import uuid
+from flask import Blueprint, render_template, redirect, url_for, flash, request, current_app, jsonify, send_from_directory
 from flask_login import login_required, current_user
 from werkzeug.utils import secure_filename
 from app.extensions import db
@@ -9,10 +10,14 @@ from sqlalchemy import func
 
 main_bp = Blueprint('main', __name__)
 
-ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
+ALLOWED_EXTENSIONS   = {'png', 'jpg', 'jpeg', 'gif'}
+RESOURCE_EXTENSIONS  = {'pdf', 'pptx', 'ppt', 'docx', 'doc', 'xlsx'}
 
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+
+def allowed_resource(filename):
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in RESOURCE_EXTENSIONS
 
 @main_bp.route('/')
 @main_bp.route('/index')
@@ -94,8 +99,6 @@ def create_campus():
 
         flash('Campus created successfully!')
         return redirect(url_for('main.dashboard'))
-
-    return render_template('main/create_campus.html')
 
     return render_template('main/create_campus.html')
 
@@ -404,7 +407,7 @@ def update_profile():
     return redirect(url_for('main.settings'))
 
 
-@main_bp.route('/campus/<int:campus_id>/resources', methods=['GET', 'POST'])
+@main_bp.route('/campus/<int:campus_id>/resources')
 @login_required
 def campus_resources(campus_id):
     campus = Campus.query.get_or_404(campus_id)
@@ -412,31 +415,85 @@ def campus_resources(campus_id):
     if not is_member:
         flash('You must join this campus to view its resources.', 'error')
         return redirect(url_for('main.join_campus'))
-        
-    if request.method == 'POST':
-        title = request.form.get('title', '').strip()
-        description = request.form.get('description', '').strip()
-        file_url = request.form.get('file_url', '').strip()
-        
-        if not title:
-            flash('Title is required.', 'error')
-            return redirect(url_for('main.campus_resources', campus_id=campus_id))
-            
-        new_resource = Resource(
-            title=title,
-            description=description,
-            file_url=file_url if file_url else None,
-            campus_id=campus.id,
-            uploader_id=current_user.id
-        )
-        db.session.add(new_resource)
-        db.session.commit()
-        flash('Resource uploaded successfully!', 'success')
-        return redirect(url_for('main.campus_resources', campus_id=campus_id))
-        
-    # Get all resources for this campus
     resources = Resource.query.filter_by(campus_id=campus.id).order_by(Resource.uploaded_at.desc()).all()
     return render_template('main/campus_resources.html', campus=campus, resources=resources, active_page='resources')
+
+
+@main_bp.route('/campus/<int:campus_id>/resources/upload', methods=['POST'])
+@login_required
+def resource_create(campus_id):
+    campus = Campus.query.get_or_404(campus_id)
+    is_member = CampusMember.query.filter_by(user_id=current_user.id, campus_id=campus.id).first() is not None or campus.creator_id == current_user.id
+    if not is_member:
+        return jsonify({'error': 'Unauthorized'}), 403
+
+    course_code = request.form.get('course_code', '').strip().upper()
+    file        = request.files.get('file')
+
+    if not course_code:
+        return jsonify({'error': 'Course code is required.'}), 400
+    if not file or not file.filename:
+        return jsonify({'error': 'No file uploaded.'}), 400
+    if not allowed_resource(file.filename):
+        return jsonify({'error': 'File type not allowed. Use PDF, PPTX, DOCX, DOC, PPT, or XLSX.'}), 400
+
+    original_filename = file.filename
+    ext         = original_filename.rsplit('.', 1)[1].lower()
+    safe        = secure_filename(original_filename)
+    stored_name = f"{uuid.uuid4().hex}_{safe}"
+
+    upload_dir = os.path.join(current_app.static_folder, 'uploads', 'resources')
+    os.makedirs(upload_dir, exist_ok=True)
+    file.save(os.path.join(upload_dir, stored_name))
+
+    resource = Resource(
+        title=original_filename,
+        file_url=f"uploads/resources/{stored_name}",
+        campus_id=campus_id,
+        uploader_id=current_user.id,
+        course_code=course_code,
+        file_type=ext,
+        original_filename=original_filename
+    )
+    db.session.add(resource)
+    db.session.commit()
+
+    return jsonify({
+        'id':                resource.id,
+        'course_code':       resource.course_code,
+        'file_type':         resource.file_type,
+        'original_filename': resource.original_filename,
+        'uploader_id':       resource.uploader_id,
+        'uploader_name':     current_user.name,
+    }), 201
+
+
+@main_bp.route('/campus/<int:campus_id>/resources/<int:resource_id>', methods=['DELETE'])
+@login_required
+def resource_delete(campus_id, resource_id):
+    resource = Resource.query.filter_by(id=resource_id, campus_id=campus_id).first_or_404()
+    if resource.uploader_id != current_user.id:
+        return jsonify({'error': 'Unauthorized'}), 403
+    if resource.file_url:
+        file_path = os.path.join(current_app.static_folder, resource.file_url)
+        if os.path.exists(file_path):
+            os.remove(file_path)
+    db.session.delete(resource)
+    db.session.commit()
+    return jsonify({'success': True})
+
+
+@main_bp.route('/campus/<int:campus_id>/resources/<int:resource_id>/download')
+@login_required
+def resource_download(campus_id, resource_id):
+    resource = Resource.query.filter_by(id=resource_id, campus_id=campus_id).first_or_404()
+    if not resource.file_url:
+        flash('File not found.', 'error')
+        return redirect(url_for('main.campus_resources', campus_id=campus_id))
+    directory   = os.path.join(current_app.static_folder, 'uploads', 'resources')
+    stored_name = resource.file_url.split('/')[-1]
+    return send_from_directory(directory, stored_name, as_attachment=True,
+                               download_name=resource.original_filename or stored_name)
 
 
 @main_bp.route('/campus/<int:campus_id>/market')

@@ -143,13 +143,16 @@ class Notification(db.Model):
         return f'<Notification {self.title} (Read: {self.is_read})>'
 
 class Resource(db.Model):
-    id          = db.Column(db.Integer, primary_key=True)
-    title       = db.Column(db.String(128), nullable=False)
-    description = db.Column(db.Text)
-    file_url    = db.Column(db.String(255))
-    uploaded_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
-    campus_id   = db.Column(db.Integer, db.ForeignKey('campus.id'), nullable=False)
-    uploader_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    id                = db.Column(db.Integer, primary_key=True)
+    title             = db.Column(db.String(128), nullable=False)
+    description       = db.Column(db.Text)
+    file_url          = db.Column(db.String(255))
+    uploaded_at       = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    campus_id         = db.Column(db.Integer, db.ForeignKey('campus.id'), nullable=False)
+    uploader_id       = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    course_code       = db.Column(db.String(32), nullable=True)
+    file_type         = db.Column(db.String(16), nullable=True)
+    original_filename = db.Column(db.String(255), nullable=True)
 
     uploader    = db.relationship('User', backref=db.backref('resources', lazy=True, cascade='all, delete-orphan'))
     campus      = db.relationship('Campus', backref=db.backref('resources', lazy=True, cascade='all, delete-orphan'))
