@@ -73,7 +73,6 @@ class Club(db.Model):
     campus_id   = db.Column(db.Integer, db.ForeignKey('campus.id'), nullable=False)
     lat         = db.Column(db.Float)
     lng         = db.Column(db.Float)
-    events      = db.relationship('Event', backref='club', lazy=True, cascade='all, delete-orphan')
 
     def __repr__(self):
         return f'<Club {self.name}>'
@@ -93,10 +92,15 @@ class Event(db.Model):
     id          = db.Column(db.Integer, primary_key=True)
     title       = db.Column(db.String(128), nullable=False)
     description = db.Column(db.Text)
-    club_id     = db.Column(db.Integer, db.ForeignKey('club.id'), nullable=False)
-    date        = db.Column(db.DateTime)
-    lat         = db.Column(db.Float)
-    lng         = db.Column(db.Float)
+    campus_id   = db.Column(db.Integer, db.ForeignKey('campus.id'), nullable=False)
+    creator_id  = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    date        = db.Column(db.DateTime, nullable=False)
+    end_date    = db.Column(db.DateTime, nullable=False)
+    lat         = db.Column(db.Float, nullable=False)
+    lng         = db.Column(db.Float, nullable=False)
+
+    campus      = db.relationship('Campus', backref=db.backref('events', lazy=True, cascade='all, delete-orphan'))
+    creator     = db.relationship('User', backref=db.backref('created_events', lazy=True))
 
     def __repr__(self):
         return f'<Event {self.title}>'

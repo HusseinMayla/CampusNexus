@@ -1,108 +1,261 @@
 {% extends "base.html" %}
 
-{% block title %}Blueprint — {{ campus.name }} | LearnHive{% endblock %}
+{% block title %}Blueprint & Events — {{ campus.name }} | LearnHive{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/campus_map.css') }}">
+{% endblock %}
 
 {% block content %}
-<!-- Blueprint Showcase (No Map Library, Standard Image) -->
-{% set blueprint_src = campus.map_image or url_for('static', filename='images/default_blueprint.png') %}
-<div style="margin-bottom: 48px; text-align: center;">
-    <img src="{{ blueprint_src }}" alt="{{ campus.name }} Blueprint" style="width: 100%; max-height: 600px; border-radius: 12px; object-fit: contain; box-shadow: 0 10px 30px rgba(0,0,0,0.4); border: 1.5px solid var(--base-border-color); background: var(--base-card-bg);">
-</div>
-
-<!-- Side-by-side Lists Grid -->
-<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 32px; flex-wrap: wrap; margin-bottom: 48px;">
-    
-    <!-- Clubs Column -->
-    <div>
-        <div style="border-bottom: 2px solid var(--base-border-color); padding-bottom: 8px; margin-bottom: 20px;">
-            <h2 style="font-size: 1.6rem; color: var(--base-tan); display: flex; align-items: center; gap: 8px;">👥 Campus Clubs</h2>
+<div class="workspace-layout">
+    <!-- Main Content Area: Control Bar and Blueprint Canvas -->
+    <div class="workspace-main">
+        <div class="workspace-header">
+            <div class="workspace-title-section">
+                <h1 class="workspace-title">🗺️ Campus Blueprint & Events</h1>
+                <p class="workspace-subtitle">Explore and schedule community events, clubs, and offices at {{ campus.name }}</p>
+            </div>
+            
+            <div class="workspace-controls">
+                <!-- Filters -->
+                <div class="filter-tabs">
+                    <button class="filter-tab active" data-filter="all">🌐 All</button>
+                    <button class="filter-tab" data-filter="event">📅 Events</button>
+                    <button class="filter-tab" data-filter="office">🏢 Offices</button>
+                    <button class="filter-tab" data-filter="club">👥 Clubs</button>
+                </div>
+                
+                <!-- Action Buttons -->
+                <div class="action-buttons">
+                    {% if is_admin %}
+                    <button class="btn btn-secondary" id="btnAddPin">
+                        <span class="btn-icon">🛠️</span> <span class="btn-text">Add Location Pin</span>
+                    </button>
+                    {% endif %}
+                </div>
+            </div>
         </div>
         
-        {% if campus.clubs %}
-            <div style="display: flex; flex-direction: column; gap: 16px;">
-                {% for club in campus.clubs %}
-                <div class="base-card" style="padding: 16px; position: relative;">
-                    <div style="display: flex; justify-content: space-between; align-items: flex-start;">
-                        <h3 class="base-card-title" style="margin: 0; font-size: 1.15rem; color: var(--base-tan-light);">{{ club.name }}</h3>
-                        {% if is_admin %}
-                        <form action="{{ url_for('map.delete_club', campus_id=campus.id, club_id=club.id) }}" method="POST" style="display: inline;" onsubmit="return confirm('Delete this club?');">
-                            <button type="submit" style="background: none; border: none; cursor: pointer; font-size: 1.05rem; color: #ef4444; padding: 2px; transition: opacity 0.2s;" title="Delete Club">🗑️</button>
-                        </form>
-                        {% endif %}
-                    </div>
-                    <p class="base-card-desc" style="margin-top: 8px; font-size: 0.95rem; margin-bottom: 0;">{{ club.description or 'No description provided.' }}</p>
-                </div>
-                {% endfor %}
+        <!-- Floating Viewport Blur Overlay -->
+        <div class="blueprint-viewport-overlay hidden" id="blueprintBlurOverlay"></div>
+
+        <!-- The Interactive Blueprint Canvas Card -->
+        <div class="blueprint-card" id="blueprintCard">
+            <!-- Independent gold caption, displayed above the map only in placement mode -->
+            <div class="placement-gold-caption hidden" id="placementGoldCaption">
+                Choose the event location by clicking on the blueprint map below...
             </div>
-        {% else %}
-            <p style="color: var(--base-text-muted); font-style: italic;">No clubs registered at this campus yet.</p>
-        {% endif %}
-    </div>
-    
-    <!-- Offices Column -->
-    <div>
-        <div style="border-bottom: 2px solid var(--base-border-color); padding-bottom: 8px; margin-bottom: 20px;">
-            <h2 style="font-size: 1.6rem; color: var(--base-tan); display: flex; align-items: center; gap: 8px;">🏢 Campus Offices</h2>
+
+            <div class="blueprint-canvas-wrapper" id="blueprintCanvasWrapper">
+                {% set blueprint_src = campus.map_image or url_for('static', filename='images/default_blueprint.png') %}
+                <img src="{{ blueprint_src }}" id="blueprintImage" alt="{{ campus.name }} Blueprint" class="blueprint-img">
+                
+                <!-- Overlay Pins Container (Absolute Positioned) -->
+                <div class="pins-container" id="pinsContainer">
+                    <!-- Dynamic pins go here via JS -->
+                </div>
+            </div>
         </div>
         
-        {% if campus.offices %}
-            <div style="display: flex; flex-direction: column; gap: 16px;">
-                {% for office in campus.offices %}
-                <div class="base-card" style="padding: 16px; position: relative;">
-                    <div style="display: flex; justify-content: space-between; align-items: flex-start;">
-                        <h3 class="base-card-title" style="margin: 0; font-size: 1.15rem; color: var(--base-tan-light);">{{ office.name }}</h3>
-                        {% if is_admin %}
-                        <form action="{{ url_for('map.delete_office', campus_id=campus.id, office_id=office.id) }}" method="POST" style="display: inline;" onsubmit="return confirm('Delete this office?');">
-                            <button type="submit" style="background: none; border: none; cursor: pointer; font-size: 1.05rem; color: #ef4444; padding: 2px; transition: opacity 0.2s;" title="Delete Office">🗑️</button>
-                        </form>
-                        {% endif %}
-                    </div>
-                    <p class="base-card-desc" style="margin-top: 8px; font-size: 0.95rem; margin-bottom: 0;">{{ office.description or 'No description provided.' }}</p>
+        <!-- Side-by-side lists of Clubs and Offices (Legacy list, responsive grid) -->
+        <div class="legacy-lists-grid">
+            <!-- Clubs Column -->
+            <div class="legacy-column">
+                <div class="column-header">
+                    <h3>👥 Campus Clubs</h3>
                 </div>
-                {% endfor %}
+                <div class="legacy-card-list">
+                    {% if campus.clubs %}
+                        {% for club in campus.clubs %}
+                        <div class="legacy-list-card" data-pin-type="club" data-pin-id="{{ club.id }}">
+                            <div class="card-header">
+                                <h4>{{ club.name }}</h4>
+                                {% if is_admin %}
+                                <form action="{{ url_for('map.delete_club', campus_id=campus.id, club_id=club.id) }}" method="POST" style="display: inline;" onsubmit="return confirm('Delete this club?');">
+                                    <button type="submit" class="card-delete-btn">🗑️</button>
+                                </form>
+                                {% endif %}
+                            </div>
+                            <p>{{ club.description or 'No description provided.' }}</p>
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                        <p class="empty-text">No clubs registered yet.</p>
+                    {% endif %}
+                </div>
             </div>
-        {% else %}
-            <p style="color: var(--base-text-muted); font-style: italic;">No offices registered at this campus yet.</p>
-        {% endif %}
+            
+            <!-- Offices Column -->
+            <div class="legacy-column">
+                <div class="column-header">
+                    <h3>🏢 Campus Offices</h3>
+                </div>
+                <div class="legacy-card-list">
+                    {% if campus.offices %}
+                        {% for office in campus.offices %}
+                        <div class="legacy-list-card" data-pin-type="office" data-pin-id="{{ office.id }}">
+                            <div class="card-header">
+                                <h4>{{ office.name }}</h4>
+                                {% if is_admin %}
+                                <form action="{{ url_for('map.delete_office', campus_id=campus.id, office_id=office.id) }}" method="POST" style="display: inline;" onsubmit="return confirm('Delete this office?');">
+                                    <button type="submit" class="card-delete-btn">🗑️</button>
+                                </form>
+                                {% endif %}
+                            </div>
+                            <p>{{ office.description or 'No description provided.' }}</p>
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                        <p class="empty-text">No offices registered yet.</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
     </div>
     
+    <!-- Animated Right Sidebar Section: Events List Panel -->
+    <div class="workspace-sidebar" id="eventsSidebar">
+        <div class="sidebar-header">
+            <h3>📅 Events Schedule</h3>
+            <button class="sidebar-close-btn" id="btnCloseSidebar" title="Collapse Panel">✕</button>
+        </div>
+        
+        <div class="sidebar-content">
+            <div class="sidebar-quick-create">
+                <button class="btn btn-primary btn-full-width" id="btnSidebarAddEvent">
+                    ➕ Schedule New Event
+                </button>
+            </div>
+            
+            <!-- Active Events List -->
+            <div class="events-list-container" id="eventsListContainer">
+                <div class="loading-placeholder">
+                    <div class="spinner"></div>
+                    <p>Loading events...</p>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
 
-<!-- Admin controls -->
+<!-- Modal Overlays -->
+
+<!-- Event Creation Form Modal -->
+<div class="modal-overlay hidden" id="eventModalOverlay">
+    <div class="modal-card">
+        <div class="modal-header">
+            <h3>📅 Schedule Campus Event</h3>
+            <button class="modal-close-btn" id="btnCloseEventModal">✕</button>
+        </div>
+        <div class="modal-body">
+            <form id="eventCreationForm">
+                <input type="hidden" id="eventLat">
+                <input type="hidden" id="eventLng">
+                
+                <div class="form-group">
+                    <label for="eventTitle">Event Title *</label>
+                    <input type="text" id="eventTitle" placeholder="e.g. Computer Science Networking Night" required class="form-input">
+                </div>
+                
+                <div class="form-group">
+                    <label for="eventDescription">Description</label>
+                    <textarea id="eventDescription" placeholder="Provide details like what attendees should bring, what is being served..." class="form-textarea"></textarea>
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="eventDate">Date & Start Time *</label>
+                        <input type="datetime-local" id="eventDate" required class="form-input">
+                    </div>
+                    <div class="form-group">
+                        <label for="eventDuration">Event Duration *</label>
+                        <select id="eventDuration" required class="form-input">
+                            <option value="30">30 Minutes</option>
+                            <option value="60" selected>1 Hour</option>
+                            <option value="90">1.5 Hours</option>
+                            <option value="120">2 Hours</option>
+                            <option value="180">3 Hours</option>
+                            <option value="240">4 Hours (Half Day)</option>
+                            <option value="480">8 Hours (Full Day)</option>
+                            <option value="custom">Custom (Minutes)...</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="form-group hidden" id="customDurationGroup">
+                    <label for="customDuration">Custom Duration (Minutes) *</label>
+                    <input type="number" id="customDuration" min="5" max="1440" value="60" class="form-input">
+                </div>
+                
+                <div id="eventFormError" class="form-error-msg hidden"></div>
+                
+                <div class="form-actions">
+                    <button type="button" class="btn btn-secondary" id="btnCancelEventModal">Cancel</button>
+                    <button type="submit" class="btn btn-primary" id="btnSaveEvent">Publish Event</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Admin Add General Pin Modal -->
 {% if is_admin %}
-<div style="margin-top: 48px; padding: 28px; background: linear-gradient(160deg, #0f2040 0%, #0a1628 100%); border-radius: 16px; border: 1.5px solid var(--base-border-color); box-shadow: 0 8px 32px rgba(0,0,0,0.3);">
-    <h3 style="margin-top: 0; margin-bottom: 24px; color: var(--base-tan); font-size: 1.35rem; display: flex; align-items: center; gap: 8px;">🛠️ Campus Admin Controls</h3>
-    
-    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 32px; flex-wrap: wrap;">
-        <!-- Add Club -->
-        <form action="{{ url_for('map.add_club', campus_id=campus.id) }}" method="POST">
-            <h4 style="margin-top: 0; margin-bottom: 16px; color: var(--base-tan-light); font-size: 1.1rem; border-bottom: 1px dashed rgba(200,169,110,0.2); padding-bottom: 6px;">➕ Add Campus Club</h4>
-            <div class="base-form-group">
-                <label class="base-label" for="club_name">Club Name *</label>
-                <input type="text" id="club_name" name="name" class="base-input" placeholder="e.g. Computer Science Club" required>
-            </div>
-            <div class="base-form-group">
-                <label class="base-label" for="club_desc">Description</label>
-                <textarea id="club_desc" name="description" class="base-textarea" placeholder="Describe the club's purpose and meetings..."></textarea>
-            </div>
-            <button type="submit" class="base-button" style="width: 100%;">Create Club</button>
-        </form>
-        
-        <!-- Add Office -->
-        <form action="{{ url_for('map.add_office', campus_id=campus.id) }}" method="POST">
-            <h4 style="margin-top: 0; margin-bottom: 16px; color: var(--base-tan-light); font-size: 1.1rem; border-bottom: 1px dashed rgba(200,169,110,0.2); padding-bottom: 6px;">➕ Add Campus Office</h4>
-            <div class="base-form-group">
-                <label class="base-label" for="office_name">Office Name *</label>
-                <input type="text" id="office_name" name="name" class="base-input" placeholder="e.g. Dean of Students Office" required>
-            </div>
-            <div class="base-form-group">
-                <label class="base-label" for="office_desc">Description</label>
-                <textarea id="office_desc" name="description" class="base-textarea" placeholder="Provide details like office hours or room number..."></textarea>
-            </div>
-            <button type="submit" class="base-button" style="width: 100%;">Create Office</button>
-        </form>
+<div class="modal-overlay hidden" id="pinModalOverlay">
+    <div class="modal-card">
+        <div class="modal-header">
+            <h3>🛠️ Add Campus Pin</h3>
+            <button class="modal-close-btn" id="btnClosePinModal">✕</button>
+        </div>
+        <div class="modal-body">
+            <form id="pinCreationForm">
+                <input type="hidden" id="pinLat">
+                <input type="hidden" id="pinLng">
+                
+                <div class="form-group">
+                    <label>Pin Type *</label>
+                    <div class="radio-group">
+                        <label class="radio-label">
+                            <input type="radio" name="pinType" value="club" checked>
+                            <span class="radio-custom club-radio">👥 Club</span>
+                        </label>
+                        <label class="radio-label">
+                            <input type="radio" name="pinType" value="office">
+                            <span class="radio-custom office-radio">🏢 Office</span>
+                        </label>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="pinName" id="pinNameLabel">Club/Office Name *</label>
+                    <input type="text" id="pinName" placeholder="e.g. Robotics Club" required class="form-input">
+                </div>
+                
+                <div class="form-group">
+                    <label for="pinDescription">Description</label>
+                    <textarea id="pinDescription" placeholder="Add room numbers, open hours, or meeting times..." class="form-textarea"></textarea>
+                </div>
+                
+                <div id="pinFormError" class="form-error-msg hidden"></div>
+                
+                <div class="form-actions">
+                    <button type="button" class="btn btn-secondary" id="btnCancelPinModal">Cancel</button>
+                    <button type="submit" class="btn btn-primary" id="btnSavePin">Add Pin</button>
+                </div>
+            </form>
+        </div>
     </div>
 </div>
 {% endif %}
 
+<!-- Config payload for JS -->
+<div id="workspaceConfig" 
+     data-campus-id="{{ campus.id }}" 
+     data-is-admin="{{ 'true' if is_admin else 'false' }}"
+     style="display: none;">
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script src="{{ url_for('static', filename='js/campus_map.js') }}"></script>
 {% endblock %}

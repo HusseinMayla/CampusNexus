@@ -1,7 +1,7 @@
 from flask import Blueprint, render_template, request, jsonify, redirect, url_for, flash
 from flask_login import login_required, current_user
 from app.extensions import db
-from app.models import Campus, Club, Office, Event
+from app.models import Campus, Club, Office, Event, CampusMember
 from datetime import datetime
 
 map_bp = Blueprint('map', __name__)
@@ -14,7 +14,9 @@ map_bp = Blueprint('map', __name__)
 def campus_map(campus_id):
     campus   = Campus.query.get_or_404(campus_id)
     is_admin = (campus.creator_id == current_user.id)
-    return render_template('main/campus_map.html', campus=campus, is_admin=is_admin, active_page='map')
+    view     = request.args.get('view')
+    active_page = 'events' if view == 'events' else 'map'
+    return render_template('main/campus_map.html', campus=campus, is_admin=is_admin, active_page=active_page)
 
 
 @map_bp.route('/campus/<int:campus_id>/add-club', methods=['POST'])
@@ -104,11 +106,10 @@ def delete_office(campus_id, office_id):
 @map_bp.route('/api/map-data/<int:campus_id>')
 @login_required
 def map_data(campus_id):
-    now  = datetime.utcnow()
     pins = []
 
     for c in Club.query.filter_by(campus_id=campus_id).all():
-        if c.lat and c.lng:
+        if c.lat is not None and c.lng is not None:
             pins.append({
                 'id': c.id, 'type': 'club',
                 'name': c.name, 'description': c.description or '',
@@ -116,23 +117,24 @@ def map_data(campus_id):
             })
 
     for o in Office.query.filter_by(campus_id=campus_id).all():
-        if o.lat and o.lng:
+        if o.lat is not None and o.lng is not None:
             pins.append({
                 'id': o.id, 'type': 'office',
                 'name': o.name, 'description': o.description or '',
                 'lat': o.lat, 'lng': o.lng
             })
 
-    for e in Event.query.join(Club).filter(
-        Club.campus_id == campus_id,
-        Event.date >= now
-    ).all():
-        if e.lat and e.lng:
+    # Fetch all events directly for this campus
+    for e in Event.query.filter_by(campus_id=campus_id).all():
+        if e.lat is not None and e.lng is not None:
             pins.append({
                 'id': e.id, 'type': 'event',
                 'name': e.title, 'description': e.description or '',
                 'lat': e.lat, 'lng': e.lng,
-                'date': e.date.isoformat()
+                'date': e.date.isoformat(),
+                'end_date': e.end_date.isoformat() if e.end_date else None,
+                'creator_name': e.creator.name if e.creator else 'Anonymous',
+                'is_creator': (e.creator_id == current_user.id)
             })
 
     return jsonify(pins)
@@ -147,8 +149,15 @@ def add_pin():
     campus_id = data.get('campus_id')
     campus    = Campus.query.get(campus_id)
 
-    if not campus or campus.creator_id != current_user.id:
-        return jsonify({'error': 'Unauthorized'}), 403
+    if not campus:
+        return jsonify({'error': 'Campus not found'}), 404
+
+    # Authorization check
+    is_admin = (campus.creator_id == current_user.id)
+    is_member = CampusMember.query.filter_by(user_id=current_user.id, campus_id=campus_id).first() is not None or is_admin
+
+    if not is_member:
+        return jsonify({'error': 'Unauthorized. You must join this campus to add items.'}), 403
 
     pin_type = data.get('type')
     name     = data.get('name', '').strip()
@@ -156,10 +165,12 @@ def add_pin():
     lat      = data.get('lat')
     lng      = data.get('lng')
 
-    if not name or not lat or not lng:
+    if not name or lat is None or lng is None:
         return jsonify({'error': 'Missing fields'}), 400
 
     if pin_type == 'club':
+        if not is_admin:
+            return jsonify({'error': 'Only campus admins can add clubs.'}), 403
         obj = Club(name=name, description=desc, campus_id=campus_id, lat=lat, lng=lng)
         db.session.add(obj)
         db.session.commit()
@@ -167,6 +178,8 @@ def add_pin():
                         'description': desc, 'lat': lat, 'lng': lng})
 
     elif pin_type == 'office':
+        if not is_admin:
+            return jsonify({'error': 'Only campus admins can add offices.'}), 403
         obj = Office(name=name, description=desc, campus_id=campus_id, lat=lat, lng=lng)
         db.session.add(obj)
         db.session.commit()
@@ -175,21 +188,63 @@ def add_pin():
 
     elif pin_type == 'event':
         date_str = data.get('date')
-        if not date_str:
-            return jsonify({'error': 'Event date required'}), 400
-        event_date = datetime.fromisoformat(date_str)
+        end_date_str = data.get('end_date')
+        if not date_str or not end_date_str:
+            return jsonify({'error': 'Event start and end times are required.'}), 400
+        
+        def parse_iso_datetime(dt_str):
+            if not dt_str:
+                raise ValueError("Empty date string")
+            dt_str = dt_str.replace('T', ' ').strip()
+            if dt_str.endswith('Z'):
+                dt_str = dt_str[:-1]
+            for fmt in ('%Y-%m-%d %H:%M:%S.%f', '%Y-%m-%d %H:%M:%S', '%Y-%m-%d %H:%M', '%Y-%m-%d'):
+                try:
+                    return datetime.strptime(dt_str, fmt)
+                except ValueError:
+                    continue
+            raise ValueError(f"Cannot parse datetime: {dt_str}")
 
-        club = Club.query.filter_by(campus_id=campus_id).first()
-        if not club:
-            return jsonify({'error': 'Add a club first before adding events'}), 400
+        try:
+            event_date = parse_iso_datetime(date_str)
+            event_end_date = parse_iso_datetime(end_date_str)
+        except ValueError as val_err:
+            return jsonify({'error': f'Invalid date format: {str(val_err)}'}), 400
 
-        obj = Event(title=name, description=desc, club_id=club.id,
-                    date=event_date, lat=lat, lng=lng)
+        # Validate start date is not in the past (allowing 5 minutes clock-drift buffer)
+        now_naive = datetime.utcnow()
+        if event_date < now_naive:
+            time_diff = now_naive - event_date
+            if time_diff.total_seconds() > 300: # Greater than 5 minutes
+                return jsonify({'error': 'Event start time cannot be in the past.'}), 400
+
+        if event_end_date <= event_date:
+            return jsonify({'error': 'End time must be after the start time.'}), 400
+
+        obj = Event(
+            title=name,
+            description=desc,
+            campus_id=campus_id,
+            creator_id=current_user.id,
+            date=event_date,
+            end_date=event_end_date,
+            lat=lat,
+            lng=lng
+        )
         db.session.add(obj)
         db.session.commit()
-        return jsonify({'id': obj.id, 'type': 'event', 'name': name,
-                        'description': desc, 'lat': lat, 'lng': lng,
-                        'date': event_date.isoformat()})
+        return jsonify({
+            'id': obj.id,
+            'type': 'event',
+            'name': name,
+            'description': desc,
+            'lat': lat,
+            'lng': lng,
+            'date': event_date.isoformat(),
+            'end_date': event_end_date.isoformat(),
+            'creator_name': current_user.name,
+            'is_creator': True
+        })
 
     return jsonify({'error': 'Unknown pin type'}), 400
 
@@ -206,9 +261,24 @@ def delete_pin(pin_type, pin_id):
 
     obj = Model.query.get_or_404(pin_id)
 
-    campus_id = obj.campus_id if hasattr(obj, 'campus_id') else obj.club.campus_id
-    campus    = Campus.query.get(campus_id)
-    if not campus or campus.creator_id != current_user.id:
+    # Resolve campus and perform authorization
+    if pin_type == 'event':
+        campus_id = obj.campus_id
+    else:
+        campus_id = obj.campus_id
+        
+    campus = Campus.query.get(campus_id)
+    if not campus:
+        return jsonify({'error': 'Campus not found'}), 404
+
+    is_admin = (campus.creator_id == current_user.id)
+    is_authorized = is_admin
+    
+    if pin_type == 'event':
+        # Creator of event can also delete it
+        is_authorized = is_authorized or (obj.creator_id == current_user.id)
+
+    if not is_authorized:
         return jsonify({'error': 'Unauthorized'}), 403
 
     db.session.delete(obj)
