@@ -1,9 +1,10 @@
 import os
-from flask import Blueprint, render_template, redirect, url_for, flash, request, current_app
+import re
+from flask import Blueprint, render_template, redirect, url_for, flash, request, current_app, jsonify
 from flask_login import login_required, current_user
 from werkzeug.utils import secure_filename
 from app.extensions import db
-from app.models import Campus, CampusMember, CampusReport, Notification, Resource, MarketListing
+from app.models import Campus, CampusMember, CampusReport, Notification, Resource, TutorPost
 from sqlalchemy import func
 
 main_bp = Blueprint('main', __name__)
@@ -438,7 +439,7 @@ def campus_resources(campus_id):
     return render_template('main/campus_resources.html', campus=campus, resources=resources, active_page='resources')
 
 
-@main_bp.route('/campus/<int:campus_id>/market', methods=['GET', 'POST'])
+@main_bp.route('/campus/<int:campus_id>/market')
 @login_required
 def campus_market(campus_id):
     campus = Campus.query.get_or_404(campus_id)
@@ -446,39 +447,67 @@ def campus_market(campus_id):
     if not is_member:
         flash('You must join this campus to view its marketplace.', 'error')
         return redirect(url_for('main.join_campus'))
-        
-    if request.method == 'POST':
-        title = request.form.get('title', '').strip()
-        description = request.form.get('description', '').strip()
-        price_str = request.form.get('price', '').strip()
-        contact = request.form.get('contact', '').strip()
-        image_url = request.form.get('image_url', '').strip()
-        
-        if not title or not price_str or not contact:
-            flash('Title, Price, and Contact information are required.', 'error')
-            return redirect(url_for('main.campus_market', campus_id=campus_id))
-            
-        try:
-            price = float(price_str)
-        except ValueError:
-            flash('Please enter a valid price.', 'error')
-            return redirect(url_for('main.campus_market', campus_id=campus_id))
-            
-        new_listing = MarketListing(
-            title=title,
-            description=description,
-            price=price,
-            contact=contact,
-            image_url=image_url if image_url else None,
-            campus_id=campus.id,
-            seller_id=current_user.id
-        )
-        db.session.add(new_listing)
-        db.session.commit()
-        flash('Item listed successfully!', 'success')
-        return redirect(url_for('main.campus_market', campus_id=campus_id))
-        
-    # Get all market listings for this campus
-    listings = MarketListing.query.filter_by(campus_id=campus.id).order_by(MarketListing.created_at.desc()).all()
-    return render_template('main/campus_market.html', campus=campus, listings=listings, active_page='market')
+    posts = TutorPost.query.filter_by(campus_id=campus_id).order_by(TutorPost.created_at.desc()).all()
+    return render_template('main/campus_market.html', campus=campus, posts=posts, active_page='market')
+
+
+@main_bp.route('/campus/<int:campus_id>/market/post', methods=['POST'])
+@login_required
+def market_post_create(campus_id):
+    campus = Campus.query.get_or_404(campus_id)
+    is_member = CampusMember.query.filter_by(user_id=current_user.id, campus_id=campus.id).first() is not None or campus.creator_id == current_user.id
+    if not is_member:
+        return jsonify({'error': 'Unauthorized'}), 403
+
+    data      = request.get_json()
+    full_name = data.get('full_name', '').strip()
+    email     = data.get('email', '').strip()
+    role      = data.get('role', '').strip()
+    courses   = [c.strip() for c in data.get('courses', []) if c.strip()]
+    method    = data.get('method', '').strip()
+
+    if len(full_name) < 2:
+        return jsonify({'error': 'Name must be at least 2 characters.'}), 400
+    if not re.match(r'^[\w.+\-]+@[\w\-]+(\.[a-zA-Z]{2,}){1,3}$', email):
+        return jsonify({'error': 'Invalid email address.'}), 400
+    if role not in ('tutor', 'student'):
+        return jsonify({'error': 'Invalid role.'}), 400
+    if not courses:
+        return jsonify({'error': 'At least one course is required.'}), 400
+    if method not in ('online', 'in-person', 'hybrid', 'no-preference'):
+        return jsonify({'error': 'Invalid method.'}), 400
+
+    post = TutorPost(
+        campus_id=campus_id,
+        poster_id=current_user.id,
+        full_name=full_name,
+        email=email,
+        role=role,
+        courses=','.join(courses),
+        method=method
+    )
+    db.session.add(post)
+    db.session.commit()
+
+    return jsonify({
+        'id':          post.id,
+        'full_name':   post.full_name,
+        'email':       post.email,
+        'role':        post.role,
+        'courses':     post.courses.split(','),
+        'method':      post.method,
+        'poster_id':   post.poster_id,
+        'poster_name': current_user.name
+    }), 201
+
+
+@main_bp.route('/campus/<int:campus_id>/market/post/<int:post_id>', methods=['DELETE'])
+@login_required
+def market_post_delete(campus_id, post_id):
+    post = TutorPost.query.filter_by(id=post_id, campus_id=campus_id).first_or_404()
+    if post.poster_id != current_user.id:
+        return jsonify({'error': 'Unauthorized'}), 403
+    db.session.delete(post)
+    db.session.commit()
+    return jsonify({'success': True})
 

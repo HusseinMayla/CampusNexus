@@ -2,110 +2,491 @@
 
 {% block title %}Market Place — {{ campus.name }} | LearnHive{% endblock %}
 
+{% block extra_css %}
+<style>
+.market-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 28px;
+    flex-wrap: wrap;
+    gap: 16px;
+}
+.market-filters { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.filter-btn {
+    padding: 6px 18px;
+    border-radius: 20px;
+    border: 1.5px solid var(--base-border-color);
+    background: transparent;
+    color: var(--base-text-muted);
+    font-family: var(--font-body);
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+.filter-btn.active, .filter-btn:hover {
+    border-color: var(--base-tan);
+    color: var(--base-tan);
+    background: rgba(200,169,110,0.08);
+}
+
+/* Compose bar */
+.compose-bar {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    background: var(--base-card-bg);
+    border: 1px solid var(--base-border-color);
+    border-radius: 12px;
+    padding: 14px 20px;
+    margin-bottom: 20px;
+    cursor: pointer;
+    transition: border-color 0.2s, box-shadow 0.2s;
+}
+.compose-bar:hover { border-color: var(--base-tan); box-shadow: 0 2px 12px rgba(200,169,110,0.12); }
+.compose-avatar {
+    width: 36px; height: 36px; border-radius: 50%;
+    background: linear-gradient(135deg, var(--base-tan), var(--base-tan-light));
+    color: #0a1628;
+    display: flex; align-items: center; justify-content: center;
+    font-family: var(--font-display); font-weight: 700; font-size: 1rem; flex-shrink: 0;
+}
+.compose-placeholder { color: var(--base-text-muted); font-style: italic; font-size: 0.95rem; font-family: var(--font-body); }
+
+/* Post card */
+.post-card {
+    background: var(--base-card-bg);
+    border: 1px solid var(--base-border-color);
+    border-radius: 14px;
+    padding: 18px 20px;
+    margin-bottom: 12px;
+    position: relative;
+    transition: border-color 0.2s;
+}
+.post-card:hover { border-color: rgba(200,169,110,0.3); }
+
+.post-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 14px;
+}
+.post-avatar {
+    width: 38px; height: 38px; border-radius: 50%;
+    background: linear-gradient(135deg, var(--base-tan), var(--base-tan-light));
+    color: #0a1628;
+    display: flex; align-items: center; justify-content: center;
+    font-family: var(--font-display); font-weight: 700; font-size: 1rem;
+    flex-shrink: 0;
+}
+.post-username {
+    font-family: var(--font-display);
+    font-weight: 600;
+    font-size: 1rem;
+    color: var(--base-text-color);
+}
+.post-body { display: flex; flex-direction: column; gap: 8px; }
+.post-row  { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+
+/* Tags */
+.tag {
+    display: inline-flex; align-items: center; gap: 5px;
+    padding: 5px 14px; border-radius: 20px;
+    font-size: 0.88rem; font-family: var(--font-body);
+    border: 1.5px solid; white-space: nowrap; text-decoration: none;
+}
+.tag-email   { border-color: #3b82f6; color: #3b82f6; cursor: pointer; }
+.tag-email:hover { background: rgba(59,130,246,0.1); }
+.tag-tutor   { border-color: #16a34a; color: #16a34a; }
+.tag-student { border-color: #9333ea; color: #9333ea; }
+.tag-course  { border-color: #c8a96e; color: #c8a96e; }
+.tag-method  { border-color: #0e7490; color: #0e7490; }
+
+/* Delete btn */
+.post-delete-btn {
+    position: absolute; top: 16px; right: 16px;
+    background: none; border: none; color: var(--base-text-muted);
+    font-size: 0.95rem; cursor: pointer; padding: 4px 8px; border-radius: 4px;
+    transition: color 0.2s, background 0.2s; line-height: 1;
+}
+.post-delete-btn:hover { color: #ef4444; background: rgba(239,68,68,0.1); }
+
+/* Empty state */
+.market-empty { text-align: center; padding: 80px 24px; color: var(--base-text-muted); }
+
+/* Modal */
+.modal-overlay {
+    display: none; position: fixed; inset: 0;
+    background: rgba(0,0,0,0.55); z-index: 1000;
+    align-items: center; justify-content: center;
+}
+.modal-overlay.open { display: flex; }
+.modal-box {
+    background: var(--base-card-bg); border: 1px solid var(--base-border-color);
+    border-radius: 16px; width: 100%; max-width: 520px; max-height: 90vh;
+    overflow-y: auto; padding: 28px; position: relative;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+}
+.modal-title { font-family: var(--font-display); font-size: 1.3rem; font-weight: 700; color: var(--base-tan-light); margin-bottom: 4px; }
+.modal-close {
+    position: absolute; top: 16px; right: 20px;
+    background: none; border: none; font-size: 1.5rem;
+    color: var(--base-text-muted); cursor: pointer; line-height: 1;
+}
+.modal-close:hover { color: var(--base-text-color); }
+.modal-label {
+    display: block; font-family: var(--font-display); font-size: 0.8rem;
+    font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase;
+    color: var(--base-tan-dim); margin-bottom: 8px; margin-top: 18px;
+}
+.field-err { display: block; font-size: 0.8rem; color: #ef4444; min-height: 1rem; margin-top: 4px; }
+
+/* Choice buttons */
+.choice-group { display: flex; gap: 8px; flex-wrap: wrap; }
+.choice-btn {
+    padding: 6px 16px; border-radius: 20px;
+    border: 1.5px solid var(--base-border-color);
+    background: transparent; color: var(--base-text-muted);
+    font-family: var(--font-body); font-size: 0.9rem; cursor: pointer; transition: all 0.2s;
+}
+.choice-btn:hover { border-color: var(--base-tan-dim); color: var(--base-text-color); }
+.choice-btn.sel  { border-color: var(--base-tan); color: var(--base-tan); background: rgba(200,169,110,0.12); }
+
+/* Course tag input */
+.course-wrap {
+    display: flex; flex-wrap: wrap; gap: 6px; align-items: center;
+    padding: 8px 12px; background: rgba(10,22,40,0.35);
+    border: 1px solid var(--base-border-color); border-radius: 8px;
+    min-height: 44px; cursor: text;
+}
+[data-theme="light"] .course-wrap { background: rgba(221,226,237,0.6); }
+.course-wrap input {
+    border: none; background: transparent; color: var(--base-text-color);
+    font-family: var(--font-body); font-size: 0.9rem; outline: none; flex: 1; min-width: 80px;
+}
+.course-wrap input::placeholder { color: var(--base-text-muted); font-style: italic; }
+.ctag {
+    display: inline-flex; align-items: center; gap: 4px;
+    padding: 3px 10px; border-radius: 20px;
+    border: 1.5px solid #c8a96e; color: #c8a96e; font-size: 0.82rem;
+}
+.ctag-x { cursor: pointer; opacity: 0.7; font-size: 0.75rem; padding: 0 2px; }
+.ctag-x:hover { opacity: 1; }
+
+/* Submit */
+.btn-post-submit {
+    width: 100%; margin-top: 22px; padding: 12px;
+    background: linear-gradient(135deg, var(--base-tan), var(--base-tan-light));
+    border: none; border-radius: 8px; color: #0a1628;
+    font-family: var(--font-display); font-size: 1rem; font-weight: 700;
+    letter-spacing: 0.04em; cursor: pointer; transition: opacity 0.2s;
+}
+.btn-post-submit:hover { opacity: 0.88; }
+.btn-post-submit:disabled { opacity: 0.45; cursor: not-allowed; }
+
+/* Confirm dialog */
+.confirm-overlay {
+    display: none; position: fixed; inset: 0;
+    background: rgba(0,0,0,0.6); z-index: 1100;
+    align-items: center; justify-content: center;
+}
+.confirm-overlay.open { display: flex; }
+.confirm-box {
+    background: var(--base-card-bg); border: 1px solid var(--base-border-color);
+    border-radius: 14px; padding: 32px 28px; max-width: 360px; width: 90%;
+    text-align: center; box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+}
+.confirm-box h3 { font-family: var(--font-display); color: var(--base-text-color); margin: 0 0 10px; }
+.confirm-box p  { color: var(--base-text-muted); font-size: 0.95rem; margin: 0 0 24px; }
+.confirm-actions { display: flex; gap: 10px; justify-content: center; }
+.btn-del-yes { padding: 9px 26px; background: #dc2626; border: none; border-radius: 8px; color: white; font-family: var(--font-display); font-weight: 700; cursor: pointer; }
+.btn-del-no  { padding: 9px 26px; background: none; border: 1.5px solid var(--base-border-color); border-radius: 8px; color: var(--base-text-muted); font-family: var(--font-display); font-weight: 700; cursor: pointer; }
+.btn-del-no:hover { border-color: var(--base-tan-dim); color: var(--base-text-color); }
+</style>
+{% endblock %}
+
 {% block content %}
-<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 32px; flex-wrap: wrap; gap: 16px;">
+
+<div class="market-header">
     <div>
-        <h1 style="margin: 0; font-size: 2.2rem;">🛍️ Student Marketplace</h1>
-        <p style="color: var(--base-text-muted); margin-top: 4px;">Buy or sell textbooks, calculators, dorm furniture, and tickets directly with other students on campus.</p>
+        <h1>🛍️ Market Place</h1>
+        <p style="color: var(--base-text-muted); margin-top: 4px; font-size: 0.95rem;">Find tutors or students for your courses.</p>
     </div>
-    <button onclick="togglePostForm()" class="base-button" id="postBtn">➕ List an Item</button>
+    <div style="display: flex; align-items: center; gap: 14px; flex-wrap: wrap;">
+        <div class="market-filters">
+            <button class="filter-btn active" data-filter="all">All</button>
+            <button class="filter-btn" data-filter="tutor">Tutors</button>
+            <button class="filter-btn" data-filter="student">Students</button>
+        </div>
+        <button class="base-button" onclick="openModal()" style="padding: 9px 18px; font-size: 0.9rem;">+ Add Post</button>
+    </div>
 </div>
 
-<!-- Post Form Card (Hidden by default) -->
-<div id="postFormContainer" style="display: none; background: linear-gradient(160deg, #0f2040 0%, #0a1628 100%); border: 1px solid rgba(200,169,110,0.2); border-radius: 12px; padding: 24px; margin-bottom: 32px; box-shadow: 0 8px 32px rgba(0,0,0,0.3); max-width: 600px;">
-    <h3 style="margin-top: 0; margin-bottom: 20px; color: var(--base-tan);">🏷️ List an Item for Sale</h3>
-    <form action="{{ url_for('main.campus_market', campus_id=campus.id) }}" method="POST">
-        <div class="base-form-group">
-            <label class="base-label" for="title">Item Name / Title *</label>
-            <input type="text" id="title" name="title" class="base-input" placeholder="e.g. iPad Pro (11-inch) with Apple Pencil" required>
-        </div>
-        
-        <div class="base-form-group" style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
-            <div>
-                <label class="base-label" for="price">Price ($) *</label>
-                <input type="number" step="0.01" id="price" name="price" class="base-input" placeholder="e.g. 350.00" required>
-            </div>
-            <div>
-                <label class="base-label" for="contact">Contact Info *</label>
-                <input type="text" id="contact" name="contact" class="base-input" placeholder="e.g. Send email to user@test.edu" required>
-            </div>
-        </div>
-        
-        <div class="base-form-group">
-            <label class="base-label" for="description">Description</label>
-            <textarea id="description" name="description" class="base-textarea" placeholder="Describe the item condition, transaction meeting place, etc..."></textarea>
-        </div>
-        
-        <div class="base-form-group">
-            <label class="base-label" for="image_url">Image Link / URL (Optional)</label>
-            <input type="url" id="image_url" name="image_url" class="base-input" placeholder="e.g. https://images.unsplash.com/... or a hosted image link">
-        </div>
-        
-        <div style="display: flex; gap: 12px; margin-top: 24px;">
-            <button type="submit" class="base-button">Post Listing</button>
-            <button type="button" onclick="togglePostForm()" class="base-button-secondary">Cancel</button>
-        </div>
-    </form>
-</div>
-
-<!-- Marketplace Items Grid -->
-{% if listings %}
-<div class="base-card-grid">
-    {% for listing in listings %}
-    <div class="base-card" style="display: flex; flex-direction: column; justify-content: space-between;">
-        <div>
-            {% if listing.image_url %}
-            <img src="{{ listing.image_url }}" alt="{{ listing.title }}" class="base-card-image">
-            {% else %}
-            <div class="base-card-image" style="display: flex; align-items: center; justify-content: center; font-size: 3rem; background: #162a52;">🏷️</div>
-            {% endif %}
-            
-            <div class="base-card-content">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-                    <span style="font-weight: bold; color: var(--base-tan); font-size: 1.25rem;">
-                        ${{ "%.2f" | format(listing.price) }}
-                    </span>
-                    <span style="font-size: 0.8rem; background: rgba(200,169,110,0.1); color: var(--base-text-muted); padding: 2px 8px; border-radius: 12px;">
-                        {{ listing.created_at.strftime('%b %d') }}
-                    </span>
-                </div>
-                <h3 class="base-card-title" style="margin-bottom: 8px;">{{ listing.title }}</h3>
-                <p class="base-card-desc" style="margin-bottom: 12px; font-size: 0.92rem; line-height: 1.5;">{{ listing.description or 'No description provided.' }}</p>
-            </div>
-        </div>
-        
-        <div style="padding: 0 20px 20px 20px;">
-            <div style="border-top: 1px solid rgba(200,169,110,0.1); padding-top: 12px; font-size: 0.85rem; color: var(--base-text-muted);">
-                <div style="margin-bottom: 4px;">Seller: <strong>{{ listing.seller.name }}</strong></div>
-                <div style="background: rgba(200,169,110,0.06); padding: 8px 12px; border-radius: 6px; border-left: 3px solid var(--base-tan); margin-top: 8px; word-break: break-all;">
-                    📞 {{ listing.contact }}
-                </div>
-            </div>
-        </div>
-    </div>
-    {% endfor %}
-</div>
-{% else %}
-<div style="text-align: center; padding: 64px; background: var(--base-card-bg); border-radius: 12px; border: 1px dashed var(--base-border-color);">
-    <div style="font-size: 3rem; margin-bottom: 16px;">🛍️</div>
-    <h3>No listings active right now</h3>
-    <p style="color: var(--base-text-muted); margin-bottom: 24px;">Got a textbook to pass on or looking to sell some dorm gear? Add a listing now!</p>
-    <button onclick="togglePostForm()" class="base-button">Post a Listing</button>
+{% if posts %}
+<div class="compose-bar" onclick="openModal()">
+    <div class="compose-avatar">{{ current_user.name[0] | upper }}</div>
+    <span class="compose-placeholder">Looking for a tutor or student? Post here…</span>
 </div>
 {% endif %}
 
+<div id="postFeed">
+{% for post in posts %}
+<div class="post-card" data-role="{{ post.role }}" data-id="{{ post.id }}">
+    {% if post.poster_id == current_user.id %}
+    <button class="post-delete-btn" onclick="confirmDelete({{ post.id }})" title="Delete post">✕</button>
+    {% endif %}
+    <div class="post-header">
+        <div class="post-avatar">{{ post.poster.name[0] | upper }}</div>
+        <span class="post-username">{{ post.poster.name }}</span>
+    </div>
+    <div class="post-body">
+        <div class="post-row">
+            <span class="tag tag-{{ post.role }}">{{ post.role | capitalize }}</span>
+        </div>
+        <div class="post-row">
+            {% for course in post.courses.split(',') %}
+            <span class="tag tag-course">{{ course.strip() }}</span>
+            {% endfor %}
+        </div>
+        <div class="post-row">
+            <span class="tag tag-method">{{ post.method }}</span>
+        </div>
+        <div class="post-row">
+            <a href="mailto:{{ post.email }}" class="tag tag-email">{{ post.email }}</a>
+        </div>
+    </div>
+</div>
+{% endfor %}
+</div>
+
+{% if not posts %}
+<div class="market-empty" id="emptyState">
+    <div style="font-size: 3rem; margin-bottom: 16px;">📋</div>
+    <h3 style="margin-bottom: 8px;">No posts yet</h3>
+    <p style="margin-bottom: 24px;">Be the first to post a tutoring request or offer.</p>
+    <button class="base-button" onclick="openModal()">+ Add Post</button>
+</div>
+{% endif %}
+
+<!-- Add Post Modal -->
+<div class="modal-overlay" id="modalOverlay" onclick="overlayClick(event)">
+    <div class="modal-box">
+        <button class="modal-close" onclick="closeModal()">×</button>
+        <div class="modal-title">New Post</div>
+        <p style="color: var(--base-text-muted); font-size: 0.9rem; margin-bottom: 4px;">All fields are required.</p>
+
+        <label class="modal-label">Full Name</label>
+        <input type="text" id="f-name" class="base-input" placeholder="Your full name" oninput="validate()">
+        <span class="field-err" id="err-name"></span>
+
+        <label class="modal-label">Email</label>
+        <input type="email" id="f-email" class="base-input" placeholder="you@university.edu" oninput="validate()">
+        <span class="field-err" id="err-email"></span>
+
+        <label class="modal-label">I am a…</label>
+        <div class="choice-group">
+            <button class="choice-btn" data-val="tutor"   onclick="pick('role',this)">Tutor</button>
+            <button class="choice-btn" data-val="student" onclick="pick('role',this)">Student</button>
+        </div>
+        <span class="field-err" id="err-role"></span>
+
+        <label class="modal-label">Course Codes</label>
+        <div class="course-wrap" id="courseWrap" onclick="document.getElementById('courseInput').focus()">
+            <input id="courseInput" placeholder="e.g. CSCI212 — press Enter to add"
+                   onkeydown="courseKey(event)" oninput="validate()">
+        </div>
+        <span class="field-err" id="err-courses"></span>
+
+        <label class="modal-label">Preferred Method</label>
+        <div class="choice-group">
+            <button class="choice-btn" data-val="online"        onclick="pick('method',this)">Online</button>
+            <button class="choice-btn" data-val="in-person"     onclick="pick('method',this)">In-Person</button>
+            <button class="choice-btn" data-val="hybrid"        onclick="pick('method',this)">Hybrid</button>
+            <button class="choice-btn" data-val="no-preference" onclick="pick('method',this)">No Preference</button>
+        </div>
+        <span class="field-err" id="err-method"></span>
+
+        <span class="field-err" id="err-general"></span>
+        <button class="btn-post-submit" id="submitBtn" onclick="submitPost()" disabled>Post</button>
+    </div>
+</div>
+
+<!-- Confirm Delete -->
+<div class="confirm-overlay" id="confirmOverlay">
+    <div class="confirm-box">
+        <h3>Delete this post?</h3>
+        <p>This is permanent and cannot be undone.</p>
+        <div class="confirm-actions">
+            <button class="btn-del-yes" id="confirmYes">Delete</button>
+            <button class="btn-del-no" onclick="closeConfirm()">Cancel</button>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
 <script>
-function togglePostForm() {
-    const container = document.getElementById('postFormContainer');
-    const postBtn = document.getElementById('postBtn');
-    if (container.style.display === 'none') {
-        container.style.display = 'block';
-        postBtn.innerText = '❌ Close Form';
-        container.scrollIntoView({ behavior: 'smooth' });
-    } else {
-        container.style.display = 'none';
-        postBtn.innerText = '➕ List an Item';
-    }
+const CAMPUS_ID = {{ campus.id }};
+const EMAIL_RE  = /^[\w.+\-]+@[\w\-]+(\.[a-zA-Z]{2,}){1,3}$/;
+
+let selRole = null, selMethod = null, courses = [];
+
+/* Modal */
+function openModal()  { document.getElementById('modalOverlay').classList.add('open'); document.getElementById('f-name').focus(); }
+function closeModal() { document.getElementById('modalOverlay').classList.remove('open'); resetForm(); }
+function overlayClick(e) { if (e.target === document.getElementById('modalOverlay')) closeModal(); }
+function resetForm() {
+    document.getElementById('f-name').value = '';
+    document.getElementById('f-email').value = '';
+    selRole = selMethod = null; courses = [];
+    document.querySelectorAll('.choice-btn').forEach(b => b.classList.remove('sel'));
+    document.getElementById('courseWrap').querySelectorAll('.ctag').forEach(t => t.remove());
+    document.getElementById('courseInput').value = '';
+    ['name','email','role','courses','method','general'].forEach(k => document.getElementById('err-'+k).textContent = '');
+    document.getElementById('submitBtn').disabled = true;
 }
+
+/* Choice buttons */
+function pick(type, btn) {
+    btn.closest('.choice-group').querySelectorAll('.choice-btn').forEach(b => b.classList.remove('sel'));
+    btn.classList.add('sel');
+    if (type === 'role')   selRole   = btn.dataset.val;
+    if (type === 'method') selMethod = btn.dataset.val;
+    validate();
+}
+
+/* Course tags */
+function courseKey(e) {
+    const inp = document.getElementById('courseInput');
+    if (e.key === 'Enter' && inp.value.trim()) { e.preventDefault(); addCourse(inp.value.trim()); inp.value = ''; validate(); }
+    else if (e.key === 'Backspace' && !inp.value && courses.length) removeCourse(courses.length - 1);
+}
+function addCourse(val) {
+    const idx = courses.length; courses.push(val);
+    const inp = document.getElementById('courseInput');
+    const tag = document.createElement('span');
+    tag.className = 'ctag'; tag.dataset.idx = idx;
+    tag.innerHTML = `${esc(val)}<span class="ctag-x" onclick="removeCourse(${idx})">×</span>`;
+    document.getElementById('courseWrap').insertBefore(tag, inp);
+}
+function removeCourse(idx) {
+    courses.splice(idx, 1);
+    const wrap = document.getElementById('courseWrap');
+    wrap.querySelectorAll('.ctag').forEach(t => t.remove());
+    const copy = [...courses]; courses = [];
+    copy.forEach(v => addCourse(v));
+    document.getElementById('courseInput').focus();
+    validate();
+}
+
+/* Validation */
+function validate() {
+    let ok = true;
+    const name  = document.getElementById('f-name').value.trim();
+    const email = document.getElementById('f-email').value.trim();
+
+    if (name.length > 0 && name.length < 2) { document.getElementById('err-name').textContent = 'Min 2 characters.'; ok = false; }
+    else document.getElementById('err-name').textContent = '';
+    if (!name) ok = false;
+
+    if (email && !EMAIL_RE.test(email)) { document.getElementById('err-email').textContent = 'Enter a valid university email.'; ok = false; }
+    else document.getElementById('err-email').textContent = '';
+    if (!email) ok = false;
+
+    if (!selRole || !selMethod || courses.length === 0) ok = false;
+    document.getElementById('submitBtn').disabled = !ok;
+    return ok;
+}
+
+/* Submit */
+async function submitPost() {
+    if (!validate()) return;
+    document.getElementById('submitBtn').disabled = true;
+    try {
+        const res  = await fetch(`/campus/${CAMPUS_ID}/market/post`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                full_name: document.getElementById('f-name').value.trim(),
+                email:     document.getElementById('f-email').value.trim(),
+                role: selRole, courses, method: selMethod
+            })
+        });
+        const data = await res.json();
+        if (!res.ok) { document.getElementById('err-general').textContent = data.error || 'Something went wrong.'; document.getElementById('submitBtn').disabled = false; return; }
+        prependCard(data);
+        closeModal();
+        ensureComposeBar();
+    } catch { document.getElementById('err-general').textContent = 'Network error. Try again.'; document.getElementById('submitBtn').disabled = false; }
+}
+
+function prependCard(post) {
+    const card = document.createElement('div');
+    card.className = 'post-card'; card.dataset.role = post.role; card.dataset.id = post.id;
+    const roleCls    = post.role === 'tutor' ? 'tag-tutor' : 'tag-student';
+    const courseTags = post.courses.map(c => `<span class="tag tag-course">${esc(c)}</span>`).join('');
+    const initial    = esc(post.poster_name.charAt(0).toUpperCase());
+    card.innerHTML = `
+        <button class="post-delete-btn" onclick="confirmDelete(${post.id})" title="Delete post">✕</button>
+        <div class="post-header">
+            <div class="post-avatar">${initial}</div>
+            <span class="post-username">${esc(post.poster_name)}</span>
+        </div>
+        <div class="post-body">
+            <div class="post-row"><span class="tag ${roleCls}">${cap(post.role)}</span></div>
+            <div class="post-row">${courseTags}</div>
+            <div class="post-row"><span class="tag tag-method">${esc(post.method)}</span></div>
+            <div class="post-row"><a href="mailto:${esc(post.email)}" class="tag tag-email">${esc(post.email)}</a></div>
+        </div>`;
+    document.getElementById('postFeed').prepend(card);
+    applyFilter();
+    const empty = document.getElementById('emptyState');
+    if (empty) empty.style.display = 'none';
+}
+
+function ensureComposeBar() {
+    if (document.querySelector('.compose-bar')) return;
+    const bar = document.createElement('div');
+    bar.className = 'compose-bar'; bar.onclick = openModal;
+    bar.innerHTML = `<div class="compose-avatar">{{ current_user.name[0] | upper }}</div><span class="compose-placeholder">Looking for a tutor or student? Post here…</span>`;
+    document.getElementById('postFeed').before(bar);
+}
+
+/* Delete */
+function confirmDelete(id) {
+    document.getElementById('confirmOverlay').classList.add('open');
+    document.getElementById('confirmYes').onclick = () => doDelete(id);
+}
+function closeConfirm() { document.getElementById('confirmOverlay').classList.remove('open'); }
+async function doDelete(id) {
+    closeConfirm();
+    try {
+        const res = await fetch(`/campus/${CAMPUS_ID}/market/post/${id}`, { method: 'DELETE' });
+        if (res.ok) {
+            document.querySelector(`.post-card[data-id="${id}"]`)?.remove();
+            if (!document.querySelector('.post-card')) {
+                const empty = document.getElementById('emptyState');
+                if (empty) empty.style.display = '';
+                document.querySelector('.compose-bar')?.remove();
+            }
+        }
+    } catch { alert('Failed to delete. Try again.'); }
+}
+
+/* Filter */
+document.querySelectorAll('.filter-btn').forEach(btn => btn.addEventListener('click', () => {
+    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    applyFilter();
+}));
+function applyFilter() {
+    const f = document.querySelector('.filter-btn.active')?.dataset.filter || 'all';
+    document.querySelectorAll('.post-card').forEach(c => { c.style.display = (f === 'all' || c.dataset.role === f) ? '' : 'none'; });
+}
+
+/* Helpers */
+function esc(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function cap(s) { return s.charAt(0).toUpperCase() + s.slice(1); }
 </script>
 {% endblock %}

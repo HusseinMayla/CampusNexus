@@ -174,3 +174,18 @@ class MarketListing(db.Model):
     def __repr__(self):
         return f'<MarketListing {self.title}>'
 
+class TutorPost(db.Model):
+    __tablename__ = 'tutor_post'
+    id         = db.Column(db.Integer, primary_key=True)
+    campus_id  = db.Column(db.Integer, db.ForeignKey('campus.id'), nullable=False)
+    poster_id  = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    full_name  = db.Column(db.String(128), nullable=False)
+    email      = db.Column(db.String(128), nullable=False)
+    role       = db.Column(db.String(16), nullable=False)
+    courses    = db.Column(db.String(512), nullable=False)
+    method     = db.Column(db.String(32), nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+
+    poster = db.relationship('User', backref=db.backref('tutor_posts', lazy=True))
+    campus = db.relationship('Campus', backref=db.backref('tutor_posts', lazy=True, cascade='all, delete-orphan'))
+
