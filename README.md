@@ -7,4 +7,5 @@
 
 ## Deployment
 
-deployed on [https://campus-nexus-mocha.vercel.app/](https://campus-nexus-mocha.vercel.app/)
+deployed on [https://campus-nexus-mocha.vercel.app/](https://campus-nexus-mocha.vercel.app/) and [https://web-production-b6113.up.railway.app/](https://web-production-b6113.up.railway.app/) 
+
