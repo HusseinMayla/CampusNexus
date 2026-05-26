@@ -24,13 +24,13 @@
                 <span class="theme-icon-sun">☀️</span>
                 <span class="theme-icon-moon">🌙</span>
             </button>
-            <div class="base-profile-avatar" title="Profile">
+            <a href="{{ url_for('main.settings') }}" class="base-profile-avatar" title="Settings" style="text-decoration:none;">
                 {% if current_user.is_authenticated %}
                     {{ current_user.name[0] | upper }}
                 {% else %}
                     U
                 {% endif %}
-            </div>
+            </a>
         </div>
     </header>
 

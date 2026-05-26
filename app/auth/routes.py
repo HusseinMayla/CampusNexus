@@ -21,6 +21,7 @@ def page():
 def login():
     email    = request.form.get('email', '').strip()
     password = request.form.get('password', '')
+    next_url = request.form.get('next', '').strip()
 
     if not email or not password:
         flash('All fields are required.', 'error')
@@ -30,16 +31,14 @@ def login():
         flash('Please enter a valid email address.', 'error')
         return redirect(url_for('auth.page'))
 
-    if len(password) < 8:
-        flash('Password must be at least 8 characters.', 'error')
-        return redirect(url_for('auth.page'))
-
     user = User.query.filter_by(email=email).first()
     if not user or not bcrypt.checkpw(password.encode('utf-8'), user.password_hash.encode('utf-8')):
         flash('Invalid email or password.', 'error')
         return redirect(url_for('auth.page'))
 
     login_user(user)
+    if next_url and next_url.startswith('/'):
+        return redirect(next_url)
     return redirect(url_for('main.dashboard'))
 
 
@@ -48,26 +47,27 @@ def register():
     name     = request.form.get('name', '').strip()
     email    = request.form.get('email', '').strip()
     password = request.form.get('password', '')
+    signup_url = url_for('auth.page') + '?tab=signup'
 
     if not name or not email or not password:
         flash('All fields are required.', 'error')
-        return redirect(url_for('auth.page'))
+        return redirect(signup_url)
 
     if len(name) < 2:
         flash('Please enter your full name.', 'error')
-        return redirect(url_for('auth.page'))
+        return redirect(signup_url)
 
     if not EMAIL_RE.match(email):
         flash('Please enter a valid email address.', 'error')
-        return redirect(url_for('auth.page'))
+        return redirect(signup_url)
 
     if len(password) < 8:
         flash('Password must be at least 8 characters.', 'error')
-        return redirect(url_for('auth.page'))
+        return redirect(signup_url)
 
     if User.query.filter_by(email=email).first():
         flash('An account with this email already exists.', 'error')
-        return redirect(url_for('auth.page'))
+        return redirect(signup_url)
 
     hashed = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
     user   = User(name=name, email=email, password_hash=hashed)

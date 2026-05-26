@@ -79,6 +79,7 @@
             method="POST"
             novalidate
           >
+            <input type="hidden" name="next" id="nextInput" value="{{ request.args.get('next', '') }}">
             <div class="field-group">
               <label for="loginEmail">Email address</label>
               <div class="input-wrap">

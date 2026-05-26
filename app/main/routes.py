@@ -22,7 +22,6 @@ def allowed_resource(filename):
 
 @main_bp.route('/')
 @main_bp.route('/index')
-@login_required
 def index():
     return render_template('index.html', active_page='home')
 

@@ -1,3 +1,7 @@
+/* ── Open correct tab on load ───────────────────────────────── */
+const _tab = new URLSearchParams(window.location.search).get('tab');
+if (_tab === 'signup') switchTab('signup');
+
 /* ── Tab switching ─────────────────────────────────────────── */
 function switchTab(tab) {
   const loginForm  = document.getElementById('formLogin');
