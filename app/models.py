@@ -210,3 +210,38 @@ class ResourceRequest(db.Model):
     poster = db.relationship('User', backref=db.backref('resource_requests', lazy=True))
     campus = db.relationship('Campus', backref=db.backref('resource_requests', lazy=True, cascade='all, delete-orphan'))
 
+
+class ChatRoom(db.Model):
+    __tablename__ = 'chat_room'
+    id         = db.Column(db.Integer, primary_key=True)
+    campus_id  = db.Column(db.Integer, db.ForeignKey('campus.id'), nullable=False)
+    name       = db.Column(db.String(128), nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    campus   = db.relationship('Campus', backref=db.backref('chat_rooms', lazy=True, cascade='all, delete-orphan'))
+    messages = db.relationship('ChatMessage', backref='room', lazy=True, cascade='all, delete-orphan')
+    members  = db.relationship('ChatMember',  backref='room', lazy=True, cascade='all, delete-orphan')
+
+
+class ChatMember(db.Model):
+    __tablename__ = 'chat_member'
+    id           = db.Column(db.Integer, primary_key=True)
+    user_id      = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    room_id      = db.Column(db.Integer, db.ForeignKey('chat_room.id'), nullable=False)
+    last_read_at = db.Column(db.DateTime, nullable=True)
+    joined_at    = db.Column(db.DateTime, default=datetime.utcnow)
+    __table_args__ = (db.UniqueConstraint('user_id', 'room_id'),)
+
+    user = db.relationship('User', backref=db.backref('chat_memberships', lazy=True))
+
+
+class ChatMessage(db.Model):
+    __tablename__ = 'chat_message'
+    id        = db.Column(db.Integer, primary_key=True)
+    room_id   = db.Column(db.Integer, db.ForeignKey('chat_room.id'), nullable=False)
+    sender_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    body      = db.Column(db.Text, nullable=False)
+    sent_at   = db.Column(db.DateTime, default=datetime.utcnow)
+
+    sender = db.relationship('User', backref=db.backref('chat_messages', lazy=True))
+

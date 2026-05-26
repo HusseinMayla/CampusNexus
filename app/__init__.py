@@ -40,6 +40,31 @@ def create_app(config_class=Config):
     app.register_blueprint(events_bp)
     app.register_blueprint(map_bp)
 
+    @app.context_processor
+    def inject_chat_sidebar():
+        from flask_login import current_user
+        from flask import request as req
+        if not current_user.is_authenticated:
+            return {'sidebar_chat': []}
+        if req.is_json or req.path.endswith(('/send', '/poll', '/join', '/leave')):
+            return {'sidebar_chat': []}
+        from app.models import CampusMember, ChatMember, ChatMessage
+        # Seed every campus the user belongs to (even those with no rooms yet)
+        by_campus = {}
+        for m in CampusMember.query.filter_by(user_id=current_user.id).all():
+            c = m.campus
+            by_campus[c.id] = {'campus_id': c.id, 'campus_name': c.name, 'rooms': []}
+        # Overlay joined chat rooms with unread status
+        for cm in ChatMember.query.filter_by(user_id=current_user.id).all():
+            room = cm.room
+            cid  = room.campus_id
+            if cid not in by_campus:
+                by_campus[cid] = {'campus_id': cid, 'campus_name': room.campus.name, 'rooms': []}
+            last_msg = ChatMessage.query.filter_by(room_id=room.id).order_by(ChatMessage.sent_at.desc()).first()
+            has_unread = bool(last_msg and (cm.last_read_at is None or last_msg.sent_at > cm.last_read_at))
+            by_campus[cid]['rooms'].append({'id': room.id, 'name': room.name, 'has_unread': has_unread})
+        return {'sidebar_chat': list(by_campus.values())}
+
     @app.errorhandler(500)
     def internal_error(error):
         import traceback

@@ -280,24 +280,46 @@ document.addEventListener("DOMContentLoaded", () => {
   // ── Delete Pin / Event ────────────────────────────────────────
   async function deletePin(type, id) {
     if (!confirm(`Are you sure you want to remove this ${type}?`)) return;
-    
+
     try {
-      const res = await fetch(`/api/pin/delete/${type}/${id}`, {
-        method: "DELETE"
-      });
-      
+      const res = await fetch(`/api/pin/delete/${type}/${id}`, { method: "DELETE" });
+
       if (!res.ok) {
         const err = await res.json();
         throw new Error(err.error || "Failed to delete");
       }
-      
+
       closePopover();
       pins = pins.filter(p => !(p.type === type && p.id === id));
       renderAllPins();
       renderEventsList();
+      // Also remove from legacy list if present
+      document.querySelector(`.legacy-list-card[data-pin-type="${type}"][data-pin-id="${id}"]`)?.remove();
     } catch (err) {
       alert(err.message);
     }
+  }
+
+  // ── Add card to legacy clubs/offices list ─────────────────────
+  function prependLegacyCard(pin) {
+    const keyword = pin.type === 'club' ? 'Club' : 'Office';
+    let list = null;
+    document.querySelectorAll('.legacy-column').forEach(col => {
+      if (col.querySelector('h3')?.textContent.includes(keyword)) {
+        list = col.querySelector('.legacy-card-list');
+      }
+    });
+    if (!list) return;
+    list.querySelector('.empty-text')?.remove();
+    const card = document.createElement('div');
+    card.className = 'legacy-list-card';
+    card.dataset.pinType = pin.type;
+    card.dataset.pinId = pin.id;
+    card.innerHTML = `
+      <div class="card-header"><h4>${escapeHtml(pin.name)}</h4></div>
+      <p>${escapeHtml(pin.description || 'No description provided.')}</p>
+    `;
+    list.prepend(card);
   }
 
   // ── Interactive Location Choosing ─────────────────────────────
@@ -501,13 +523,12 @@ document.addEventListener("DOMContentLoaded", () => {
       
       const newPin = await res.json();
       pins.push(newPin);
-      
+
       eventCreationForm.reset();
       customDurationGroup.classList.add("hidden");
       closeModal(eventModalOverlay);
       exitPlacementMode();
-      
-      // Auto open events sidebar and pulse pins
+      renderEventsList();
       openSidebar();
     } catch (err) {
       eventFormError.textContent = err.message;
@@ -567,10 +588,11 @@ document.addEventListener("DOMContentLoaded", () => {
         
         const newPin = await res.json();
         pins.push(newPin);
-        
+
         pinCreationForm.reset();
         closeModal(pinModalOverlay);
         exitPlacementMode();
+        prependLegacyCard(newPin);
       } catch (err) {
         pinFormError.textContent = err.message;
         pinFormError.classList.remove("hidden");

@@ -1,11 +1,12 @@
 import os
 import re
 import uuid
-from flask import Blueprint, render_template, redirect, url_for, flash, request, current_app, jsonify, send_from_directory
+from datetime import datetime
+from flask import Blueprint, render_template, redirect, url_for, flash, request, current_app, jsonify, send_from_directory, abort
 from flask_login import login_required, current_user
 from werkzeug.utils import secure_filename
 from app.extensions import db
-from app.models import Campus, CampusMember, CampusReport, Notification, Resource, TutorPost, ResourceRequest
+from app.models import Campus, CampusMember, CampusReport, Notification, Resource, TutorPost, ResourceRequest, ChatRoom, ChatMember, ChatMessage
 from sqlalchemy import func
 
 main_bp = Blueprint('main', __name__)
@@ -41,9 +42,14 @@ def create_campus():
         name = request.form.get('name', '').strip()
         description = request.form.get('description', '').strip()
         domain = request.form.get('domain', '').strip().lower()
-        
+        first_room = request.form.get('first_room', '').strip()
+
         if not name:
             flash('Campus name is required!', 'error')
+            return redirect(url_for('main.create_campus'))
+
+        if not first_room:
+            flash('At least one chat room name is required.', 'error')
             return redirect(url_for('main.create_campus'))
 
         # Name Uniqueness Check
@@ -95,6 +101,13 @@ def create_campus():
 
         # Auto-join creator as owner of their own campus
         db.session.add(CampusMember(user_id=current_user.id, campus_id=new_campus.id, role='owner'))
+        db.session.commit()
+
+        # Create the required first chat room and auto-join creator
+        room = ChatRoom(campus_id=new_campus.id, name=first_room)
+        db.session.add(room)
+        db.session.commit()
+        db.session.add(ChatMember(user_id=current_user.id, room_id=room.id))
         db.session.commit()
 
         flash('Campus created successfully!')
@@ -620,4 +633,120 @@ def market_post_delete(campus_id, post_id):
     db.session.delete(post)
     db.session.commit()
     return jsonify({'success': True})
+
+
+# ── Chat helpers ──────────────────────────────────────────────────────────────
+
+def _campus_member_or_403(campus_id):
+    campus = Campus.query.get_or_404(campus_id)
+    member = CampusMember.query.filter_by(user_id=current_user.id, campus_id=campus_id).first()
+    if not member:
+        abort(403)
+    return campus, member
+
+
+# ── Chat routes ───────────────────────────────────────────────────────────────
+
+@main_bp.route('/campus/<int:campus_id>/chat')
+@login_required
+def chat_browse(campus_id):
+    campus, member = _campus_member_or_403(campus_id)
+    rooms = ChatRoom.query.filter_by(campus_id=campus_id).all()
+    joined_ids = {cm.room_id for cm in ChatMember.query.filter_by(user_id=current_user.id).all()}
+    return render_template('main/chat_browse.html', campus=campus, rooms=rooms,
+                           joined_ids=joined_ids, member=member, active_page='chat')
+
+
+@main_bp.route('/campus/<int:campus_id>/chat/create', methods=['POST'])
+@login_required
+def chat_create(campus_id):
+    _campus_member_or_403(campus_id)
+    name = (request.json or {}).get('name', '').strip()
+    if not name:
+        return jsonify({'error': 'Name required'}), 400
+    if ChatRoom.query.filter_by(campus_id=campus_id, name=name).first():
+        return jsonify({'error': 'A room with that name already exists'}), 400
+    room = ChatRoom(campus_id=campus_id, name=name)
+    db.session.add(room)
+    db.session.flush()
+    db.session.add(ChatMember(user_id=current_user.id, room_id=room.id))
+    db.session.commit()
+    return jsonify({'id': room.id, 'name': room.name}), 201
+
+
+@main_bp.route('/campus/<int:campus_id>/chat/<int:room_id>/join', methods=['POST'])
+@login_required
+def chat_join(campus_id, room_id):
+    _campus_member_or_403(campus_id)
+    ChatRoom.query.filter_by(id=room_id, campus_id=campus_id).first_or_404()
+    count = ChatMember.query.filter_by(user_id=current_user.id).count()
+    if count >= 14:
+        return jsonify({'error': 'You can join at most 14 chat groups.'}), 400
+    if ChatMember.query.filter_by(user_id=current_user.id, room_id=room_id).first():
+        return jsonify({'ok': True})
+    db.session.add(ChatMember(user_id=current_user.id, room_id=room_id))
+    db.session.commit()
+    return jsonify({'ok': True})
+
+
+@main_bp.route('/campus/<int:campus_id>/chat/<int:room_id>/leave', methods=['POST'])
+@login_required
+def chat_leave(campus_id, room_id):
+    cm = ChatMember.query.filter_by(user_id=current_user.id, room_id=room_id).first_or_404()
+    db.session.delete(cm)
+    db.session.commit()
+    return jsonify({'ok': True})
+
+
+@main_bp.route('/campus/<int:campus_id>/chat/<int:room_id>')
+@login_required
+def chat_room(campus_id, room_id):
+    campus, _ = _campus_member_or_403(campus_id)
+    room = ChatRoom.query.filter_by(id=room_id, campus_id=campus_id).first_or_404()
+    cm   = ChatMember.query.filter_by(user_id=current_user.id, room_id=room_id).first()
+    if not cm:
+        return redirect(url_for('main.chat_browse', campus_id=campus_id))
+    cm.last_read_at = datetime.utcnow()
+    db.session.commit()
+    msgs = ChatMessage.query.filter_by(room_id=room_id).order_by(ChatMessage.sent_at.asc()).all()
+    return render_template('main/chat_room.html', campus=campus, room=room,
+                           messages=msgs, active_page='chat')
+
+
+@main_bp.route('/campus/<int:campus_id>/chat/<int:room_id>/send', methods=['POST'])
+@login_required
+def chat_send(campus_id, room_id):
+    cm = ChatMember.query.filter_by(user_id=current_user.id, room_id=room_id).first()
+    if not cm:
+        return jsonify({'error': 'Not a member'}), 403
+    body = (request.json or {}).get('body', '').strip()
+    if not body or len(body) > 2000:
+        return jsonify({'error': 'Invalid message'}), 400
+    msg = ChatMessage(room_id=room_id, sender_id=current_user.id, body=body)
+    db.session.add(msg)
+    cm.last_read_at = datetime.utcnow()
+    db.session.commit()
+    return jsonify({'id': msg.id, 'body': msg.body, 'sender': current_user.name})
+
+
+@main_bp.route('/campus/<int:campus_id>/chat/<int:room_id>/poll')
+@login_required
+def chat_poll(campus_id, room_id):
+    cm = ChatMember.query.filter_by(user_id=current_user.id, room_id=room_id).first()
+    if not cm:
+        return jsonify({'error': 'Not a member'}), 403
+    after = request.args.get('after', 0, type=int)
+    msgs  = ChatMessage.query.filter(
+        ChatMessage.room_id == room_id,
+        ChatMessage.id > after
+    ).order_by(ChatMessage.sent_at.asc()).all()
+    if msgs:
+        cm.last_read_at = datetime.utcnow()
+        db.session.commit()
+    return jsonify([{
+        'id':   m.id,
+        'body': m.body,
+        'sender': m.sender.name,
+        'mine': m.sender_id == current_user.id
+    } for m in msgs])
 

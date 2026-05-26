@@ -56,14 +56,6 @@
                     <span class="base-nav-icon">📅</span>
                     <span class="base-nav-label">Events</span>
                 </a>
-                <a href="#" class="base-nav-item" style="opacity: 0.6; cursor: not-allowed;" onclick="alert('Chatrooms coming soon!')">
-                    <span class="base-nav-icon">💬</span>
-                    <span class="base-nav-label">Chatrooms (TODO)</span>
-                </a>
-                <a href="#" class="base-nav-item" style="opacity: 0.6; cursor: not-allowed;" onclick="alert('Study rooms coming soon!')">
-                    <span class="base-nav-icon">📖</span>
-                    <span class="base-nav-label">Study Rooms (TODO)</span>
-                </a>
                 <a href="{{ url_for('main.campus_resources', campus_id=campus.id) }}" class="base-nav-item {% if active_page == 'resources' %}active{% endif %}">
                     <span class="base-nav-icon" style="color: initial">📚</span>
                     <span class="base-nav-label">Resources</span>
@@ -72,6 +64,25 @@
                     <span class="base-nav-icon" style="color: initial">🧑‍🏫</span>
                     <span class="base-nav-label">Tutor Match</span>
                 </a>
+                <div class="chat-divider"></div>
+                {% set ns = namespace(found=false) %}
+                {% for group in sidebar_chat %}{% if group.campus_id == campus.id %}{% set ns.found = true %}
+                <details class="chat-section" open>
+                    <summary><span class="chat-arrow">▶</span>{{ group.campus_name }}</summary>
+                    {% for item in group.rooms %}
+                    <a href="{{ url_for('main.chat_room', campus_id=campus.id, room_id=item.id) }}" class="base-nav-item chat-room-link">
+                        {% if item.has_unread %}<span class="chat-dot"></span>{% endif %}{{ item.name }}
+                    </a>
+                    {% endfor %}
+                    <a href="{{ url_for('main.chat_browse', campus_id=campus.id) }}" class="base-nav-item chat-join-link">＋ Join chat group</a>
+                </details>
+                {% endif %}{% endfor %}
+                {% if not ns.found %}
+                <details class="chat-section">
+                    <summary><span class="chat-arrow">▶</span>{{ campus.name }}</summary>
+                    <a href="{{ url_for('main.chat_browse', campus_id=campus.id) }}" class="base-nav-item chat-join-link">＋ Join chat group</a>
+                </details>
+                {% endif %}
             {% else %}
                 <!-- Global Sidebar -->
                 <a href="{{ url_for('main.index') }}" class="base-nav-item {% if active_page == 'home' %}active{% endif %}">
@@ -98,6 +109,20 @@
                     <span class="base-nav-icon">⚙</span>
                     <span class="base-nav-label">Settings</span>
                 </a>
+                {% if sidebar_chat %}
+                <div class="chat-divider"></div>
+                {% for group in sidebar_chat %}
+                <details class="chat-section" open>
+                    <summary><span class="chat-arrow">▶</span>{{ group.campus_name }}</summary>
+                    {% for item in group.rooms %}
+                    <a href="{{ url_for('main.chat_room', campus_id=group.campus_id, room_id=item.id) }}" class="base-nav-item chat-room-link">
+                        {% if item.has_unread %}<span class="chat-dot"></span>{% endif %}{{ item.name }}
+                    </a>
+                    {% endfor %}
+                    <a href="{{ url_for('main.chat_browse', campus_id=group.campus_id) }}" class="base-nav-item chat-join-link">＋ Join chat group</a>
+                </details>
+                {% endfor %}
+                {% endif %}
             {% endif %}
         </nav>
     </aside>

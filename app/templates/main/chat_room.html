@@ -1,0 +1,242 @@
+{% extends "base.html" %}
+{% block title %}{{ room.name }} — {{ campus.name }} | LearnHive{% endblock %}
+
+{% block extra_css %}
+<style>
+.chat-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+}
+.chat-messages {
+    height: 60vh;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    padding: 8px 0 12px;
+    border-bottom: 1px solid var(--base-border-color);
+    margin-bottom: 12px;
+}
+
+/* ── Message row ─────────────────────────────────── */
+.msg-row {
+    display: flex;
+    align-items: flex-end;
+    gap: 8px;
+    padding: 0 14px;
+    margin-top: 10px;
+}
+.msg-row.msg-consecutive { margin-top: 2px; }
+.msg-row-mine { flex-direction: row-reverse; }
+
+/* ── Avatar ─────────────────────────────────────── */
+.msg-avatar {
+    width: 30px; height: 30px;
+    border-radius: 50%;
+    font-size: 0.72rem; font-weight: 700;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+    align-self: flex-end;
+}
+.msg-avatar-other { background: #334155; color: #e8e0d0; }
+[data-theme="light"] .msg-avatar-other { background: #0a1628; color: #fff; }
+.msg-avatar-mine { background: #c8a96e; color: #0a1628; }
+.msg-avatar-spacer { width: 30px; flex-shrink: 0; }
+
+/* ── Bubble column ──────────────────────────────── */
+.msg-col {
+    display: flex; flex-direction: column;
+    max-width: 68%;
+}
+.msg-row-mine  .msg-col { align-items: flex-end; }
+.msg-row-other .msg-col { align-items: flex-start; }
+
+.msg-sender {
+    font-size: 0.72rem; font-weight: 600;
+    margin-bottom: 2px; padding: 0 4px;
+    opacity: 0.6;
+}
+
+/* ── Bubble ─────────────────────────────────────── */
+.msg {
+    padding: 8px 12px 6px;
+    border-radius: 12px;
+    font-size: 0.95rem;
+    line-height: 1.45;
+    word-break: break-word;
+}
+/* tail only on first of a group */
+.msg-row-other:not(.msg-consecutive) .msg { border-radius: 2px 12px 12px 12px; }
+.msg-row-mine:not(.msg-consecutive)  .msg { border-radius: 12px 2px 12px 12px; }
+
+.msg-other { background: #334155; color: #e8e0d0; }
+[data-theme="light"] .msg-other { background: #0a1628; color: #fff; }
+.msg-mine  { background: #c8a96e; color: #0a1628; }
+
+/* ── Timestamp ──────────────────────────────────── */
+.msg-time {
+    display: block;
+    text-align: right;
+    font-size: 0.63rem;
+    opacity: 0.5;
+    margin-top: 3px;
+    white-space: nowrap;
+}
+
+/* ── Input ──────────────────────────────────────── */
+.chat-input-row { display: flex; gap: 8px; }
+
+/* ── Leave overlay ──────────────────────────────── */
+.leave-overlay {
+    display: none; position: fixed; inset: 0;
+    background: rgba(0,0,0,0.6); z-index: 1000;
+    align-items: center; justify-content: center;
+}
+.leave-overlay.open { display: flex; }
+.leave-box {
+    background: var(--base-card-bg); border: 1px solid var(--base-border-color);
+    border-radius: 14px; padding: 32px 28px; max-width: 340px; width: 90%;
+    text-align: center;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="chat-header">
+    <h2>{{ room.name }}</h2>
+    <button class="base-button-secondary" style="font-size:0.9rem;padding:7px 16px;"
+            onclick="document.getElementById('leaveOverlay').classList.add('open')">Leave</button>
+</div>
+
+<div class="chat-messages" id="msgList">
+    {% for msg in messages %}
+    {% set mine = msg.sender_id == current_user.id %}
+    {% set prev_same = loop.previtem is defined and loop.previtem.sender_id == msg.sender_id %}
+    <div class="msg-row {% if mine %}msg-row-mine{% else %}msg-row-other{% endif %}{% if prev_same %} msg-consecutive{% endif %}">
+        {% if prev_same %}
+            <div class="msg-avatar-spacer"></div>
+        {% else %}
+            <div class="msg-avatar {% if mine %}msg-avatar-mine{% else %}msg-avatar-other{% endif %}">
+                {{ msg.sender.name[0] | upper }}
+            </div>
+        {% endif %}
+        <div class="msg-col">
+            {% if not prev_same and not mine %}
+                <div class="msg-sender">{{ msg.sender.name }}</div>
+            {% endif %}
+            <div class="msg {% if mine %}msg-mine{% else %}msg-other{% endif %}">
+                {{ msg.body }}
+                <span class="msg-time">{{ msg.sent_at.strftime('%I:%M %p') }}</span>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+<div class="chat-input-row">
+    <input class="base-input" id="msgInput" placeholder="Type a message…" style="flex:1;"
+           onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendMsg();}">
+    <button class="base-button" onclick="sendMsg()" style="padding:11px 20px;">Send</button>
+</div>
+
+<div class="leave-overlay" id="leaveOverlay">
+    <div class="leave-box">
+        <h3 style="margin-bottom:10px;">Leave {{ room.name }}?</h3>
+        <p style="color:var(--base-text-muted);margin-bottom:24px;font-size:0.95rem;">You won't see this room anymore unless you rejoin.</p>
+        <div style="display:flex;gap:10px;justify-content:center;">
+            <button onclick="confirmLeave()"
+                    style="padding:9px 24px;background:#dc2626;border:none;border-radius:8px;color:#fff;font-family:var(--font-display);font-weight:700;cursor:pointer;">Leave</button>
+            <button onclick="document.getElementById('leaveOverlay').classList.remove('open')"
+                    style="padding:9px 24px;background:none;border:1.5px solid var(--base-border-color);border-radius:8px;color:var(--base-text-muted);font-family:var(--font-display);font-weight:700;cursor:pointer;">Cancel</button>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const CAMPUS_ID = {{ campus.id }};
+const ROOM_ID   = {{ room.id }};
+let lastId     = {{ messages[-1].id if messages else 0 }};
+let lastSender = {{ messages[-1].sender.name | tojson if messages else 'null' }};
+let lastMine   = {{ 'true' if messages and messages[-1].sender_id == current_user.id else 'false' }};
+
+const list = document.getElementById('msgList');
+list.scrollTop = list.scrollHeight;
+
+function esc(s) {
+    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+function fmtTime(d) {
+    let h = d.getHours(), m = d.getMinutes(), ampm = h >= 12 ? 'PM' : 'AM';
+    h = h % 12 || 12;
+    return h + ':' + String(m).padStart(2, '0') + ' ' + ampm;
+}
+
+function appendMsg(body, sender, mine, id, consecutive) {
+    const time = fmtTime(new Date());
+    const row  = document.createElement('div');
+    row.className = 'msg-row ' + (mine ? 'msg-row-mine' : 'msg-row-other') + (consecutive ? ' msg-consecutive' : '');
+
+    const avatarHtml = consecutive
+        ? `<div class="msg-avatar-spacer"></div>`
+        : `<div class="msg-avatar ${mine ? 'msg-avatar-mine' : 'msg-avatar-other'}">${esc(sender[0].toUpperCase())}</div>`;
+
+    const senderHtml = (!consecutive && !mine)
+        ? `<div class="msg-sender">${esc(sender)}</div>`
+        : '';
+
+    row.innerHTML = `${avatarHtml}
+        <div class="msg-col">
+            ${senderHtml}
+            <div class="msg ${mine ? 'msg-mine' : 'msg-other'}">
+                ${esc(body)}<span class="msg-time">${time}</span>
+            </div>
+        </div>`;
+
+    list.appendChild(row);
+    list.scrollTop = list.scrollHeight;
+    lastSender = sender;
+    lastMine   = mine;
+    if (id) lastId = id;
+}
+
+async function sendMsg() {
+    const inp  = document.getElementById('msgInput');
+    const body = inp.value.trim();
+    if (!body) return;
+    inp.value = '';
+    const consecutive = lastMine === true;
+    const res  = await fetch(`/campus/${CAMPUS_ID}/chat/${ROOM_ID}/send`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ body })
+    });
+    const data = await res.json();
+    if (data.id) appendMsg(data.body, data.sender, true, data.id, consecutive);
+}
+
+async function poll() {
+    try {
+        const res  = await fetch(`/campus/${CAMPUS_ID}/chat/${ROOM_ID}/poll?after=${lastId}`);
+        const msgs = await res.json();
+        for (const m of msgs) {
+            if (!m.mine) {
+                const consecutive = !lastMine && lastSender === m.sender;
+                appendMsg(m.body, m.sender, false, m.id, consecutive);
+            }
+            if (m.id > lastId) lastId = m.id;
+        }
+    } catch {}
+}
+
+setInterval(poll, 3000);
+
+async function confirmLeave() {
+    const res = await fetch(`/campus/${CAMPUS_ID}/chat/${ROOM_ID}/leave`, { method: 'POST' });
+    if (res.ok) window.location.href = `/campus/${CAMPUS_ID}/chat`;
+}
+</script>
+{% endblock %}

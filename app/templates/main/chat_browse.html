@@ -1,0 +1,93 @@
+{% extends "base.html" %}
+{% block title %}Chat Rooms — {{ campus.name }} | LearnHive{% endblock %}
+
+{% block extra_css %}
+<style>
+.room-row {
+    background: var(--base-card-bg);
+    border: 1px solid var(--base-border-color);
+    border-radius: 12px;
+    padding: 16px 20px;
+    margin-bottom: 10px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+}
+.room-name  { font-family: var(--font-display); font-size: 1.05rem; font-weight: 600; }
+.room-count { color: var(--base-text-muted); font-size: 0.88rem; margin-top: 2px; }
+.create-row { display: flex; gap: 8px; margin-top: 10px; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:24px;flex-wrap:wrap;gap:12px;">
+    <div>
+        <h1><span style="color:initial">💬</span> Chat Rooms</h1>
+        <p style="color:var(--base-text-muted);margin-top:4px;font-size:0.95rem;">Join rooms to chat with {{ campus.name }} members.</p>
+    </div>
+</div>
+
+{% for room in rooms %}
+<div class="room-row">
+    <div>
+        <div class="room-name">{{ room.name }}</div>
+        <div class="room-count">{{ room.members | length }} member{{ 's' if room.members | length != 1 }}</div>
+    </div>
+    {% if room.id in joined_ids %}
+    <a href="{{ url_for('main.chat_room', campus_id=campus.id, room_id=room.id) }}" class="base-button" style="font-size:0.9rem;padding:7px 18px;">Open</a>
+    {% else %}
+    <button class="base-button-secondary" style="font-size:0.9rem;padding:7px 18px;" onclick="joinRoom({{ room.id }}, this)">Join</button>
+    {% endif %}
+</div>
+{% else %}
+<div style="text-align:center;padding:60px 24px;color:var(--base-text-muted);">
+    <div style="font-size:2.5rem;margin-bottom:12px;">💬</div>
+    <p>No chat rooms yet for this campus.</p>
+</div>
+{% endfor %}
+
+<div style="margin-top:24px;padding-top:20px;border-top:1px solid var(--base-border-color);">
+    <p style="color:var(--base-text-muted);font-size:0.9rem;margin-bottom:10px;">Create a study group:</p>
+    <div class="create-row">
+        <input type="text" id="newRoomName" class="base-input" placeholder="e.g. CS101 Study Group…" style="max-width:300px;">
+        <button class="base-button" onclick="createRoom()">Create</button>
+    </div>
+    <span id="createErr" style="color:#ef4444;font-size:0.85rem;display:block;margin-top:6px;"></span>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const CAMPUS_ID = {{ campus.id }};
+
+async function joinRoom(id, btn) {
+    btn.disabled = true;
+    const res  = await fetch(`/campus/${CAMPUS_ID}/chat/${id}/join`, { method: 'POST' });
+    const data = await res.json();
+    if (res.ok) {
+        window.location.href = `/campus/${CAMPUS_ID}/chat/${id}`;
+    } else {
+        alert(data.error || 'Failed to join.');
+        btn.disabled = false;
+    }
+}
+
+async function createRoom() {
+    const inp  = document.getElementById('newRoomName');
+    const name = inp.value.trim();
+    if (!name) return;
+    const res  = await fetch(`/campus/${CAMPUS_ID}/chat/create`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name })
+    });
+    const data = await res.json();
+    if (res.ok) {
+        window.location.href = `/campus/${CAMPUS_ID}/chat/${data.id}`;
+    } else {
+        document.getElementById('createErr').textContent = data.error || 'Failed to create.';
+    }
+}
+</script>
+{% endblock %}
