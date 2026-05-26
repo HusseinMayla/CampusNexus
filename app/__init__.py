@@ -7,8 +7,14 @@ def create_app(config_class=Config):
     app = Flask(__name__)
     app.config.from_object(config_class)
 
-    # Use SQLite. If on Vercel, we must use /tmp because the root is read-only.
-    if os.environ.get('VERCEL'):
+    # Use SQLite or PostgreSQL based on environments.
+    if os.environ.get('DATABASE_URL'):
+        database_url = os.environ.get('DATABASE_URL')
+        # SQLAlchemy requires 'postgresql://' instead of 'postgres://'
+        if database_url.startswith("postgres://"):
+            database_url = database_url.replace("postgres://", "postgresql://", 1)
+        app.config['SQLALCHEMY_DATABASE_URI'] = database_url
+    elif os.environ.get('VERCEL'):
         app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:////tmp/campus.db'
     else:
         # For local development, use the database in the instance folder
