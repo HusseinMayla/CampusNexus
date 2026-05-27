@@ -1,0 +1,193 @@
+{% extends "base.html" %}
+{% block title %}{{ room.course_code }} Study Room — {{ campus.name }} | Agora{% endblock %}
+
+{% block extra_css %}
+<style>
+.sr-header {
+    display: flex; justify-content: space-between; align-items: flex-start;
+    margin-bottom: 14px; gap: 12px; flex-wrap: wrap;
+}
+.sr-header-left h2 { margin-bottom: 6px; }
+.sr-header-tags { display: flex; flex-wrap: wrap; gap: 6px; }
+.sr-tag { font-size: 0.78rem; padding: 2px 10px; border-radius: 20px;
+          background: var(--base-card-bg-alt); border: 1px solid var(--base-border-color);
+          color: var(--base-text-muted); }
+.sr-tag-course { background: rgba(200,169,110,0.12); border-color: rgba(200,169,110,0.4); color: var(--base-tan); }
+
+.chat-messages {
+    height: 58vh; overflow-y: auto;
+    display: flex; flex-direction: column;
+    padding: 8px 0 12px;
+    border-bottom: 1px solid var(--base-border-color);
+    margin-bottom: 12px;
+}
+.msg-row { display: flex; align-items: flex-end; gap: 8px; padding: 0 14px; margin-top: 10px; }
+.msg-row.msg-consecutive { margin-top: 2px; }
+.msg-row-mine { flex-direction: row-reverse; }
+.msg-avatar { width: 30px; height: 30px; border-radius: 50%; font-size: 0.72rem; font-weight: 700;
+              display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.msg-avatar-other { background: #334155; color: #e8e0d0; }
+[data-theme="light"] .msg-avatar-other { background: #0a1628; color: #fff; }
+.msg-avatar-mine { background: #c8a96e; color: #0a1628; }
+.msg-avatar-spacer { width: 30px; flex-shrink: 0; }
+.msg-col { display: flex; flex-direction: column; max-width: 68%; }
+.msg-row-mine  .msg-col { align-items: flex-end; }
+.msg-row-other .msg-col { align-items: flex-start; }
+.msg-sender { font-size: 0.72rem; font-weight: 600; margin-bottom: 2px; padding: 0 4px; opacity: 0.6; }
+.msg { padding: 8px 12px 6px; border-radius: 12px; font-size: 0.95rem; line-height: 1.45; word-break: break-word; }
+.msg-row-other:not(.msg-consecutive) .msg { border-radius: 2px 12px 12px 12px; }
+.msg-row-mine:not(.msg-consecutive)  .msg { border-radius: 12px 2px 12px 12px; }
+.msg-other { background: #334155; color: #e8e0d0; }
+[data-theme="light"] .msg-other { background: #0a1628; color: #fff; }
+.msg-mine  { background: #c8a96e; color: #0a1628; }
+.msg-time { display: block; text-align: right; font-size: 0.63rem; opacity: 0.5; margin-top: 3px; white-space: nowrap; }
+
+.chat-input-row { display: flex; gap: 8px; }
+
+.leave-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6);
+                 z-index: 1000; align-items: center; justify-content: center; }
+.leave-overlay.open { display: flex; }
+.leave-box { background: var(--base-card-bg); border: 1px solid var(--base-border-color);
+             border-radius: 14px; padding: 32px 28px; max-width: 340px; width: 90%; text-align: center; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="sr-header">
+    <div class="sr-header-left">
+        <h2>{{ room.course_code }} — {{ room.chapter }}</h2>
+        <div class="sr-header-tags">
+            <span class="sr-tag sr-tag-course">{{ room.course_code }}</span>
+            <span class="sr-tag">📍 {{ room.location }}</span>
+            <span class="sr-tag">🕐 {{ room.session_time.strftime('%b %d, %I:%M %p') }}</span>
+            <span class="sr-tag">👥 {{ room.member_count }}/{{ room.max_members }}</span>
+        </div>
+    </div>
+    <div style="display:flex;gap:8px;flex-shrink:0;">
+        {% if room.owner_id == current_user.id %}
+        <button class="base-button-secondary" style="font-size:0.85rem;padding:6px 14px;background:#dc2626;border-color:#dc2626;color:#fff;"
+                onclick="document.getElementById('deleteOverlay').classList.add('open')">Delete</button>
+        {% endif %}
+        <button class="base-button-secondary" style="font-size:0.85rem;padding:6px 14px;"
+                onclick="document.getElementById('leaveOverlay').classList.add('open')">Leave</button>
+    </div>
+</div>
+
+<div class="chat-messages" id="msgList"></div>
+
+<div class="chat-input-row">
+    <input class="base-input" id="msgInput" placeholder="Type a message…" style="flex:1;"
+           onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendMsg();}">
+    <button class="base-button" onclick="sendMsg()" style="padding:11px 20px;">Send</button>
+</div>
+
+<div class="leave-overlay" id="leaveOverlay">
+    <div class="leave-box">
+        <h3 style="margin-bottom:10px;">Leave this room?</h3>
+        <p style="color:var(--base-text-muted);margin-bottom:24px;font-size:0.95rem;">
+            You can rejoin later if there's still space.
+        </p>
+        <div style="display:flex;gap:10px;justify-content:center;">
+            <button onclick="confirmLeave()"
+                    style="padding:9px 24px;background:#dc2626;border:none;border-radius:8px;color:#fff;font-family:var(--font-display);font-weight:700;cursor:pointer;">Leave</button>
+            <button onclick="document.getElementById('leaveOverlay').classList.remove('open')"
+                    style="padding:9px 24px;background:none;border:1.5px solid var(--base-border-color);border-radius:8px;color:var(--base-text-muted);font-family:var(--font-display);font-weight:700;cursor:pointer;">Cancel</button>
+        </div>
+    </div>
+</div>
+
+{% if room.owner_id == current_user.id %}
+<div class="leave-overlay" id="deleteOverlay">
+    <div class="leave-box">
+        <h3 style="margin-bottom:10px;">Delete this room?</h3>
+        <p style="color:var(--base-text-muted);margin-bottom:24px;font-size:0.95rem;">
+            This will remove the room and all messages for everyone.
+        </p>
+        <div style="display:flex;gap:10px;justify-content:center;">
+            <button onclick="confirmDelete()"
+                    style="padding:9px 24px;background:#dc2626;border:none;border-radius:8px;color:#fff;font-family:var(--font-display);font-weight:700;cursor:pointer;">Delete</button>
+            <button onclick="document.getElementById('deleteOverlay').classList.remove('open')"
+                    style="padding:9px 24px;background:none;border:1.5px solid var(--base-border-color);border-radius:8px;color:var(--base-text-muted);font-family:var(--font-display);font-weight:700;cursor:pointer;">Cancel</button>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+<script>
+const CAMPUS_ID  = {{ campus.id }};
+const ROOM_ID    = {{ room.id }};
+const MY_NAME    = {{ current_user.name | tojson }};
+
+const list = document.getElementById('msgList');
+let lastSender = null;
+let lastMine   = false;
+
+function esc(s) {
+    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+function appendMsg(body, sender, mine, time, consecutive) {
+    const row = document.createElement('div');
+    row.className = 'msg-row ' + (mine ? 'msg-row-mine' : 'msg-row-other') +
+                    (consecutive ? ' msg-consecutive' : '');
+    const avatarHtml = consecutive
+        ? `<div class="msg-avatar-spacer"></div>`
+        : `<div class="msg-avatar ${mine ? 'msg-avatar-mine' : 'msg-avatar-other'}">${esc(sender[0].toUpperCase())}</div>`;
+    const senderHtml = (!consecutive && !mine)
+        ? `<div class="msg-sender">${esc(sender)}</div>` : '';
+    row.innerHTML = `${avatarHtml}
+        <div class="msg-col">
+            ${senderHtml}
+            <div class="msg ${mine ? 'msg-mine' : 'msg-other'}">
+                ${esc(body)}<span class="msg-time">${esc(time)}</span>
+            </div>
+        </div>`;
+    list.appendChild(row);
+    list.scrollTop = list.scrollHeight;
+    lastSender = sender;
+    lastMine   = mine;
+}
+
+const socket = io();
+
+socket.on('connect', () => {
+    socket.emit('join_study_room', { room_id: ROOM_ID });
+});
+
+socket.on('study_history', (msgs) => {
+    list.innerHTML = '';
+    lastSender = null; lastMine = false;
+    msgs.forEach(m => {
+        const consecutive = (lastSender === m.sender && lastMine === m.mine);
+        appendMsg(m.body, m.sender, m.mine, m.time, consecutive);
+    });
+});
+
+socket.on('study_msg', (m) => {
+    const consecutive = (lastSender === m.sender && lastMine === m.mine);
+    appendMsg(m.body, m.sender, m.mine, m.time, consecutive);
+});
+
+function sendMsg() {
+    const inp  = document.getElementById('msgInput');
+    const body = inp.value.trim();
+    if (!body) return;
+    inp.value = '';
+    socket.emit('send_study_msg', { room_id: ROOM_ID, body });
+}
+
+async function confirmLeave() {
+    socket.emit('leave_study_room', { room_id: ROOM_ID });
+    const res = await fetch(`/campus/${CAMPUS_ID}/study-rooms/${ROOM_ID}/leave`, { method: 'POST' });
+    if (res.ok) window.location.href = `/campus/${CAMPUS_ID}/study-rooms`;
+}
+
+async function confirmDelete() {
+    const res = await fetch(`/campus/${CAMPUS_ID}/study-rooms/${ROOM_ID}/delete`, { method: 'POST' });
+    if (res.ok) window.location.href = `/campus/${CAMPUS_ID}/study-rooms`;
+}
+</script>
+{% endblock %}

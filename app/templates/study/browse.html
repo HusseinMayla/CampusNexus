@@ -1,0 +1,214 @@
+{% extends "base.html" %}
+{% block title %}Study Rooms — {{ campus.name }} | Agora{% endblock %}
+
+{% block extra_css %}
+<style>
+.sr-card {
+    background: var(--base-card-bg);
+    border: 1px solid var(--base-border-color);
+    border-radius: 12px;
+    padding: 16px 20px;
+    margin-bottom: 10px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 16px;
+}
+.sr-info { flex: 1; min-width: 0; }
+.sr-title { font-family: var(--font-display); font-size: 1.05rem; font-weight: 600; margin-bottom: 6px; }
+.sr-tags  { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 6px; }
+.sr-tag   { font-size: 0.78rem; padding: 2px 10px; border-radius: 20px; background: var(--base-card-bg-alt);
+            border: 1px solid var(--base-border-color); color: var(--base-text-muted); }
+.sr-tag-course { background: rgba(200,169,110,0.12); border-color: rgba(200,169,110,0.4); color: var(--base-tan); }
+.sr-meta  { font-size: 0.85rem; color: var(--base-text-muted); }
+
+.create-panel { margin-top: 32px; padding-top: 24px; border-top: 1px solid var(--base-border-color); }
+.create-panel h3 { margin-bottom: 16px; }
+.create-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+@media (max-width: 600px) { .create-grid { grid-template-columns: 1fr; } }
+
+.course-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
+.course-chip  { display: flex; align-items: center; gap: 4px; padding: 4px 10px;
+                border-radius: 20px; background: rgba(200,169,110,0.12);
+                border: 1px solid rgba(200,169,110,0.35); font-size: 0.85rem; cursor: default; }
+.chip-remove  { background: none; border: none; cursor: pointer; color: var(--base-text-muted);
+                font-size: 0.9rem; padding: 0 2px; line-height: 1; }
+.chip-remove:hover { color: #ef4444; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:24px;flex-wrap:wrap;gap:12px;">
+    <div>
+        <h1><span style="color:initial;-webkit-text-fill-color:initial;">📖</span> Study Rooms</h1>
+        <p style="color:var(--base-text-muted);margin-top:4px;font-size:0.95rem;">
+            Course-specific rooms for study sessions in {{ campus.name }}.
+        </p>
+    </div>
+</div>
+
+{% if rooms %}
+    {% for room in rooms %}
+    <div class="sr-card">
+        <div class="sr-info">
+            <div class="sr-title">{{ room.course_code }} — {{ room.chapter }}</div>
+            <div class="sr-tags">
+                <span class="sr-tag sr-tag-course">{{ room.course_code }}</span>
+                <span class="sr-tag">📍 {{ room.location }}</span>
+                <span class="sr-tag">🕐 {{ room.session_time.strftime('%b %d, %I:%M %p') }}</span>
+                <span class="sr-tag">👥 {{ room.member_count }}/{{ room.max_members }}</span>
+            </div>
+            <div class="sr-meta">Chapter: {{ room.chapter }}</div>
+        </div>
+        {% if room.id in joined_ids %}
+        <a href="{{ url_for('study.room', campus_id=campus.id, room_id=room.id) }}"
+           class="base-button" style="font-size:0.9rem;padding:7px 18px;white-space:nowrap;">Open</a>
+        {% else %}
+        <button class="base-button-secondary" style="font-size:0.9rem;padding:7px 18px;white-space:nowrap;"
+                onclick="joinRoom({{ room.id }}, this)">Join</button>
+        {% endif %}
+    </div>
+    {% endfor %}
+{% else %}
+<div style="text-align:center;padding:48px 24px;color:var(--base-text-muted);
+            background:var(--base-card-bg);border-radius:12px;border:1px dashed var(--base-border-color);">
+    <div style="font-size:2.5rem;margin-bottom:12px;">📖</div>
+    {% if my_courses %}
+    <p>No study rooms available for your courses right now.</p>
+    {% else %}
+    <p>Add your courses below to see study rooms.</p>
+    {% endif %}
+</div>
+{% endif %}
+
+<!-- ── My Courses ─────────────────────────────────────────────── -->
+<div style="margin-top:28px;padding-top:20px;border-top:1px solid var(--base-border-color);">
+    <p style="font-weight:600;margin-bottom:10px;font-size:0.95rem;">My Enrolled Courses</p>
+    <div class="course-chips" id="courseChips">
+        {% for uc in my_courses %}
+        <span class="course-chip" data-id="{{ uc.id }}">
+            {{ uc.course_code }}
+            <button class="chip-remove" onclick="removeCourse({{ uc.id }}, this)" title="Remove">×</button>
+        </span>
+        {% endfor %}
+    </div>
+    <div style="display:flex;gap:8px;max-width:320px;">
+        <input type="text" id="newCourse" class="base-input" placeholder="e.g. CSCI301"
+               style="text-transform:uppercase;" onkeydown="if(event.key==='Enter')addCourse()">
+        <button class="base-button-secondary" onclick="addCourse()" style="padding:9px 16px;white-space:nowrap;">Add</button>
+    </div>
+    <span id="courseErr" style="color:#ef4444;font-size:0.82rem;display:block;margin-top:4px;"></span>
+</div>
+
+<!-- ── Create Study Room ──────────────────────────────────────── -->
+<div class="create-panel">
+    <h3>Create a Study Room</h3>
+    <div class="create-grid">
+        <div class="base-form-group">
+            <label class="base-label">Course</label>
+            <select id="cr-course" class="base-input">
+                <option value="">— select a course —</option>
+                {% for uc in my_courses %}
+                <option value="{{ uc.course_code }}">{{ uc.course_code }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="base-form-group">
+            <label class="base-label">Chapter / Exam</label>
+            <input type="text" id="cr-chapter" class="base-input" placeholder="e.g. Chapter 4, Midterm">
+        </div>
+        <div class="base-form-group">
+            <label class="base-label">Location</label>
+            <input type="text" id="cr-location" class="base-input" placeholder="e.g. Library Room 3, Zoom">
+        </div>
+        <div class="base-form-group">
+            <label class="base-label">Session Time</label>
+            <input type="datetime-local" id="cr-time" class="base-input">
+        </div>
+        <div class="base-form-group">
+            <label class="base-label">Max Members <span style="color:var(--base-text-muted);font-size:0.82rem;">(2–20)</span></label>
+            <input type="number" id="cr-max" class="base-input" min="2" max="20" placeholder="e.g. 6">
+        </div>
+    </div>
+    <span id="createErr" style="color:#ef4444;font-size:0.85rem;display:block;margin-bottom:8px;"></span>
+    <button class="base-button" onclick="createRoom()">Create Room</button>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const CAMPUS_ID = {{ campus.id }};
+
+async function joinRoom(id, btn) {
+    btn.disabled = true;
+    const res  = await fetch(`/campus/${CAMPUS_ID}/study-rooms/${id}/join`, { method: 'POST' });
+    const data = await res.json();
+    if (res.ok) window.location.href = data.redirect;
+    else { alert(data.error || 'Failed to join.'); btn.disabled = false; }
+}
+
+async function createRoom() {
+    const course  = document.getElementById('cr-course').value.trim();
+    const chapter = document.getElementById('cr-chapter').value.trim();
+    const location= document.getElementById('cr-location').value.trim();
+    const time    = document.getElementById('cr-time').value;
+    const max     = document.getElementById('cr-max').value;
+    const err     = document.getElementById('createErr');
+    err.textContent = '';
+    if (!course || !chapter || !location || !time || !max) {
+        err.textContent = 'All fields are required.'; return;
+    }
+    const res  = await fetch(`/campus/${CAMPUS_ID}/study-rooms/create`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ course_code: course, chapter, location,
+                               session_time: time, max_members: parseInt(max) })
+    });
+    const data = await res.json();
+    if (res.ok) window.location.href = data.redirect;
+    else err.textContent = data.error || 'Failed to create.';
+}
+
+async function addCourse() {
+    const inp  = document.getElementById('newCourse');
+    const code = inp.value.trim().toUpperCase();
+    const err  = document.getElementById('courseErr');
+    err.textContent = '';
+    if (!code) return;
+    const res  = await fetch(`/campus/${CAMPUS_ID}/study-rooms/courses/add`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ course_code: code })
+    });
+    const data = await res.json();
+    if (res.ok) {
+        inp.value = '';
+        // Add chip
+        const chips = document.getElementById('courseChips');
+        const chip  = document.createElement('span');
+        chip.className = 'course-chip';
+        chip.dataset.id = data.id || '';
+        chip.innerHTML = `${data.course_code} <button class="chip-remove" onclick="removeCourse(null,this)" title="Remove">×</button>`;
+        chips.appendChild(chip);
+        // Add to course select
+        const sel = document.getElementById('cr-course');
+        const opt = document.createElement('option');
+        opt.value = data.course_code; opt.textContent = data.course_code;
+        sel.appendChild(opt);
+    } else err.textContent = data.error || 'Failed to add.';
+}
+
+async function removeCourse(id, btn) {
+    if (!id) { btn.parentElement.remove(); return; }
+    const res = await fetch(`/campus/${CAMPUS_ID}/study-rooms/courses/remove/${id}`, { method: 'POST' });
+    if (res.ok) {
+        const chip = btn.parentElement;
+        const code = chip.textContent.trim().replace('×','').trim();
+        chip.remove();
+        // Remove from select
+        const sel = document.getElementById('cr-course');
+        for (const opt of sel.options) {
+            if (opt.value === code) { sel.removeChild(opt); break; }
+        }
+    }
+}
+</script>
+{% endblock %}

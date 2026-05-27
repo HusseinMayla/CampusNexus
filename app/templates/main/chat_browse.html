@@ -1,5 +1,5 @@
-{% extends "base.html" %}
-{% block title %}Chat Rooms — {{ campus.name }} | LearnHive{% endblock %}
+﻿{% extends "base.html" %}
+{% block title %}Chat Rooms — {{ campus.name }} | Agora{% endblock %}
 
 {% block extra_css %}
 <style>
@@ -48,7 +48,7 @@
 {% endfor %}
 
 <div style="margin-top:24px;padding-top:20px;border-top:1px solid var(--base-border-color);">
-    <p style="color:var(--base-text-muted);font-size:0.9rem;margin-bottom:10px;">Create a study group:</p>
+    <p style="color:var(--base-text-muted);font-size:0.9rem;margin-bottom:10px;">Create a chat group:</p>
     <div class="create-row">
         <input type="text" id="newRoomName" class="base-input" placeholder="e.g. CS101 Study Group…" style="max-width:300px;">
         <button class="base-button" onclick="createRoom()">Create</button>
