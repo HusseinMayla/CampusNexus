@@ -8,7 +8,12 @@ def create_app(config_class=Config):
     app = Flask(__name__)
     app.config.from_object(config_class)
 
-    if os.environ.get('DATABASE_URL'):
+    # Use SQLite or PostgreSQL based on environments.
+    # In local development, we default to SQLite even if a global DATABASE_URL is set (from another project).
+    # We only use DATABASE_URL if we are deployed (Vercel/Railway) or if USE_POSTGRES is explicitly set.
+    is_deployed = os.environ.get('VERCEL') or os.environ.get('RAILWAY_ENVIRONMENT') or os.environ.get('PORT')
+    
+    if os.environ.get('DATABASE_URL') and (is_deployed or os.environ.get('USE_POSTGRES')):
         database_url = os.environ.get('DATABASE_URL')
         if database_url.startswith("postgres://"):
             database_url = database_url.replace("postgres://", "postgresql://", 1)
@@ -17,6 +22,8 @@ def create_app(config_class=Config):
         db_path = os.path.join(app.instance_path, 'campus.db')
         app.config['SQLALCHEMY_DATABASE_URI'] = f'sqlite:///{db_path}'
 
+
+    # Ensure the instance folder exists for local development
     try:
         os.makedirs(app.instance_path)
     except OSError:
@@ -45,19 +52,19 @@ def create_app(config_class=Config):
     from app.study import events as _study_events  # registers socketio handlers  # noqa
 
     @app.context_processor
-    def inject_sidebars():
+    def inject_global_data():
         from flask_login import current_user
         from flask import request as req
         from datetime import timedelta
 
         skip_paths = ('/send', '/poll', '/join', '/leave', '/create', '/delete', '/add', '/courses/remove')
         if not current_user.is_authenticated:
-            return {'sidebar_chat': [], 'sidebar_study': []}
+            return {'sidebar_chat': [], 'sidebar_study': [], 'unread_notifications_count': 0}
         if req.is_json or req.path.endswith(skip_paths):
-            return {'sidebar_chat': [], 'sidebar_study': []}
+            return {'sidebar_chat': [], 'sidebar_study': [], 'unread_notifications_count': 0}
 
         from app.models import (CampusMember, ChatMember, ChatMessage,
-                                StudyRoomMember, StudyRoomMessage, StudyRoom)
+                                StudyRoomMember, StudyRoomMessage, StudyRoom, Notification)
         import datetime as dt
 
         # ── Chat sidebar ─────────────────────────────────────────
@@ -102,7 +109,14 @@ def create_app(config_class=Config):
             })
         study_items.sort(key=lambda x: x['session_time'])
 
-        return {'sidebar_chat': list(by_campus.values()), 'sidebar_study': study_items}
+        # ── Unread notifications count ───────────────────────────
+        unread_notifications_count = Notification.query.filter_by(user_id=current_user.id, is_read=False).count()
+
+        return {
+            'sidebar_chat': list(by_campus.values()),
+            'sidebar_study': study_items,
+            'unread_notifications_count': unread_notifications_count
+        }
 
     @app.errorhandler(500)
     def internal_error(error):
