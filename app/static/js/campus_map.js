@@ -1,4 +1,4 @@
-﻿/* ═══════════════════════════════════════════════════════════════
+/* ═══════════════════════════════════════════════════════════════
    Agora — campus_map.js
    ════════════════════════════════════════════════════════════════ */
 
@@ -47,6 +47,34 @@ document.addEventListener("DOMContentLoaded", () => {
   const btnCancelPinModal = document.getElementById("btnCancelPinModal");
   const pinFormError = document.getElementById("pinFormError");
 
+  const btnColumnAddClub = document.getElementById("btnColumnAddClub");
+  const btnColumnAddOffice = document.getElementById("btnColumnAddOffice");
+  const btnSelectLocationOnMap = document.getElementById("btnSelectLocationOnMap");
+  const btnClearPinLocation = document.getElementById("btnClearPinLocation");
+  const pinLocationStatusText = document.getElementById("pinLocationStatusText");
+  const pinLatInput = document.getElementById("pinLat");
+  const pinLngInput = document.getElementById("pinLng");
+
+  function updateModalLocationStatus() {
+    if (!pinLocationStatusText) return;
+    const lat = pinLatInput ? pinLatInput.value : "";
+    const lng = pinLngInput ? pinLngInput.value : "";
+    const selectedRadio = document.querySelector('input[name="pinType"]:checked');
+    const type = selectedRadio ? selectedRadio.value : "club";
+    
+    if (lat && lng) {
+      pinLocationStatusText.textContent = `📍 Selected: ${parseFloat(lat).toFixed(1)}%, ${parseFloat(lng).toFixed(1)}%`;
+      if (btnClearPinLocation) btnClearPinLocation.classList.remove("hidden");
+    } else {
+      if (type === "club") {
+        pinLocationStatusText.textContent = "⚪ No location selected (Optional)";
+      } else {
+        pinLocationStatusText.textContent = "⚪ No location selected (Required)";
+      }
+      if (btnClearPinLocation) btnClearPinLocation.classList.add("hidden");
+    }
+  }
+
   // SVG Icons payload
   const SVG_ICONS = {
     club: `<svg viewBox="0 0 24 24"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg>`,
@@ -86,6 +114,9 @@ document.addEventListener("DOMContentLoaded", () => {
     pinsContainer.innerHTML = "";
     
     pins.forEach((pin) => {
+      if (pin.lat === null || pin.lng === null || pin.lat === undefined || pin.lng === undefined) {
+        return;
+      }
       const pinEl = document.createElement("div");
       pinEl.className = `blueprint-pin pin-${pin.type}`;
       
@@ -547,7 +578,14 @@ document.addEventListener("DOMContentLoaded", () => {
     card.dataset.pinType = pin.type;
     card.dataset.pinId = pin.id;
     card.innerHTML = `
-      <div class="card-header"><h4>${escapeHtml(pin.name)}</h4></div>
+      <div class="card-header">
+        <h4>${escapeHtml(pin.name)}</h4>
+        ${IS_ADMIN ? `
+        <form action="/campus/${CAMPUS_ID}/delete-${pin.type}/${pin.id}" method="POST" style="display: inline;" onsubmit="return confirm('Delete this ${pin.type}?');">
+          <button type="submit" class="card-delete-btn">🗑️</button>
+        </form>
+        ` : ''}
+      </div>
       <p>${escapeHtml(pin.description || 'No description provided.')}</p>
     `;
     list.prepend(card);
@@ -643,6 +681,7 @@ document.addEventListener("DOMContentLoaded", () => {
       } else if (placementMode === "pin") {
         document.getElementById("pinLat").value = yPercent;
         document.getElementById("pinLng").value = xPercent;
+        updateModalLocationStatus();
         openModal(pinModalOverlay);
       }
     }, 220);
@@ -767,7 +806,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
 
-  // Submit Create Campus Location Pin (Admin only)
+    // Submit Create Campus Location Pin (Admin only)
   if (pinCreationForm) {
     pinCreationForm.addEventListener("submit", async (e) => {
       e.preventDefault();
@@ -777,11 +816,20 @@ document.addEventListener("DOMContentLoaded", () => {
       const type = document.querySelector('input[name="pinType"]:checked').value;
       const name = document.getElementById("pinName").value.trim();
       const desc = document.getElementById("pinDescription").value.trim();
-      const lat = parseFloat(document.getElementById("pinLat").value);
-      const lng = parseFloat(document.getElementById("pinLng").value);
       
-      if (!name || isNaN(lat) || isNaN(lng)) {
-        pinFormError.textContent = "Please fill in all required fields.";
+      const latVal = document.getElementById("pinLat").value;
+      const lngVal = document.getElementById("pinLng").value;
+      const lat = latVal !== "" ? parseFloat(latVal) : null;
+      const lng = lngVal !== "" ? parseFloat(lngVal) : null;
+      
+      if (!name) {
+        pinFormError.textContent = "Name is required.";
+        pinFormError.classList.remove("hidden");
+        return;
+      }
+      
+      if (type !== "club" && (lat === null || lng === null || isNaN(lat) || isNaN(lng))) {
+        pinFormError.textContent = "Location is required on map for offices.";
         pinFormError.classList.remove("hidden");
         return;
       }
@@ -819,7 +867,7 @@ document.addEventListener("DOMContentLoaded", () => {
         
         const newPin = await res.json();
         pins.push(newPin);
-
+ 
         pinCreationForm.reset();
         closeModal(pinModalOverlay);
         exitPlacementMode();
@@ -844,6 +892,7 @@ document.addEventListener("DOMContentLoaded", () => {
         label.textContent = "Office Name *";
         nameInput.placeholder = "e.g. Admission Office";
       }
+      updateModalLocationStatus();
     });
   });
 
@@ -852,6 +901,56 @@ document.addEventListener("DOMContentLoaded", () => {
   btnCloseEventModal.addEventListener("click", () => closeModal(eventModalOverlay));
   if (btnCancelPinModal) btnCancelPinModal.addEventListener("click", () => closeModal(pinModalOverlay));
   if (btnClosePinModal) btnClosePinModal.addEventListener("click", () => closeModal(pinModalOverlay));
+
+  if (btnSelectLocationOnMap) {
+    btnSelectLocationOnMap.addEventListener("click", (e) => {
+      e.stopPropagation();
+      pinModalOverlay.classList.add("hidden");
+      enterPlacementMode("pin");
+    });
+  }
+
+  if (btnClearPinLocation) {
+    btnClearPinLocation.addEventListener("click", (e) => {
+      e.stopPropagation();
+      if (pinLatInput) pinLatInput.value = "";
+      if (pinLngInput) pinLngInput.value = "";
+      removeTempMarker();
+      updateModalLocationStatus();
+    });
+  }
+
+  if (btnColumnAddClub) {
+    btnColumnAddClub.addEventListener("click", (e) => {
+      e.stopPropagation();
+      if (pinLatInput) pinLatInput.value = "";
+      if (pinLngInput) pinLngInput.value = "";
+      removeTempMarker();
+      const clubRadio = document.querySelector('input[name="pinType"][value="club"]');
+      if (clubRadio) {
+        clubRadio.checked = true;
+        clubRadio.dispatchEvent(new Event("change"));
+      }
+      updateModalLocationStatus();
+      openModal(pinModalOverlay);
+    });
+  }
+
+  if (btnColumnAddOffice) {
+    btnColumnAddOffice.addEventListener("click", (e) => {
+      e.stopPropagation();
+      if (pinLatInput) pinLatInput.value = "";
+      if (pinLngInput) pinLngInput.value = "";
+      removeTempMarker();
+      const officeRadio = document.querySelector('input[name="pinType"][value="office"]');
+      if (officeRadio) {
+        officeRadio.checked = true;
+        officeRadio.dispatchEvent(new Event("change"));
+      }
+      updateModalLocationStatus();
+      openModal(pinModalOverlay);
+    });
+  }
 
   // ── Filters Toggling ──────────────────────────────────────────
   const filterTabs = document.querySelectorAll(".filter-tab");

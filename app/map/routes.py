@@ -13,7 +13,8 @@ map_bp = Blueprint('map', __name__)
 @login_required
 def campus_map(campus_id):
     campus   = Campus.query.get_or_404(campus_id)
-    is_admin = (campus.creator_id == current_user.id)
+    membership = CampusMember.query.filter_by(user_id=current_user.id, campus_id=campus_id).first()
+    is_admin = (campus.creator_id == current_user.id) or (membership and membership.role in ['admin', 'owner'])
     view     = request.args.get('view')
     active_page = 'events' if view == 'events' else 'map'
     return render_template('main/campus_map.html', campus=campus, is_admin=is_admin, active_page=active_page)
@@ -23,7 +24,9 @@ def campus_map(campus_id):
 @login_required
 def add_club(campus_id):
     campus = Campus.query.get_or_404(campus_id)
-    if campus.creator_id != current_user.id:
+    membership = CampusMember.query.filter_by(user_id=current_user.id, campus_id=campus.id).first()
+    is_admin = (campus.creator_id == current_user.id) or (membership and membership.role in ['admin', 'owner'])
+    if not is_admin:
         flash('Unauthorized action.', 'error')
         return redirect(url_for('map.campus_map', campus_id=campus_id))
     
@@ -45,7 +48,9 @@ def add_club(campus_id):
 @login_required
 def add_office(campus_id):
     campus = Campus.query.get_or_404(campus_id)
-    if campus.creator_id != current_user.id:
+    membership = CampusMember.query.filter_by(user_id=current_user.id, campus_id=campus.id).first()
+    is_admin = (campus.creator_id == current_user.id) or (membership and membership.role in ['admin', 'owner'])
+    if not is_admin:
         flash('Unauthorized action.', 'error')
         return redirect(url_for('map.campus_map', campus_id=campus_id))
     
@@ -67,7 +72,9 @@ def add_office(campus_id):
 @login_required
 def delete_club(campus_id, club_id):
     campus = Campus.query.get_or_404(campus_id)
-    if campus.creator_id != current_user.id:
+    membership = CampusMember.query.filter_by(user_id=current_user.id, campus_id=campus.id).first()
+    is_admin = (campus.creator_id == current_user.id) or (membership and membership.role in ['admin', 'owner'])
+    if not is_admin:
         flash('Unauthorized action.', 'error')
         return redirect(url_for('map.campus_map', campus_id=campus_id))
         
@@ -86,7 +93,9 @@ def delete_club(campus_id, club_id):
 @login_required
 def delete_office(campus_id, office_id):
     campus = Campus.query.get_or_404(campus_id)
-    if campus.creator_id != current_user.id:
+    membership = CampusMember.query.filter_by(user_id=current_user.id, campus_id=campus.id).first()
+    is_admin = (campus.creator_id == current_user.id) or (membership and membership.role in ['admin', 'owner'])
+    if not is_admin:
         flash('Unauthorized action.', 'error')
         return redirect(url_for('map.campus_map', campus_id=campus_id))
         
@@ -162,7 +171,8 @@ def add_pin():
         return jsonify({'error': 'Campus not found'}), 404
 
     # Authorization check
-    is_admin = (campus.creator_id == current_user.id)
+    membership = CampusMember.query.filter_by(user_id=current_user.id, campus_id=campus_id).first()
+    is_admin = (campus.creator_id == current_user.id) or (membership and membership.role in ['admin', 'owner'])
     is_member = CampusMember.query.filter_by(user_id=current_user.id, campus_id=campus_id).first() is not None or is_admin
 
     if not is_member:
@@ -174,8 +184,11 @@ def add_pin():
     lat      = data.get('lat')
     lng      = data.get('lng')
 
-    if not name or lat is None or lng is None:
-        return jsonify({'error': 'Missing fields'}), 400
+    if not name:
+        return jsonify({'error': 'Name is required.'}), 400
+
+    if pin_type != 'club' and (lat is None or lng is None):
+        return jsonify({'error': 'Location is required.'}), 400
 
     if pin_type == 'club':
         if not is_admin:
@@ -280,7 +293,8 @@ def delete_pin(pin_type, pin_id):
     if not campus:
         return jsonify({'error': 'Campus not found'}), 404
 
-    is_admin = (campus.creator_id == current_user.id)
+    membership = CampusMember.query.filter_by(user_id=current_user.id, campus_id=campus_id).first()
+    is_admin = (campus.creator_id == current_user.id) or (membership and membership.role in ['admin', 'owner'])
     is_authorized = is_admin
     
     if pin_type == 'event':
