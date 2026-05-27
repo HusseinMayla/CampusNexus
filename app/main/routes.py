@@ -23,7 +23,53 @@ def allowed_resource(filename):
 @main_bp.route('/')
 @main_bp.route('/index')
 def index():
-    return render_template('index.html', active_page='home')
+    todays_events = []
+    joined_campuses_count = 0
+    if current_user.is_authenticated:
+        # Get campuses joined or created by the user
+        joined_memberships = CampusMember.query.filter_by(user_id=current_user.id).all()
+        joined_campus_ids = [m.campus_id for m in joined_memberships]
+        created_campuses = Campus.query.filter_by(creator_id=current_user.id).all()
+        created_campus_ids = [c.id for c in created_campuses]
+        
+        all_campus_ids = list(set(joined_campus_ids + created_campus_ids))
+        joined_campuses_count = len(all_campus_ids)
+        
+        if all_campus_ids:
+            now = datetime.utcnow()
+            # Define today as standard UTC calendar day of today
+            today_start = datetime(now.year, now.month, now.day, 0, 0, 0)
+            today_end = datetime(now.year, now.month, now.day, 23, 59, 59)
+            
+            # Fetch events for these campuses that start today, sorted by start time
+            events = Event.query.filter(
+                Event.campus_id.in_(all_campus_ids),
+                Event.date >= today_start,
+                Event.date <= today_end
+            ).order_by(Event.date.asc()).all()
+            
+            for e in events:
+                part_count = EventParticipation.query.filter_by(event_id=e.id, is_interested=True).count()
+                user_part = EventParticipation.query.filter_by(event_id=e.id, user_id=current_user.id).first()
+                is_interested = user_part.is_interested if user_part else False
+                want_notification = user_part.want_notification if user_part else False
+                is_ended = e.end_date < now
+                
+                todays_events.append({
+                    'event': e,
+                    'participation_count': part_count,
+                    'is_interested': is_interested,
+                    'want_notification': want_notification,
+                    'is_ended': is_ended
+                })
+                
+    return render_template(
+        'index.html',
+        active_page='home',
+        todays_events=todays_events,
+        joined_campuses_count=joined_campuses_count
+    )
+
 
 @main_bp.route('/dashboard')
 @login_required
@@ -375,6 +421,14 @@ def clear_notifications():
     
     flash('All notifications cleared.', 'success')
     return redirect(url_for('main.notifications'))
+
+
+@main_bp.route('/api/notifications/unread-count', methods=['GET'])
+@login_required
+def api_unread_notifications_count():
+    # Calling this endpoint will also trigger check_event_notifications via before_app_request
+    count = Notification.query.filter_by(user_id=current_user.id, is_read=False).count()
+    return jsonify({'count': count})
 
 
 @main_bp.route('/settings/update-profile', methods=['POST'])

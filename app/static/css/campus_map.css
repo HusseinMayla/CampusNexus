@@ -1,4 +1,4 @@
-﻿/* ═══════════════════════════════════════════════════════════════
+/* ═══════════════════════════════════════════════════════════════
    Agora — campus_map.css
    ════════════════════════════════════════════════════════════════ */
 
@@ -41,6 +41,24 @@
   transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
   position: relative;
   z-index: 20; /* Higher than the right sidebar's z-index of 15 */
+}
+
+.workspace-main.active-placement-mode {
+  z-index: 2500;
+}
+
+body.active-placement-mode .base-topbar {
+  z-index: 50 !important;
+  filter: blur(4px);
+  pointer-events: none;
+  transition: filter 0.3s ease, z-index 0.3s ease;
+}
+
+body.active-placement-mode .base-sidebar {
+  z-index: 40 !important;
+  filter: blur(4px);
+  pointer-events: none;
+  transition: filter 0.3s ease, z-index 0.3s ease;
 }
 
 /* Workspace Header & Title */
