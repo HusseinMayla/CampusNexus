@@ -91,16 +91,18 @@
 
                 <!-- Study Rooms -->
                 <div class="chat-divider"></div>
-                <div class="study-section-label">Study Rooms</div>
-                {% for sr in sidebar_study %}{% if sr.campus_id == campus.id %}
-                <a href="{{ url_for('study.room', campus_id=campus.id, room_id=sr.room_id) }}"
-                   class="base-nav-item study-room-link"
-                   title="{{ sr.chapter }}&#10;📍 {{ sr.location }}&#10;👥 {{ sr.member_count }}/{{ sr.max_members }}">
-                    {% if sr.has_unread %}<span class="chat-dot"></span>{% endif %}
-                    {{ sr.campus_name }}: {{ sr.course_code }} - {{ sr.session_time.strftime('%I:%M %p') }}
-                </a>
-                {% endif %}{% endfor %}
-                <a href="{{ url_for('study.browse', campus_id=campus.id) }}" class="base-nav-item study-create-link">＋ Create a study room</a>
+                <details class="chat-section">
+                    <summary><span class="chat-arrow">▶</span>Study Rooms</summary>
+                    {% for sr in sidebar_study %}{% if sr.campus_id == campus.id %}
+                    <a href="{{ url_for('study.room', campus_id=campus.id, room_id=sr.room_id) }}"
+                       class="base-nav-item chat-room-link"
+                       title="{{ sr.chapter }}&#10;📍 {{ sr.location }}&#10;👥 {{ sr.member_count }}/{{ sr.max_members }}">
+                        {% if sr.has_unread %}<span class="chat-dot"></span>{% endif %}
+                        {{ sr.course_code }} - {{ sr.session_time.strftime('%I:%M %p') }}
+                    </a>
+                    {% endif %}{% endfor %}
+                    <a href="{{ url_for('study.browse', campus_id=campus.id) }}" class="base-nav-item chat-join-link">＋ Browse study rooms</a>
+                </details>
             {% else %}
                 <!-- Global Sidebar -->
                 <a href="{{ url_for('main.index') }}" class="base-nav-item {% if active_page == 'home' %}active{% endif %}">
@@ -118,10 +120,6 @@
                 <a href="{{ url_for('main.create_campus') }}" class="base-nav-item {% if active_page == 'create' %}active{% endif %}">
                     <span class="base-nav-icon">🛠</span>
                     <span class="base-nav-label">Create Campus</span>
-                </a>
-                <a href="{{ url_for('events.list_events') }}" class="base-nav-item {% if active_page == 'events' %}active{% endif %}">
-                    <span class="base-nav-icon">📅</span>
-                    <span class="base-nav-label">Upcoming Events</span>
                 </a>
                 <a href="{{ url_for('main.settings') }}" class="base-nav-item {% if active_page == 'settings' %}active{% endif %}">
                     <span class="base-nav-icon">⚙</span>
@@ -143,17 +141,19 @@
                 {% endif %}
                 {% if sidebar_chat %}
                 <div class="chat-divider"></div>
-                <div class="study-section-label">Study Rooms</div>
                 {% for group in sidebar_chat %}
+                <details class="chat-section">
+                    <summary><span class="chat-arrow">▶</span>{{ group.campus_name }} Study Rooms</summary>
                     {% for sr in sidebar_study %}{% if sr.campus_id == group.campus_id %}
                     <a href="{{ url_for('study.room', campus_id=sr.campus_id, room_id=sr.room_id) }}"
-                       class="base-nav-item study-room-link"
+                       class="base-nav-item chat-room-link"
                        title="{{ sr.chapter }}&#10;📍 {{ sr.location }}&#10;👥 {{ sr.member_count }}/{{ sr.max_members }}">
                         {% if sr.has_unread %}<span class="chat-dot"></span>{% endif %}
                         {{ sr.course_code }} - {{ sr.session_time.strftime('%I:%M %p') }}
                     </a>
                     {% endif %}{% endfor %}
-                    <a href="{{ url_for('study.browse', campus_id=group.campus_id) }}" class="base-nav-item study-create-link">＋ {{ group.campus_name }} study rooms</a>
+                    <a href="{{ url_for('study.browse', campus_id=group.campus_id) }}" class="base-nav-item chat-join-link">＋ Browse study rooms</a>
+                </details>
                 {% endfor %}
                 {% endif %}
             {% endif %}

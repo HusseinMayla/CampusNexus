@@ -3,25 +3,6 @@
 
 {% block extra_css %}
 <style>
-.sr-card {
-    background: var(--base-card-bg);
-    border: 1px solid var(--base-border-color);
-    border-radius: 12px;
-    padding: 16px 20px;
-    margin-bottom: 10px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    gap: 16px;
-}
-.sr-info { flex: 1; min-width: 0; }
-.sr-title { font-family: var(--font-display); font-size: 1.05rem; font-weight: 600; margin-bottom: 6px; }
-.sr-tags  { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 6px; }
-.sr-tag   { font-size: 0.78rem; padding: 2px 10px; border-radius: 20px; background: var(--base-card-bg-alt);
-            border: 1px solid var(--base-border-color); color: var(--base-text-muted); }
-.sr-tag-course { background: rgba(200,169,110,0.12); border-color: rgba(200,169,110,0.4); color: var(--base-tan); }
-.sr-meta  { font-size: 0.85rem; color: var(--base-text-muted); }
-
 .create-panel { margin-top: 32px; padding-top: 24px; border-top: 1px solid var(--base-border-color); }
 .create-panel h3 { margin-bottom: 16px; }
 .create-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
@@ -38,47 +19,36 @@
 {% endblock %}
 
 {% block content %}
-<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:24px;flex-wrap:wrap;gap:12px;">
-    <div>
-        <h1><span style="color:initial;-webkit-text-fill-color:initial;">📖</span> Study Rooms</h1>
-        <p style="color:var(--base-text-muted);margin-top:4px;font-size:0.95rem;">
-            Course-specific rooms for study sessions in {{ campus.name }}.
-        </p>
-    </div>
+<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:32px;flex-wrap:wrap;gap:12px;">
+    <h1><span style="color:initial;-webkit-text-fill-color:initial;">🎓</span> Study Rooms</h1>
+    <button class="base-button" onclick="document.getElementById('createPanel').scrollIntoView({behavior:'smooth'})">＋ Create study room</button>
 </div>
 
 {% if rooms %}
+<div class="base-card-grid">
     {% for room in rooms %}
-    <div class="sr-card">
-        <div class="sr-info">
-            <div class="sr-title">{{ room.course_code }} — {{ room.chapter }}</div>
-            <div class="sr-tags">
-                <span class="sr-tag sr-tag-course">{{ room.course_code }}</span>
-                <span class="sr-tag">📍 {{ room.location }}</span>
-                <span class="sr-tag">🕐 {{ room.session_time.strftime('%b %d, %I:%M %p') }}</span>
-                <span class="sr-tag">👥 {{ room.member_count }}/{{ room.max_members }}</span>
-            </div>
-            <div class="sr-meta">Chapter: {{ room.chapter }}</div>
-        </div>
+    <div class="base-card" style="padding: 24px;">
+        <h3 class="base-card-title">{{ campus.name }} — {{ room.course_code }}</h3>
+        <p style="color: var(--base-primary-color); font-weight: 600; margin-bottom: 8px;">
+            {{ room.session_time.strftime('%b %d, %I:%M %p') }}
+        </p>
+        <p style="color: var(--base-text-muted);">📍 {{ room.location }}</p>
+        <p style="color: var(--base-text-muted); font-size: 0.88rem; margin-top: 4px;">{{ room.chapter }} · {{ room.member_count }}/{{ room.max_members }} members</p>
         {% if room.id in joined_ids %}
         <a href="{{ url_for('study.room', campus_id=campus.id, room_id=room.id) }}"
-           class="base-button" style="font-size:0.9rem;padding:7px 18px;white-space:nowrap;">Open</a>
+           class="base-button" style="margin-top: 16px; width: 100%; text-align:center; display:block; text-decoration:none;">Open</a>
         {% else %}
-        <button class="base-button-secondary" style="font-size:0.9rem;padding:7px 18px;white-space:nowrap;"
+        <button class="base-button" style="margin-top: 16px; width: 100%;"
                 onclick="joinRoom({{ room.id }}, this)">Join</button>
         {% endif %}
     </div>
     {% endfor %}
-{% else %}
-<div style="text-align:center;padding:48px 24px;color:var(--base-text-muted);
-            background:var(--base-card-bg);border-radius:12px;border:1px dashed var(--base-border-color);">
-    <div style="font-size:2.5rem;margin-bottom:12px;">📖</div>
-    {% if my_courses %}
-    <p>No study rooms available for your courses right now.</p>
-    {% else %}
-    <p>Add your courses below to see study rooms.</p>
-    {% endif %}
 </div>
+{% else %}
+<p style="color: var(--base-text-muted);">
+    {% if my_courses %}No study rooms available for your courses right now.
+    {% else %}Add your courses below to see study rooms.{% endif %}
+</p>
 {% endif %}
 
 <!-- ── My Courses ─────────────────────────────────────────────── -->
@@ -101,7 +71,7 @@
 </div>
 
 <!-- ── Create Study Room ──────────────────────────────────────── -->
-<div class="create-panel">
+<div class="create-panel" id="createPanel">
     <h3>Create a Study Room</h3>
     <div class="create-grid">
         <div class="base-form-group">
@@ -181,14 +151,12 @@ async function addCourse() {
     const data = await res.json();
     if (res.ok) {
         inp.value = '';
-        // Add chip
         const chips = document.getElementById('courseChips');
         const chip  = document.createElement('span');
         chip.className = 'course-chip';
         chip.dataset.id = data.id || '';
         chip.innerHTML = `${data.course_code} <button class="chip-remove" onclick="removeCourse(null,this)" title="Remove">×</button>`;
         chips.appendChild(chip);
-        // Add to course select
         const sel = document.getElementById('cr-course');
         const opt = document.createElement('option');
         opt.value = data.course_code; opt.textContent = data.course_code;
@@ -203,7 +171,6 @@ async function removeCourse(id, btn) {
         const chip = btn.parentElement;
         const code = chip.textContent.trim().replace('×','').trim();
         chip.remove();
-        // Remove from select
         const sel = document.getElementById('cr-course');
         for (const opt of sel.options) {
             if (opt.value === code) { sel.removeChild(opt); break; }
