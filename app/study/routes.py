@@ -28,14 +28,9 @@ def _cleanup_expired(campus_id):
 
 def _visible_rooms(campus_id, user_id):
     _cleanup_expired(campus_id)
-    enrolled = {uc.course_code for uc in
-                UserCourse.query.filter_by(user_id=user_id, campus_id=campus_id).all()}
-    if not enrolled:
-        return []
     cutoff = datetime.utcnow() - timedelta(hours=2)
     rooms = StudyRoom.query.filter(
         StudyRoom.campus_id == campus_id,
-        StudyRoom.course_code.in_(enrolled),
         StudyRoom.session_time >= cutoff
     ).order_by(StudyRoom.session_time.asc()).all()
     result = []

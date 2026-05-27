@@ -7,7 +7,7 @@ import bcrypt
 
 auth_bp = Blueprint('auth', __name__, url_prefix='/auth')
 
-EMAIL_RE = re.compile(r'^[^\s@]+@[^\s@]+\.[^\s@]+$')
+EMAIL_RE = re.compile(r'^[^\s@]+@[^\s@]+\.(edu(\.[a-z]{2,})?|ac\.[a-z]{2,})$', re.IGNORECASE)
 
 
 @auth_bp.route('/')
@@ -28,7 +28,7 @@ def login():
         return redirect(url_for('auth.page'))
 
     if not EMAIL_RE.match(email):
-        flash('Please enter a valid email address.', 'error')
+        flash('Please use a university email address (.edu or .ac.xx).', 'error')
         return redirect(url_for('auth.page'))
 
     user = User.query.filter_by(email=email).first()
@@ -58,7 +58,7 @@ def register():
         return redirect(signup_url)
 
     if not EMAIL_RE.match(email):
-        flash('Please enter a valid email address.', 'error')
+        flash('Please use a university email address (.edu or .ac.xx).', 'error')
         return redirect(signup_url)
 
     if len(password) < 8:
@@ -95,7 +95,7 @@ def add_email():
         return redirect(url_for('main.settings'))
         
     if not EMAIL_RE.match(email):
-        flash('Please enter a valid email address.', 'error')
+        flash('Please use a university email address (.edu or .ac.xx).', 'error')
         return redirect(url_for('main.settings'))
         
     # Validation: No email can have more than one user (global uniqueness)
