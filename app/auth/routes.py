@@ -1,4 +1,4 @@
-import re
+﻿import re
 from flask import Blueprint, render_template, redirect, url_for, flash, request
 from flask_login import login_user, logout_user, login_required, current_user
 from app.extensions import db
@@ -74,7 +74,7 @@ def register():
     db.session.add(user)
     db.session.commit()
     login_user(user)
-    flash(f'Welcome to LearnHive, {name}!', 'success')
+    flash(f'Welcome to Agora, {name}!', 'success')
     return redirect(url_for('main.dashboard'))
 
 

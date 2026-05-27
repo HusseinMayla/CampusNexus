@@ -1,4 +1,4 @@
-/* Base Layout Styles — LearnHive */
+﻿/* Base Layout Styles — Agora */
 :root {
     --base-primary-color:    #c8a96e;
     --base-primary-light:    #162a52;
@@ -607,9 +607,15 @@ h3, h4 { font-family: var(--font-display); color: var(--base-tan); letter-spacin
     flex-shrink: 0;
 }
 .chat-section[open] .chat-arrow { transform: rotate(90deg); }
-.chat-room-link { padding-left: 28px; font-size: 0.92rem; gap: 6px; }
-.chat-join-link { padding-left: 28px; font-size: 0.88rem; opacity: 0.7; }
+.chat-room-link { padding-left: 28px; font-size: 1rem; gap: 6px; }
+.chat-join-link { padding-left: 28px; font-size: 0.95rem; opacity: 0.7; }
 .chat-join-link:hover { opacity: 1; }
+.study-section-label { padding: 6px 16px 2px; font-size: 0.8rem; text-transform: uppercase;
+                        letter-spacing: 0.05em; color: var(--base-tan-dim); font-weight: 700; }
+.study-room-link { padding-left: 16px; font-size: 1rem; white-space: nowrap;
+                   overflow: hidden; text-overflow: ellipsis; }
+.study-create-link { padding-left: 16px; font-size: 0.95rem; opacity: 0.7; }
+.study-create-link:hover { opacity: 1; }
 .chat-dot {
     width: 7px; height: 7px; border-radius: 50%;
     background: var(--base-tan);

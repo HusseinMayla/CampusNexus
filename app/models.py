@@ -1,6 +1,6 @@
 from app.extensions import db, login_manager
 from flask_login import UserMixin
-from datetime import datetime
+from datetime import datetime, timedelta
 
 @login_manager.user_loader
 def load_user(id):
@@ -244,4 +244,65 @@ class ChatMessage(db.Model):
     sent_at   = db.Column(db.DateTime, default=datetime.utcnow)
 
     sender = db.relationship('User', backref=db.backref('chat_messages', lazy=True))
+
+
+class UserCourse(db.Model):
+    __tablename__ = 'user_course'
+    id          = db.Column(db.Integer, primary_key=True)
+    user_id     = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    campus_id   = db.Column(db.Integer, db.ForeignKey('campus.id'), nullable=False)
+    course_code = db.Column(db.String(32), nullable=False)
+    __table_args__ = (db.UniqueConstraint('user_id', 'campus_id', 'course_code'),)
+
+    user   = db.relationship('User',   backref=db.backref('enrolled_courses', lazy=True, cascade='all, delete-orphan'))
+    campus = db.relationship('Campus', backref=db.backref('course_enrollments', lazy=True, cascade='all, delete-orphan'))
+
+
+class StudyRoom(db.Model):
+    __tablename__ = 'study_room'
+    id           = db.Column(db.Integer, primary_key=True)
+    campus_id    = db.Column(db.Integer, db.ForeignKey('campus.id'), nullable=False)
+    owner_id     = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    course_code  = db.Column(db.String(32), nullable=False)
+    chapter      = db.Column(db.String(128), nullable=False)
+    location     = db.Column(db.String(128), nullable=False)
+    session_time = db.Column(db.DateTime, nullable=False)
+    max_members  = db.Column(db.Integer, nullable=False)
+    created_at   = db.Column(db.DateTime, default=datetime.utcnow)
+
+    campus   = db.relationship('Campus', backref=db.backref('study_rooms', lazy=True, cascade='all, delete-orphan'))
+    owner    = db.relationship('User',   backref=db.backref('owned_study_rooms', lazy=True))
+    members  = db.relationship('StudyRoomMember',  backref='room', lazy=True, cascade='all, delete-orphan')
+    messages = db.relationship('StudyRoomMessage', backref='room', lazy=True, cascade='all, delete-orphan')
+
+    @property
+    def is_expired(self):
+        return datetime.utcnow() > self.session_time + timedelta(hours=2)
+
+    @property
+    def member_count(self):
+        return len(self.members)
+
+
+class StudyRoomMember(db.Model):
+    __tablename__ = 'study_room_member'
+    id           = db.Column(db.Integer, primary_key=True)
+    room_id      = db.Column(db.Integer, db.ForeignKey('study_room.id'), nullable=False)
+    user_id      = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    last_read_at = db.Column(db.DateTime, nullable=True)
+    joined_at    = db.Column(db.DateTime, default=datetime.utcnow)
+    __table_args__ = (db.UniqueConstraint('room_id', 'user_id'),)
+
+    user = db.relationship('User', backref=db.backref('study_room_memberships', lazy=True))
+
+
+class StudyRoomMessage(db.Model):
+    __tablename__ = 'study_room_message'
+    id        = db.Column(db.Integer, primary_key=True)
+    room_id   = db.Column(db.Integer, db.ForeignKey('study_room.id'), nullable=False)
+    sender_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    body      = db.Column(db.Text, nullable=False)
+    sent_at   = db.Column(db.DateTime, default=datetime.utcnow)
+
+    sender = db.relationship('User', backref=db.backref('study_room_messages', lazy=True))
 

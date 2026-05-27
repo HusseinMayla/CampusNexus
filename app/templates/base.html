@@ -1,9 +1,9 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}LearnHive{% endblock %}</title>
+    <title>{% block title %}Agora{% endblock %}</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400&family=Crimson+Pro:wght@300;400;500&display=swap" rel="stylesheet">
@@ -16,7 +16,7 @@
             <span></span><span></span><span></span>
         </button>
         <a href="{{ url_for('main.index') }}" class="base-logo">
-            <img src="{{ url_for('static', filename='logo.png') }}" alt="LearnHive" style="height:44px;object-fit:contain;vertical-align:middle;margin-right:8px;"/>LearnHive
+            <img src="{{ url_for('static', filename='logo.png') }}" alt="Agora" style="height:44px;object-fit:contain;vertical-align:middle;margin-right:8px;"/>Agora
         </a>
         <div class="base-topbar-right">
             <a href="{{ url_for('main.notifications') }}" class="base-notification-btn" title="Notifications" style="text-decoration: none; cursor: pointer; font-size: 1.3rem; display: inline-flex; align-items: center; justify-content: center; margin-right: 12px;">🔔</a>
@@ -83,6 +83,19 @@
                     <a href="{{ url_for('main.chat_browse', campus_id=campus.id) }}" class="base-nav-item chat-join-link">＋ Join chat group</a>
                 </details>
                 {% endif %}
+
+                <!-- Study Rooms -->
+                <div class="chat-divider"></div>
+                <div class="study-section-label">Study Rooms</div>
+                {% for sr in sidebar_study %}{% if sr.campus_id == campus.id %}
+                <a href="{{ url_for('study.room', campus_id=campus.id, room_id=sr.room_id) }}"
+                   class="base-nav-item study-room-link"
+                   title="{{ sr.chapter }}&#10;📍 {{ sr.location }}&#10;👥 {{ sr.member_count }}/{{ sr.max_members }}">
+                    {% if sr.has_unread %}<span class="chat-dot"></span>{% endif %}
+                    {{ sr.campus_name }}: {{ sr.course_code }} - {{ sr.session_time.strftime('%I:%M %p') }}
+                </a>
+                {% endif %}{% endfor %}
+                <a href="{{ url_for('study.browse', campus_id=campus.id) }}" class="base-nav-item study-create-link">＋ Create a study room</a>
             {% else %}
                 <!-- Global Sidebar -->
                 <a href="{{ url_for('main.index') }}" class="base-nav-item {% if active_page == 'home' %}active{% endif %}">
@@ -123,6 +136,21 @@
                 </details>
                 {% endfor %}
                 {% endif %}
+                {% if sidebar_chat %}
+                <div class="chat-divider"></div>
+                <div class="study-section-label">Study Rooms</div>
+                {% for group in sidebar_chat %}
+                    {% for sr in sidebar_study %}{% if sr.campus_id == group.campus_id %}
+                    <a href="{{ url_for('study.room', campus_id=sr.campus_id, room_id=sr.room_id) }}"
+                       class="base-nav-item study-room-link"
+                       title="{{ sr.chapter }}&#10;📍 {{ sr.location }}&#10;👥 {{ sr.member_count }}/{{ sr.max_members }}">
+                        {% if sr.has_unread %}<span class="chat-dot"></span>{% endif %}
+                        {{ sr.course_code }} - {{ sr.session_time.strftime('%I:%M %p') }}
+                    </a>
+                    {% endif %}{% endfor %}
+                    <a href="{{ url_for('study.browse', campus_id=group.campus_id) }}" class="base-nav-item study-create-link">＋ {{ group.campus_name }} study rooms</a>
+                {% endfor %}
+                {% endif %}
             {% endif %}
         </nav>
     </aside>
@@ -152,9 +180,12 @@
         document.documentElement.setAttribute('data-theme', saved);
 
         document.querySelectorAll('.base-nav-item').forEach(link => {
-            if (link.href && new URL(link.href).pathname === window.location.pathname) {
-                link.classList.add('active');
-            }
+            if (!link.href) return;
+            const linkUrl = new URL(link.href);
+            if (linkUrl.pathname !== window.location.pathname) return;
+            if (linkUrl.search && linkUrl.search !== window.location.search) return;
+            if (!linkUrl.search && window.location.search) return;
+            link.classList.add('active');
         });
 
         toggle.addEventListener('click', () => {

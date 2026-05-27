@@ -1,6 +1,6 @@
-{% extends "base.html" %}
+﻿{% extends "base.html" %}
 
-{% block title %}Join Campus - LearnHive{% endblock %}
+{% block title %}Join Campus - Agora{% endblock %}
 
 {% block content %}
 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 32px;">
@@ -71,7 +71,7 @@
 <div style="text-align: center; padding: 64px 24px; background: var(--base-card-bg); border-radius: 12px; border: 1px dashed var(--base-border-color);">
     <div style="font-size: 3.5rem; margin-bottom: 16px;">🏫</div>
     <h3>No campuses created yet</h3>
-    <p style="color: var(--base-text-muted); margin-bottom: 24px;">Be the first one to start a community on LearnHive!</p>
+    <p style="color: var(--base-text-muted); margin-bottom: 24px;">Be the first one to start a community on Agora!</p>
     <a href="{{ url_for('main.create_campus') }}" class="base-button">Create Campus</a>
 </div>
 {% endif %}
