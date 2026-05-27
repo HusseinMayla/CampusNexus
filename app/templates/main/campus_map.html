@@ -1,4 +1,4 @@
-﻿{% extends "base.html" %}
+{% extends "base.html" %}
 
 {% block title %}Blueprint & Events — {{ campus.name }} | Agora{% endblock %}
 
@@ -61,8 +61,13 @@
         <div class="legacy-lists-grid">
             <!-- Clubs Column -->
             <div class="legacy-column">
-                <div class="column-header">
-                    <h3>👥 Campus Clubs</h3>
+                <div class="column-header" style="display: flex; justify-content: space-between; align-items: center;">
+                    <h3 style="margin: 0;">👥 Campus Clubs</h3>
+                    {% if is_admin %}
+                    <button class="btn btn-secondary btn-small" id="btnColumnAddClub">
+                        ➕ Add Club
+                    </button>
+                    {% endif %}
                 </div>
                 <div class="legacy-card-list">
                     {% if campus.clubs %}
@@ -87,8 +92,13 @@
             
             <!-- Offices Column -->
             <div class="legacy-column">
-                <div class="column-header">
-                    <h3>🏢 Campus Offices</h3>
+                <div class="column-header" style="display: flex; justify-content: space-between; align-items: center;">
+                    <h3 style="margin: 0;">🏢 Campus Offices</h3>
+                    {% if is_admin %}
+                    <button class="btn btn-secondary btn-small" id="btnColumnAddOffice">
+                        ➕ Add Office
+                    </button>
+                    {% endif %}
                 </div>
                 <div class="legacy-card-list">
                     {% if campus.offices %}
@@ -233,6 +243,21 @@
                 <div class="form-group">
                     <label for="pinDescription">Description</label>
                     <textarea id="pinDescription" placeholder="Add room numbers, open hours, or meeting times..." class="form-textarea"></textarea>
+                </div>
+                
+                <div class="form-group">
+                    <label>Location Status</label>
+                    <div class="modal-location-picker-ui" style="display: flex; align-items: center; justify-content: space-between; padding: 10px 12px; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px;">
+                        <span id="pinLocationStatusText" style="font-size: 0.9rem; color: var(--base-text-muted, #9aa5b4);">No location selected</span>
+                        <div style="display: flex; gap: 8px;">
+                            <button type="button" class="btn btn-secondary btn-small" id="btnSelectLocationOnMap" style="margin: 0; box-shadow: none;">
+                                📍 Select on Map
+                            </button>
+                            <button type="button" class="btn btn-secondary btn-small hidden" id="btnClearPinLocation" style="margin: 0; box-shadow: none; background: rgba(239, 68, 68, 0.2); color: #f87171; border-color: rgba(239, 68, 68, 0.3);">
+                                Clear
+                            </button>
+                        </div>
+                    </div>
                 </div>
                 
                 <div id="pinFormError" class="form-error-msg hidden"></div>
