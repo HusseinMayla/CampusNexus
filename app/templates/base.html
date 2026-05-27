@@ -67,7 +67,7 @@
                 <div class="chat-divider"></div>
                 {% set ns = namespace(found=false) %}
                 {% for group in sidebar_chat %}{% if group.campus_id == campus.id %}{% set ns.found = true %}
-                <details class="chat-section" open>
+                <details class="chat-section">
                     <summary><span class="chat-arrow">▶</span>{{ group.campus_name }}</summary>
                     {% for item in group.rooms %}
                     <a href="{{ url_for('main.chat_room', campus_id=campus.id, room_id=item.id) }}" class="base-nav-item chat-room-link">
@@ -125,7 +125,7 @@
                 {% if sidebar_chat %}
                 <div class="chat-divider"></div>
                 {% for group in sidebar_chat %}
-                <details class="chat-section" open>
+                <details class="chat-section">
                     <summary><span class="chat-arrow">▶</span>{{ group.campus_name }}</summary>
                     {% for item in group.rooms %}
                     <a href="{{ url_for('main.chat_room', campus_id=group.campus_id, room_id=item.id) }}" class="base-nav-item chat-room-link">

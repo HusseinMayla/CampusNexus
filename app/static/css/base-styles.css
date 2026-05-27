@@ -356,6 +356,11 @@ body {
 
 .base-textarea { min-height: 120px; resize: vertical; }
 
+[data-theme="dark"] input[type="datetime-local"]::-webkit-calendar-picker-indicator {
+    filter: invert(76%) sepia(30%) saturate(620%) hue-rotate(350deg) brightness(98%);
+    cursor: pointer;
+}
+
 /* Primary — gold */
 .base-button {
     background: linear-gradient(135deg, #c8a96e, #e0c898);
