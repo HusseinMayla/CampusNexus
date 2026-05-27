@@ -284,11 +284,11 @@
         <p style="color: var(--base-text-muted); font-size: 0.9rem; margin-bottom: 4px;">All fields are required.</p>
 
         <label class="modal-label">Full Name</label>
-        <input type="text" id="f-name" class="base-input" placeholder="Your full name" oninput="validate()">
+        <input type="text" id="f-name" class="base-input" placeholder="Your full name" oninput="validate()" onkeydown="if(event.key==='Enter')document.getElementById('submitBtn').click()">
         <span class="field-err" id="err-name"></span>
 
         <label class="modal-label">Email</label>
-        <input type="email" id="f-email" class="base-input" placeholder="you@university.edu" oninput="validate()">
+        <input type="email" id="f-email" class="base-input" placeholder="you@university.edu" oninput="validate()" onkeydown="if(event.key==='Enter')document.getElementById('submitBtn').click()">
         <span class="field-err" id="err-email"></span>
 
         <label class="modal-label">I am a…</label>

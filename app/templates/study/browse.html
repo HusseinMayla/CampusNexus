@@ -115,11 +115,11 @@
         </div>
         <div class="base-form-group">
             <label class="base-label">Chapter / Exam</label>
-            <input type="text" id="cr-chapter" class="base-input" placeholder="e.g. Chapter 4, Midterm">
+            <input type="text" id="cr-chapter" class="base-input" placeholder="e.g. Chapter 4, Midterm" onkeydown="if(event.key==='Enter')createRoom()">
         </div>
         <div class="base-form-group">
             <label class="base-label">Location</label>
-            <input type="text" id="cr-location" class="base-input" placeholder="e.g. Library Room 3, Zoom">
+            <input type="text" id="cr-location" class="base-input" placeholder="e.g. Library Room 3, Zoom" onkeydown="if(event.key==='Enter')createRoom()">
         </div>
         <div class="base-form-group">
             <label class="base-label">Session Time</label>
@@ -127,7 +127,7 @@
         </div>
         <div class="base-form-group">
             <label class="base-label">Max Members <span style="color:var(--base-text-muted);font-size:0.82rem;">(2–20)</span></label>
-            <input type="number" id="cr-max" class="base-input" min="2" max="20" placeholder="e.g. 6">
+            <input type="number" id="cr-max" class="base-input" min="2" max="20" placeholder="e.g. 6" onkeydown="if(event.key==='Enter')createRoom()">
         </div>
     </div>
     <span id="createErr" style="color:#ef4444;font-size:0.85rem;display:block;margin-bottom:8px;"></span>

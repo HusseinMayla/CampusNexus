@@ -124,6 +124,17 @@ def create(campus_id):
     if not 2 <= max_members <= 20:
         return jsonify({'error': 'Max members must be between 2 and 20'}), 400
 
+    # Block if already a member of an active study room in this campus
+    cutoff = datetime.utcnow() - timedelta(hours=2)
+    existing = (StudyRoomMember.query
+                .join(StudyRoom, StudyRoom.id == StudyRoomMember.room_id)
+                .filter(StudyRoomMember.user_id == current_user.id,
+                        StudyRoom.campus_id == campus_id,
+                        StudyRoom.session_time >= cutoff)
+                .first())
+    if existing:
+        return jsonify({'error': 'You are already in an active study room'}), 400
+
     # Auto-enroll in the course if not already
     if not UserCourse.query.filter_by(user_id=current_user.id, campus_id=campus_id,
                                       course_code=course_code).first():
