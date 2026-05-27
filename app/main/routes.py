@@ -6,7 +6,7 @@ from flask import Blueprint, render_template, redirect, url_for, flash, request,
 from flask_login import login_required, current_user
 from werkzeug.utils import secure_filename
 from app.extensions import db
-from app.models import Campus, CampusMember, CampusReport, Notification, Resource, TutorPost, ResourceRequest, ChatRoom, ChatMember, ChatMessage
+from app.models import Campus, CampusMember, CampusReport, Notification, Resource, TutorPost, ResourceRequest, ChatRoom, ChatMember, ChatMessage, Event, EventParticipation
 from sqlalchemy import func
 
 main_bp = Blueprint('main', __name__)
@@ -748,4 +748,36 @@ def chat_poll(campus_id, room_id):
         'sender': m.sender.name,
         'mine': m.sender_id == current_user.id
     } for m in msgs])
+
+
+# ── Hook: Event Start Notifications ───────────────────────────────────────────
+
+@main_bp.before_app_request
+def check_event_notifications():
+    if current_user.is_authenticated:
+        now = datetime.utcnow()
+        due_participations = (db.session.query(EventParticipation)
+                              .join(Event)
+                              .filter(EventParticipation.user_id == current_user.id,
+                                      EventParticipation.want_notification == True,
+                                      EventParticipation.notification_sent == False,
+                                      Event.date <= now)
+                              .all())
+
+        if due_participations:
+            for p in due_participations:
+                notif = Notification(
+                    user_id=current_user.id,
+                    title=f"📅 Event Started: {p.event.title}",
+                    message=f"The event '{p.event.title}' has started! Click to explore it on the map.",
+                    is_read=False,
+                    link=url_for('map.campus_map', campus_id=p.event.campus_id, view='events')
+                )
+                db.session.add(notif)
+                p.notification_sent = True
+            try:
+                db.session.commit()
+            except Exception as e:
+                db.session.rollback()
+                current_app.logger.error(f"Failed to save auto event notification: {e}")
 

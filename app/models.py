@@ -245,3 +245,19 @@ class ChatMessage(db.Model):
 
     sender = db.relationship('User', backref=db.backref('chat_messages', lazy=True))
 
+
+class EventParticipation(db.Model):
+    __tablename__ = 'event_participation'
+    id = db.Column(db.Integer, primary_key=True)
+    event_id = db.Column(db.Integer, db.ForeignKey('event.id'), nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    is_interested = db.Column(db.Boolean, default=False, nullable=False)
+    want_notification = db.Column(db.Boolean, default=False, nullable=False)
+    notification_sent = db.Column(db.Boolean, default=False, nullable=False)
+    
+    __table_args__ = (db.UniqueConstraint('user_id', 'event_id'),)
+
+    event = db.relationship('Event', backref=db.backref('participations', lazy=True, cascade='all, delete-orphan'))
+    user = db.relationship('User', backref=db.backref('event_participations', lazy=True))
+
+

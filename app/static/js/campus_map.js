@@ -86,15 +86,27 @@ document.addEventListener("DOMContentLoaded", () => {
     pinsContainer.innerHTML = "";
     
     pins.forEach((pin) => {
-      // Filter check
-      if (activeFilter !== "all" && pin.type !== activeFilter) return;
-      
       const pinEl = document.createElement("div");
       pinEl.className = `blueprint-pin pin-${pin.type}`;
+      
+      // Filter check
+      if (activeFilter !== "all" && pin.type !== activeFilter) {
+        pinEl.classList.add("filtered-out");
+      }
       pinEl.style.left = `${pin.lng}%`;
       pinEl.style.top = `${pin.lat}%`;
       pinEl.dataset.type = pin.type;
       pinEl.dataset.id = pin.id;
+      
+      // Dynamic Pin Sizing based on participation count (max size 56px, base 32px)
+      if (pin.type === "event") {
+        const baseSize = 32;
+        const maxSize = 56;
+        const count = pin.participation_count || 0;
+        const pinSize = Math.min(maxSize, baseSize + count * 4);
+        pinEl.style.width = `${pinSize}px`;
+        pinEl.style.height = `${pinSize}px`;
+      }
       
       pinEl.innerHTML = `
         <svg viewBox="0 0 32 32" class="geometric-pin-svg" style="width: 100%; height: 100%; position: absolute; top: 0; left: 0; pointer-events: none; z-index: 1;">
@@ -122,6 +134,27 @@ document.addEventListener("DOMContentLoaded", () => {
           ${SVG_ICONS[pin.type] || ""}
         </div>
       `;
+      
+      // Active Event Glow Effects & Pulses or Ended Gray States
+      if (pin.type === "event" && pin.date && pin.end_date) {
+        const now = new Date();
+        const isEventActive = new Date(pin.date) <= now && now <= new Date(pin.end_date);
+        const isEventEnded = now > new Date(pin.end_date);
+        if (isEventActive) {
+          pinEl.classList.add("active-now");
+          const halo = document.createElement("div");
+          halo.className = "active-halo";
+          pinEl.appendChild(halo);
+        } else if (isEventEnded) {
+          pinEl.classList.add("ended");
+        }
+      }
+      
+      // Below-pin text labels for premium readability
+      const labelEl = document.createElement("div");
+      labelEl.className = "pin-label";
+      labelEl.textContent = pin.name;
+      pinEl.appendChild(labelEl);
       
       // Setup click for Tooltip Popover
       pinEl.addEventListener("click", (e) => {
@@ -152,22 +185,72 @@ document.addEventListener("DOMContentLoaded", () => {
       card.className = "event-sidebar-card";
       card.dataset.id = event.id;
       
+      const now = new Date();
+      const isEventActive = new Date(event.date) <= now && now <= new Date(event.end_date);
+      const isEventEnded = now > new Date(event.end_date);
+      
+      let activeBadge = "";
+      if (isEventActive) {
+        activeBadge = `<span class="active-now-badge"><span class="active-now-dot"></span>Active Now</span>`;
+      } else if (isEventEnded) {
+        activeBadge = `<span class="ended-badge">Ended</span>`;
+        card.classList.add("ended");
+      }
+
+      const pCount = event.participation_count || 0;
+      const popPill = pCount > 0 
+        ? `<span class="card-popularity-badge has-interest">👥 ${pCount} interested</span>`
+        : `<span class="card-popularity-badge">👥 0 interested</span>`;
+
       const isCreatorOrAdmin = event.is_creator || IS_ADMIN;
       const deleteBtn = isCreatorOrAdmin 
         ? `<button class="event-delete-btn" data-id="${event.id}">Delete</button>` 
         : "";
 
+      // Action buttons toggle active states
+      const interestedClass = event.is_interested ? "active" : "";
+      const interestedIcon = event.is_interested ? "★" : "☆";
+      const interestedText = event.is_interested ? "Interested" : "Interested";
+      
+      const notifyClass = event.want_notification ? "active" : "";
+      const notifyIcon = event.want_notification ? "🔔" : "🔕";
+      const notifyText = event.want_notification ? "Notify Active" : "Notify Me";
+
+      const disabledAttr = isEventEnded ? "disabled style='opacity: 0.5; cursor: not-allowed;'" : "";
+
       card.innerHTML = `
-        <div class="card-top">
-          <h4>${escapeHtml(event.name)}</h4>
-          ${deleteBtn}
+        <div class="card-summary-row">
+          <div class="card-title-section">
+            <div class="card-title-badge-row">
+              <h4>${escapeHtml(event.name)}</h4>
+              ${activeBadge}
+            </div>
+            <div class="event-time">
+              <span>📅 ${formatEventDuration(event.date, event.end_date)}</span>
+            </div>
+            <div style="margin-top: 2px;">
+              ${popPill}
+            </div>
+          </div>
+          <span class="accordion-chevron">▼</span>
         </div>
-        <div class="event-time">
-          <span>📅 ${formatEventDuration(event.date, event.end_date)}</span>
-        </div>
-        <p>${escapeHtml(event.description || "No description provided.")}</p>
-        <div class="event-author">
-          👤 Host: ${escapeHtml(event.creator_name || "Anonymous")}
+        
+        <div class="card-expanded-content">
+          <p class="event-details-text">${escapeHtml(event.description || "No description provided.")}</p>
+          <div class="event-details-meta">
+            <div class="event-meta-item">👤 <strong>Host:</strong> ${escapeHtml(event.creator_name || "Anonymous")}</div>
+          </div>
+          <div class="event-actions-bar">
+            <button class="toggle-btn toggle-btn-interested ${interestedClass}" data-action="interested" ${disabledAttr}>
+              <span>${interestedIcon}</span> ${interestedText}
+            </button>
+            <button class="toggle-btn toggle-btn-notify ${notifyClass}" data-action="notify" ${disabledAttr}>
+              <span>${notifyIcon}</span> ${notifyText}
+            </button>
+          </div>
+          <div style="display:flex; justify-content: flex-end; margin-top: 4px;">
+            ${deleteBtn}
+          </div>
         </div>
       `;
       
@@ -179,15 +262,42 @@ document.addEventListener("DOMContentLoaded", () => {
         unhighlightPin("event", event.id);
       });
       
-      // Click event card flies tooltips/popovers on map
-      card.addEventListener("click", () => {
-        const pinEl = document.querySelector(`.blueprint-pin[data-type="event"][data-id="${event.id}"]`);
-        if (pinEl) {
-          showPopover(event, pinEl);
-          // Highlight/Pulse pin on card select
-          pinEl.classList.add("pulsing-appeal");
-          setTimeout(() => pinEl.classList.remove("pulsing-appeal"), 1500);
+      // Click summary row toggles accordion expand & flies popover on map
+      const summaryRow = card.querySelector(".card-summary-row");
+      summaryRow.addEventListener("click", () => {
+        const wasExpanded = card.classList.contains("expanded");
+        
+        // Collapse all others
+        document.querySelectorAll(".event-sidebar-card").forEach(c => c.classList.remove("expanded"));
+        
+        if (!wasExpanded) {
+          card.classList.add("expanded");
+          
+          // Open map popover
+          const pinEl = document.querySelector(`.blueprint-pin[data-type="event"][data-id="${event.id}"]`);
+          if (pinEl) {
+            showPopover(event, pinEl);
+            pinEl.classList.add("pulsing-appeal");
+            setTimeout(() => pinEl.classList.remove("pulsing-appeal"), 1500);
+          }
+        } else {
+          closePopover();
         }
+      });
+      
+      // Wire up toggle button actions
+      const btnInterest = card.querySelector(".toggle-btn-interested");
+      btnInterest.addEventListener("click", (e) => {
+        e.stopPropagation();
+        if (isEventEnded) return;
+        toggleInterestNotify(event.id, "interested");
+      });
+      
+      const btnNotify = card.querySelector(".toggle-btn-notify");
+      btnNotify.addEventListener("click", (e) => {
+        e.stopPropagation();
+        if (isEventEnded) return;
+        toggleInterestNotify(event.id, "notify");
       });
       
       // Delete event button click
@@ -220,22 +330,94 @@ document.addEventListener("DOMContentLoaded", () => {
       metaHtml = `<div class="popover-meta">📅 ${formatEventDuration(pin.date, pin.end_date)}</div>`;
     }
 
+    let popoverHeaderRow = `<h4 class="popover-title">${escapeHtml(pin.name)}</h4>`;
+    let popoverActionsHtml = "";
+    
+    if (pin.type === "event") {
+      const now = new Date();
+      const isEventActive = new Date(pin.date) <= now && now <= new Date(pin.end_date);
+      const isEventEnded = now > new Date(pin.end_date);
+      
+      let activeBadge = "";
+      if (isEventActive) {
+        activeBadge = `<span class="popover-active-badge">Active</span>`;
+      } else if (isEventEnded) {
+        activeBadge = `<span class="popover-active-badge" style="background: rgba(100,116,139,0.12); border-color: rgba(100,116,139,0.4); color: #cbd5e1;">Ended</span>`;
+      }
+      
+      const pCount = pin.participation_count || 0;
+      const popText = `👥 ${pCount} interested`;
+      
+      popoverHeaderRow = `
+        <div class="popover-header-row">
+          <h4 class="popover-title" style="margin:0;">${escapeHtml(pin.name)}</h4>
+          ${activeBadge}
+        </div>
+        <div style="margin-top: 2px; margin-bottom: 6px;">
+          <span class="popover-popularity-count">${popText}</span>
+        </div>
+      `;
+      
+      const interestedClass = pin.is_interested ? "active" : "";
+      const interestedIcon = pin.is_interested ? "★" : "☆";
+      
+      const notifyClass = pin.want_notification ? "active" : "";
+      const notifyIcon = pin.want_notification ? "🔔" : "🔕";
+      
+      const disabledAttr = isEventEnded ? "disabled style='opacity: 0.5; cursor: not-allowed;'" : "";
+      
+      popoverActionsHtml = `
+        <div class="event-actions-bar" style="margin-top: 10px;">
+          <button class="toggle-btn toggle-btn-interested ${interestedClass}" data-action="interested" style="padding: 4px 8px; font-size: 0.72rem;" title="Interested" ${disabledAttr}>
+            <span>${interestedIcon}</span>
+          </button>
+          <button class="toggle-btn toggle-btn-notify ${notifyClass}" data-action="notify" style="padding: 4px 8px; font-size: 0.72rem;" title="Notify Me" ${disabledAttr}>
+            <span>${notifyIcon}</span>
+          </button>
+        </div>
+      `;
+    }
+
     popover.innerHTML = `
       <div class="popover-type-bar popover-bar-${pin.type}"></div>
-      <h4 class="popover-title">${escapeHtml(pin.name)}</h4>
+      ${popoverHeaderRow}
       ${metaHtml}
-      <p class="popover-desc">${escapeHtml(pin.description || "No description provided.")}</p>
+      <p class="popover-desc" style="margin:0; line-height: 1.4;">${escapeHtml(pin.description || "No description provided.")}</p>
+      ${popoverActionsHtml}
       ${deleteHtml}
     `;
     
     // Position popover relative to the pin
     pinEl.appendChild(popover);
     
+    // Elevate clicked pin's z-index so popover stays on top
+    pinEl.style.zIndex = "600";
+    
     // Triggers layout calculation so transition opacity works smoothly
     popover.getBoundingClientRect();
     popover.classList.add("visible");
     
     activePopover = { popover, pinEl, pin };
+    
+    // Wire up popover event action buttons
+    if (pin.type === "event") {
+      const now = new Date();
+      const isEventEnded = now > new Date(pin.end_date);
+
+      const popBtnInterest = popover.querySelector(".toggle-btn-interested");
+      popBtnInterest.addEventListener("click", (e) => {
+        e.stopPropagation();
+        if (isEventEnded) return;
+        toggleInterestNotify(pin.id, "interested");
+      });
+      
+      const popBtnNotify = popover.querySelector(".toggle-btn-notify");
+      popBtnNotify.addEventListener("click", (e) => {
+        e.stopPropagation();
+        if (isEventEnded) return;
+        toggleInterestNotify(pin.id, "notify");
+      });
+    }
     
     // Delete action
     const popDelBtn = popover.querySelector(".popover-delete-btn");
@@ -251,6 +433,8 @@ document.addEventListener("DOMContentLoaded", () => {
     if (activePopover) {
       const { popover, pinEl } = activePopover;
       popover.classList.remove("visible");
+      // Reset z-index
+      pinEl.style.zIndex = "";
       setTimeout(() => {
         if (popover && popover.parentNode === pinEl) {
           pinEl.removeChild(popover);
@@ -264,6 +448,9 @@ document.addEventListener("DOMContentLoaded", () => {
   function highlightPin(type, id) {
     const pinEl = document.querySelector(`.blueprint-pin[data-type="${type}"][data-id="${id}"]`);
     if (pinEl) {
+      if (pinEl.classList.contains("filtered-out")) {
+        pinEl.classList.add("hover-reveal");
+      }
       pinEl.style.transform = "translate(-50%, -50%) rotate(-45deg) scale(1.35)";
       pinEl.style.zIndex = "500";
     }
@@ -272,6 +459,7 @@ document.addEventListener("DOMContentLoaded", () => {
   function unhighlightPin(type, id) {
     const pinEl = document.querySelector(`.blueprint-pin[data-type="${type}"][data-id="${id}"]`);
     if (pinEl) {
+      pinEl.classList.remove("hover-reveal");
       pinEl.style.transform = "";
       pinEl.style.zIndex = "";
     }
@@ -296,6 +484,49 @@ document.addEventListener("DOMContentLoaded", () => {
       // Also remove from legacy list if present
       document.querySelector(`.legacy-list-card[data-pin-type="${type}"][data-pin-id="${id}"]`)?.remove();
     } catch (err) {
+      alert(err.message);
+    }
+  }
+
+  // ── Toggle Interest & Notifications (AJAX POST) ───────────────
+  async function toggleInterestNotify(eventId, action) {
+    try {
+      const res = await fetch(`/api/event/${eventId}/interest`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: action })
+      });
+
+      if (!res.ok) throw new Error("Failed to toggle interest status");
+      const data = await res.json();
+      
+      // Update local state in pins array
+      const eventPin = pins.find(p => p.type === "event" && p.id === eventId);
+      if (eventPin) {
+        eventPin.is_interested = data.is_interested;
+        eventPin.want_notification = data.want_notification;
+        eventPin.participation_count = data.participation_count;
+        
+        // Re-render
+        renderAllPins();
+        renderEventsList();
+        
+        // Keep active popover open if matching
+        if (activePopover && activePopover.pin.type === "event" && activePopover.pin.id === eventId) {
+          const pinEl = document.querySelector(`.blueprint-pin[data-type="event"][data-id="${eventId}"]`);
+          if (pinEl) {
+            showPopover(eventPin, pinEl);
+          }
+        }
+        
+        // Keep sidebar card expanded
+        const cardEl = document.querySelector(`.event-sidebar-card[data-id="${eventId}"]`);
+        if (cardEl) {
+          cardEl.classList.add("expanded");
+        }
+      }
+    } catch (err) {
+      console.error(err);
       alert(err.message);
     }
   }
@@ -640,6 +871,24 @@ document.addEventListener("DOMContentLoaded", () => {
     eventsSidebar.classList.remove("collapsed");
     if (btnToggleEvents) btnToggleEvents.classList.add("active");
     
+    // Update URL dynamically to ?view=events
+    const url = new URL(window.location.href);
+    if (url.searchParams.get("view") !== "events") {
+      url.searchParams.set("view", "events");
+      window.history.pushState({}, "", url.pathname + url.search);
+      if (typeof window.updateNavActiveStates === "function") {
+        window.updateNavActiveStates();
+      }
+    }
+    
+    // If the active filter hides events (i.e. is not 'all' and not 'event')
+    if (activeFilter !== "all" && activeFilter !== "event") {
+      const eventFilterTab = document.querySelector('.filter-tab[data-filter="event"]');
+      if (eventFilterTab) {
+        eventFilterTab.click();
+      }
+    }
+    
     // Animate event pins (pulse them to get bigger and smaller twice)
     setTimeout(() => {
       const eventPins = document.querySelectorAll(".pin-event");
@@ -657,6 +906,16 @@ document.addEventListener("DOMContentLoaded", () => {
   function closeSidebar() {
     eventsSidebar.classList.add("collapsed");
     if (btnToggleEvents) btnToggleEvents.classList.remove("active");
+    
+    // Update URL dynamically to remove ?view=events
+    const url = new URL(window.location.href);
+    if (url.searchParams.has("view")) {
+      url.searchParams.delete("view");
+      window.history.pushState({}, "", url.pathname + url.search);
+      if (typeof window.updateNavActiveStates === "function") {
+        window.updateNavActiveStates();
+      }
+    }
   }
 
   function toggleSidebar() {
@@ -677,6 +936,45 @@ document.addEventListener("DOMContentLoaded", () => {
   btnCloseSidebar.addEventListener("click", (e) => {
     e.stopPropagation();
     closeSidebar();
+  });
+
+  // Listen for back/forward navigation
+  window.addEventListener("popstate", () => {
+    if (typeof window.updateNavActiveStates === "function") {
+      window.updateNavActiveStates();
+    }
+    
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("view") === "events") {
+      eventsSidebar.classList.remove("collapsed");
+      if (btnToggleEvents) btnToggleEvents.classList.add("active");
+    } else {
+      eventsSidebar.classList.add("collapsed");
+      if (btnToggleEvents) btnToggleEvents.classList.remove("active");
+    }
+  });
+
+  // Intercept left sidebar navigation link clicks when we are already on the map page
+  document.querySelectorAll(".base-nav-item").forEach(link => {
+    if (link.href) {
+      try {
+        const linkUrl = new URL(link.href, window.location.origin);
+        const currentUrl = new URL(window.location.href, window.location.origin);
+        if (linkUrl.pathname === currentUrl.pathname) {
+          link.addEventListener("click", (e) => {
+            e.preventDefault();
+            const linkView = linkUrl.searchParams.get("view");
+            if (linkView === "events") {
+              openSidebar();
+            } else {
+              closeSidebar();
+            }
+          });
+        }
+      } catch (err) {
+        console.error("Error parsing link URL in campus_map.js:", err);
+      }
+    }
   });
 
   // ── Action Buttons for placement mode launch ───────────────────
