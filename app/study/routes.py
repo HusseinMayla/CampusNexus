@@ -170,6 +170,19 @@ def join(campus_id, room_id):
         return jsonify({'ok': True, 'redirect': url_for('study.room',
                         campus_id=campus_id, room_id=room_id)})
 
+    # Block if user is already in a room with overlapping time
+    new_start = room.session_time
+    new_end   = new_start + timedelta(hours=2)
+    conflict  = (StudyRoomMember.query
+                 .join(StudyRoom, StudyRoom.id == StudyRoomMember.room_id)
+                 .filter(StudyRoomMember.user_id == current_user.id,
+                         StudyRoom.id != room_id,
+                         StudyRoom.session_time > new_start - timedelta(hours=2),
+                         StudyRoom.session_time < new_end)
+                 .first())
+    if conflict:
+        return jsonify({'error': 'You already have a study room at that time'}), 400
+
     db.session.add(StudyRoomMember(room_id=room_id, user_id=current_user.id))
 
     # Notify owner
