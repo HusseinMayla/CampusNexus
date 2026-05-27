@@ -326,7 +326,7 @@
         <p style="color: var(--base-text-muted); font-size: 0.9rem; margin-bottom: 4px;">PDF, PPTX, PPT, DOCX, DOC, XLSX only.</p>
 
         <label class="modal-label">Course Code</label>
-        <input type="text" id="f-code" class="base-input" placeholder="e.g. CS101" oninput="validateShare()" style="text-transform: uppercase;">
+        <input type="text" id="f-code" class="base-input" placeholder="e.g. CS101" oninput="validateShare()" style="text-transform: uppercase;" onkeydown="if(event.key==='Enter')document.getElementById('shareSubmitBtn').click()">
         <span class="field-err" id="err-share-code"></span>
 
         <label class="modal-label">File</label>
@@ -350,11 +350,11 @@
         <p style="color: var(--base-text-muted); font-size: 0.9rem; margin-bottom: 4px;">Let your campus know what you're looking for.</p>
 
         <label class="modal-label">Your Email</label>
-        <input type="email" id="r-email" class="base-input" placeholder="you@university.edu" oninput="validateRequest()">
+        <input type="email" id="r-email" class="base-input" placeholder="you@university.edu" oninput="validateRequest()" onkeydown="if(event.key==='Enter')submitRequest()">
         <span class="field-err" id="err-req-email"></span>
 
         <label class="modal-label">Course Code</label>
-        <input type="text" id="r-code" class="base-input" placeholder="e.g. CS101" oninput="validateRequest()" style="text-transform: uppercase;">
+        <input type="text" id="r-code" class="base-input" placeholder="e.g. CS101" oninput="validateRequest()" style="text-transform: uppercase;" onkeydown="if(event.key==='Enter')submitRequest()">
         <span class="field-err" id="err-req-code"></span>
 
         <label class="modal-label">Chapters <span style="font-weight:400; text-transform:none; font-size:0.85em; color:var(--base-text-muted);">(optional)</span></label>
