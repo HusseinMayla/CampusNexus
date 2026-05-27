@@ -221,6 +221,35 @@
                 sidebar.classList.remove('open');
             }
         });
+
+        // Notification Polling
+        {% if current_user.is_authenticated %}
+        setInterval(async () => {
+            try {
+                const res = await fetch('/api/notifications/unread-count');
+                if (res.ok) {
+                    const data = await res.json();
+                    const notifBtn = document.querySelector('.base-notification-btn');
+                    if (notifBtn) {
+                        let badge = notifBtn.querySelector('.notification-badge');
+                        if (data.count > 0) {
+                            if (!badge) {
+                                badge = document.createElement('span');
+                                badge.className = 'notification-badge';
+                                badge.style.cssText = 'position: absolute; top: -3px; right: -6px; background-color: #f43f5e; color: white; border-radius: 50%; font-size: 0.68rem; width: 16px; height: 16px; display: flex; align-items: center; justify-content: center; font-weight: bold; border: 2px solid var(--base-card-bg, #0b1528); line-height: 1;';
+                                notifBtn.appendChild(badge);
+                            }
+                            badge.textContent = data.count;
+                        } else if (badge) {
+                            badge.remove();
+                        }
+                    }
+                }
+            } catch (err) {
+                console.error('Failed to poll notifications', err);
+            }
+        }, 15000);
+        {% endif %}
     </script>
     <script src="{{ url_for('static', filename='js/main.js') }}"></script>
     {% block extra_js %}{% endblock %}
