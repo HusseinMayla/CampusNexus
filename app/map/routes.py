@@ -1,8 +1,8 @@
 from flask import Blueprint, render_template, request, jsonify, redirect, url_for, flash
 from flask_login import login_required, current_user
 from app.extensions import db
-from app.models import Campus, Club, Office, Event, CampusMember
-from datetime import datetime
+from app.models import Campus, Club, Office, Event, CampusMember, EventParticipation
+from datetime import datetime, timedelta
 
 map_bp = Blueprint('map', __name__)
 
@@ -124,9 +124,15 @@ def map_data(campus_id):
                 'lat': o.lat, 'lng': o.lng
             })
 
-    # Fetch all events directly for this campus
-    for e in Event.query.filter_by(campus_id=campus_id).all():
+    # Fetch events directly for this campus (excluding those ended for more than 1 hour)
+    one_hour_ago = datetime.utcnow() - timedelta(hours=1)
+    for e in Event.query.filter(Event.campus_id == campus_id, Event.end_date >= one_hour_ago).all():
         if e.lat is not None and e.lng is not None:
+            part_count = EventParticipation.query.filter_by(event_id=e.id, is_interested=True).count()
+            user_part = EventParticipation.query.filter_by(event_id=e.id, user_id=current_user.id).first()
+            is_interested = user_part.is_interested if user_part else False
+            want_notification = user_part.want_notification if user_part else False
+
             pins.append({
                 'id': e.id, 'type': 'event',
                 'name': e.title, 'description': e.description or '',
@@ -134,7 +140,10 @@ def map_data(campus_id):
                 'date': e.date.isoformat(),
                 'end_date': e.end_date.isoformat() if e.end_date else None,
                 'creator_name': e.creator.name if e.creator else 'Anonymous',
-                'is_creator': (e.creator_id == current_user.id)
+                'is_creator': (e.creator_id == current_user.id),
+                'participation_count': part_count,
+                'is_interested': is_interested,
+                'want_notification': want_notification
             })
 
     return jsonify(pins)
@@ -300,3 +309,46 @@ def set_center():
     campus.center_lng = data.get('lng')
     db.session.commit()
     return jsonify({'success': True})
+
+
+# ── API: toggle event interest / notify me ────────────────────────────────────
+
+@map_bp.route('/api/event/<int:event_id>/interest', methods=['POST'])
+@login_required
+def toggle_event_interest(event_id):
+    event = Event.query.get_or_404(event_id)
+    data = request.get_json() or {}
+    action = data.get('action') # 'interested' or 'notify'
+
+    participation = EventParticipation.query.filter_by(event_id=event_id, user_id=current_user.id).first()
+
+    if not participation:
+        participation = EventParticipation(event_id=event_id, user_id=current_user.id)
+        db.session.add(participation)
+
+    if action == 'interested':
+        participation.is_interested = not participation.is_interested
+        # If no longer interested, also clear notify subscription
+        if not participation.is_interested:
+            participation.want_notification = False
+    elif action == 'notify':
+        participation.want_notification = not participation.want_notification
+        # Notify subscription automatically registers interest
+        if participation.want_notification:
+            participation.is_interested = True
+            # If the event has already started or ended, mark as already notified to prevent retroactive start alerts
+            if event.date <= datetime.utcnow():
+                participation.notification_sent = True
+            else:
+                participation.notification_sent = False
+
+    db.session.commit()
+
+    interest_count = EventParticipation.query.filter_by(event_id=event_id, is_interested=True).count()
+
+    return jsonify({
+        'success': True,
+        'is_interested': participation.is_interested,
+        'want_notification': participation.want_notification,
+        'participation_count': interest_count
+    })
