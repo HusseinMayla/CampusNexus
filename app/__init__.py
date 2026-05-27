@@ -8,7 +8,11 @@ def create_app(config_class=Config):
     app.config.from_object(config_class)
 
     # Use SQLite or PostgreSQL based on environments.
-    if os.environ.get('DATABASE_URL'):
+    # In local development, we default to SQLite even if a global DATABASE_URL is set (from another project).
+    # We only use DATABASE_URL if we are deployed (Vercel/Railway) or if USE_POSTGRES is explicitly set.
+    is_deployed = os.environ.get('VERCEL') or os.environ.get('RAILWAY_ENVIRONMENT') or os.environ.get('PORT')
+    
+    if os.environ.get('DATABASE_URL') and (is_deployed or os.environ.get('USE_POSTGRES')):
         database_url = os.environ.get('DATABASE_URL')
         # SQLAlchemy requires 'postgresql://' instead of 'postgres://'
         if database_url.startswith("postgres://"):
@@ -20,6 +24,7 @@ def create_app(config_class=Config):
         # For local development, use the database in the instance folder
         db_path = os.path.join(app.instance_path, 'campus.db')
         app.config['SQLALCHEMY_DATABASE_URI'] = f'sqlite:///{db_path}'
+
 
     # Ensure the instance folder exists for local development
     try:
@@ -47,14 +52,14 @@ def create_app(config_class=Config):
     app.register_blueprint(map_bp)
 
     @app.context_processor
-    def inject_chat_sidebar():
+    def inject_global_data():
         from flask_login import current_user
         from flask import request as req
         if not current_user.is_authenticated:
-            return {'sidebar_chat': []}
+            return {'sidebar_chat': [], 'unread_notifications_count': 0}
         if req.is_json or req.path.endswith(('/send', '/poll', '/join', '/leave')):
-            return {'sidebar_chat': []}
-        from app.models import CampusMember, ChatMember, ChatMessage
+            return {'sidebar_chat': [], 'unread_notifications_count': 0}
+        from app.models import CampusMember, ChatMember, ChatMessage, Notification
         # Seed every campus the user belongs to (even those with no rooms yet)
         by_campus = {}
         for m in CampusMember.query.filter_by(user_id=current_user.id).all():
@@ -69,7 +74,12 @@ def create_app(config_class=Config):
             last_msg = ChatMessage.query.filter_by(room_id=room.id).order_by(ChatMessage.sent_at.desc()).first()
             has_unread = bool(last_msg and (cm.last_read_at is None or last_msg.sent_at > cm.last_read_at))
             by_campus[cid]['rooms'].append({'id': room.id, 'name': room.name, 'has_unread': has_unread})
-        return {'sidebar_chat': list(by_campus.values())}
+        
+        unread_notifications_count = Notification.query.filter_by(user_id=current_user.id, is_read=False).count()
+        return {
+            'sidebar_chat': list(by_campus.values()),
+            'unread_notifications_count': unread_notifications_count
+        }
 
     @app.errorhandler(500)
     def internal_error(error):
