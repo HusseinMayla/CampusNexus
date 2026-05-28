@@ -6,7 +6,7 @@ from flask import Blueprint, render_template, redirect, url_for, flash, request,
 from flask_login import login_required, current_user
 from werkzeug.utils import secure_filename
 from app.extensions import db
-from app.models import Campus, CampusMember, CampusReport, Notification, Resource, TutorPost, ResourceRequest, ChatRoom, ChatMember, ChatMessage, Event, EventParticipation
+from app.models import Campus, CampusMember, Notification, Resource, TutorPost, ResourceRequest, ChatRoom, ChatMember, ChatMessage, Event, EventParticipation
 from sqlalchemy import func
 
 main_bp = Blueprint('main', __name__)
@@ -220,33 +220,6 @@ def settings():
     return render_template('main/settings.html')
 
 
-
-@main_bp.route('/campuses/<int:campus_id>/report', methods=['POST'])
-@login_required
-def report_campus(campus_id):
-    reason = request.form.get('reason', '').strip()
-    
-    # Check if campus exists
-    campus = Campus.query.get_or_404(campus_id)
-    
-    # Cannot report own campus
-    if campus.creator_id == current_user.id:
-        flash('You cannot report your own campus.', 'error')
-        return redirect(url_for('main.dashboard'))
-        
-    # Check if already reported
-    already = CampusReport.query.filter_by(campus_id=campus_id, reporter_id=current_user.id).first()
-    if already:
-        flash('You have already reported this campus.', 'error')
-        return redirect(url_for('main.dashboard'))
-        
-    # Create the report
-    report = CampusReport(campus_id=campus_id, reporter_id=current_user.id, reason=reason)
-    db.session.add(report)
-    db.session.commit()
-    
-    flash(f'Thank you for reporting {campus.name}. Our administrators will review it.', 'success')
-    return redirect(url_for('main.dashboard'))
 
 
 @main_bp.route('/campuses/<int:campus_id>/members/<int:user_id>/promote', methods=['POST'])

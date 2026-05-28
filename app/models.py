@@ -66,6 +66,8 @@ class CampusMember(db.Model):
     joined_at  = db.Column(db.DateTime, default=datetime.utcnow)
     __table_args__ = (db.UniqueConstraint('user_id', 'campus_id'),)
 
+    user = db.relationship('User', backref=db.backref('campus_memberships', lazy=True, cascade='all, delete-orphan'))
+
 class Club(db.Model):
     id          = db.Column(db.Integer, primary_key=True)
     name        = db.Column(db.String(128), nullable=False)
@@ -100,7 +102,7 @@ class Event(db.Model):
     lng         = db.Column(db.Float, nullable=False)
 
     campus      = db.relationship('Campus', backref=db.backref('events', lazy=True, cascade='all, delete-orphan'))
-    creator     = db.relationship('User', backref=db.backref('created_events', lazy=True))
+    creator     = db.relationship('User', backref=db.backref('created_events', lazy=True, cascade='all, delete-orphan'))
 
     def __repr__(self):
         return f'<Event {self.title}>'
@@ -116,21 +118,6 @@ class UserEmail(db.Model):
 
     def __repr__(self):
         return f'<UserEmail {self.email} (Verified: {self.is_verified})>'
-
-class CampusReport(db.Model):
-    id          = db.Column(db.Integer, primary_key=True)
-    campus_id   = db.Column(db.Integer, db.ForeignKey('campus.id'), nullable=False)
-    reporter_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
-    reason      = db.Column(db.String(255), nullable=True)
-    created_at  = db.Column(db.DateTime, default=datetime.utcnow)
-
-    __table_args__ = (db.UniqueConstraint('reporter_id', 'campus_id'),)
-
-    campus   = db.relationship('Campus', backref=db.backref('reports', lazy=True, cascade='all, delete-orphan'))
-    reporter = db.relationship('User', backref=db.backref('reports_submitted', lazy=True))
-
-    def __repr__(self):
-        return f'<CampusReport reporter_id={self.reporter_id} campus_id={self.campus_id}>'
 
 class Notification(db.Model):
     id          = db.Column(db.Integer, primary_key=True)
@@ -165,7 +152,6 @@ class Resource(db.Model):
     def __repr__(self):
         return f'<Resource {self.title}>'
 
-
 class TutorPost(db.Model):
     __tablename__ = 'tutor_post'
     id         = db.Column(db.Integer, primary_key=True)
@@ -178,7 +164,7 @@ class TutorPost(db.Model):
     method     = db.Column(db.String(32), nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
 
-    poster = db.relationship('User', backref=db.backref('tutor_posts', lazy=True))
+    poster = db.relationship('User', backref=db.backref('tutor_posts', lazy=True, cascade='all, delete-orphan'))
     campus = db.relationship('Campus', backref=db.backref('tutor_posts', lazy=True, cascade='all, delete-orphan'))
 
 
@@ -192,7 +178,7 @@ class ResourceRequest(db.Model):
     chapters    = db.Column(db.String(512), nullable=True)
     created_at  = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
 
-    poster = db.relationship('User', backref=db.backref('resource_requests', lazy=True))
+    poster = db.relationship('User', backref=db.backref('resource_requests', lazy=True, cascade='all, delete-orphan'))
     campus = db.relationship('Campus', backref=db.backref('resource_requests', lazy=True, cascade='all, delete-orphan'))
 
 
@@ -217,7 +203,7 @@ class ChatMember(db.Model):
     joined_at    = db.Column(db.DateTime, default=datetime.utcnow)
     __table_args__ = (db.UniqueConstraint('user_id', 'room_id'),)
 
-    user = db.relationship('User', backref=db.backref('chat_memberships', lazy=True))
+    user = db.relationship('User', backref=db.backref('chat_memberships', lazy=True, cascade='all, delete-orphan'))
 
 
 class ChatMessage(db.Model):
@@ -228,7 +214,7 @@ class ChatMessage(db.Model):
     body      = db.Column(db.Text, nullable=False)
     sent_at   = db.Column(db.DateTime, default=datetime.utcnow)
 
-    sender = db.relationship('User', backref=db.backref('chat_messages', lazy=True))
+    sender = db.relationship('User', backref=db.backref('chat_messages', lazy=True, cascade='all, delete-orphan'))
 
 
 
@@ -245,7 +231,7 @@ class StudyRoom(db.Model):
     created_at   = db.Column(db.DateTime, default=datetime.utcnow)
 
     campus   = db.relationship('Campus', backref=db.backref('study_rooms', lazy=True, cascade='all, delete-orphan'))
-    owner    = db.relationship('User',   backref=db.backref('owned_study_rooms', lazy=True))
+    owner    = db.relationship('User',   backref=db.backref('owned_study_rooms', lazy=True, cascade='all, delete-orphan'))
     members  = db.relationship('StudyRoomMember',  backref='room', lazy=True, cascade='all, delete-orphan')
     messages = db.relationship('StudyRoomMessage', backref='room', lazy=True, cascade='all, delete-orphan')
 
@@ -267,7 +253,7 @@ class StudyRoomMember(db.Model):
     joined_at    = db.Column(db.DateTime, default=datetime.utcnow)
     __table_args__ = (db.UniqueConstraint('room_id', 'user_id'),)
 
-    user = db.relationship('User', backref=db.backref('study_room_memberships', lazy=True))
+    user = db.relationship('User', backref=db.backref('study_room_memberships', lazy=True, cascade='all, delete-orphan'))
 
 
 class StudyRoomMessage(db.Model):
@@ -278,7 +264,7 @@ class StudyRoomMessage(db.Model):
     body      = db.Column(db.Text, nullable=False)
     sent_at   = db.Column(db.DateTime, default=datetime.utcnow)
 
-    sender = db.relationship('User', backref=db.backref('study_room_messages', lazy=True))
+    sender = db.relationship('User', backref=db.backref('study_room_messages', lazy=True, cascade='all, delete-orphan'))
 
 
 class EventParticipation(db.Model):
@@ -293,5 +279,5 @@ class EventParticipation(db.Model):
     __table_args__ = (db.UniqueConstraint('user_id', 'event_id'),)
 
     event = db.relationship('Event', backref=db.backref('participations', lazy=True, cascade='all, delete-orphan'))
-    user = db.relationship('User', backref=db.backref('event_participations', lazy=True))
+    user = db.relationship('User', backref=db.backref('event_participations', lazy=True, cascade='all, delete-orphan'))
 
