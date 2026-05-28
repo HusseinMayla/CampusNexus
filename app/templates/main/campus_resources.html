@@ -254,6 +254,13 @@
             <span class="tag tag-course">{{ post.course_code }}</span>
         </div>
         {% endif %}
+        {% if post.chapters %}
+        <div class="post-row">
+            {% for ch in post.chapters.split(',') %}
+            <span class="tag tag-chapter">{{ ch.strip() }}</span>
+            {% endfor %}
+        </div>
+        {% endif %}
         <div class="file-card">
             <div class="file-card-icon ft-bg-{{ post.file_type or 'pdf' }}">
                 {% if post.file_type in ['pptx','ppt'] %}PPT
@@ -337,6 +344,11 @@
         </div>
         <span class="field-err" id="err-share-file"></span>
 
+        <label class="modal-label">Chapter Tags <span style="font-weight:400;text-transform:none;font-size:0.85em;color:var(--base-text-muted);">(optional)</span></label>
+        <div class="chapter-wrap" id="shareChapterWrap" onclick="document.getElementById('shareChapterInput').focus()">
+            <input id="shareChapterInput" placeholder="e.g. Chapter 3 — press Enter to add" onkeydown="shareChapterKey(event)">
+        </div>
+
         <span class="field-err" id="err-share-general"></span>
         <button class="btn-post-submit" id="shareSubmitBtn" onclick="submitUpload()" disabled>Upload</button>
     </div>
@@ -389,6 +401,8 @@ const ALLOWED_EXT = ['pdf','pptx','ppt','docx','doc','xlsx'];
 const EMAIL_RE    = /^[\w.+\-]+@[\w\-]+(\.[a-zA-Z]{2,}){1,3}$/;
 
 /* ── Share modal ─────────────────────────────────────────── */
+let shareChapters = [];
+
 function openShareModal()  { document.getElementById('shareModal').classList.add('open'); document.getElementById('f-code').focus(); }
 function closeShareModal() { document.getElementById('shareModal').classList.remove('open'); resetShare(); }
 
@@ -401,6 +415,27 @@ function resetShare() {
     ['share-code','share-file','share-general'].forEach(k => document.getElementById('err-'+k).textContent = '');
     document.getElementById('shareSubmitBtn').disabled = true;
     document.getElementById('shareSubmitBtn').textContent = 'Upload';
+    shareChapters = [];
+    document.getElementById('shareChapterWrap').querySelectorAll('.chtag').forEach(t => t.remove());
+    document.getElementById('shareChapterInput').value = '';
+}
+
+function shareChapterKey(e) {
+    if (e.key !== 'Enter' && e.key !== ',') return;
+    e.preventDefault();
+    const val = document.getElementById('shareChapterInput').value.trim();
+    if (!val || shareChapters.includes(val)) { document.getElementById('shareChapterInput').value = ''; return; }
+    shareChapters.push(val);
+    const tag = document.createElement('span');
+    tag.className = 'chtag';
+    tag.innerHTML = `${esc(val)} <span class="chtag-x" onclick="removeShareChapter(this,'${val.replace(/'/g,"\\'")}')">×</span>`;
+    document.getElementById('shareChapterWrap').insertBefore(tag, document.getElementById('shareChapterInput'));
+    document.getElementById('shareChapterInput').value = '';
+}
+
+function removeShareChapter(el, val) {
+    shareChapters = shareChapters.filter(c => c !== val);
+    el.parentElement.remove();
 }
 
 function onFileChange(input) {
@@ -433,6 +468,7 @@ async function submitUpload() {
     document.getElementById('shareSubmitBtn').textContent = 'Uploading…';
     const fd = new FormData();
     fd.append('course_code', document.getElementById('f-code').value.trim().toUpperCase());
+    fd.append('chapters', shareChapters.join(','));
     fd.append('file', document.getElementById('f-file').files[0]);
     try {
         const res  = await fetch(`/campus/${CAMPUS_ID}/resources/upload`, { method: 'POST', body: fd });
@@ -541,6 +577,7 @@ function prependResourceCard(r) {
     card.className = 'post-card'; card.dataset.id = r.id; card.dataset.type = 'resource';
     const initial = esc(r.uploader_name.charAt(0).toUpperCase());
     const dlUrl   = `/campus/${CAMPUS_ID}/resources/${r.id}/download`;
+    const chTags = r.chapters ? r.chapters.split(',').filter(c=>c.trim()).map(c=>`<span class="tag tag-chapter">${esc(c.trim())}</span>`).join('') : '';
     card.innerHTML = `
         <button class="post-delete-btn" onclick="confirmDelete(${r.id},'resource')" title="Delete">✕</button>
         <div class="post-header">
@@ -550,6 +587,7 @@ function prependResourceCard(r) {
         <hr class="post-divider">
         <div class="post-body">
             <div class="post-row"><span class="tag tag-course">${esc(r.course_code)}</span></div>
+            ${chTags ? `<div class="post-row">${chTags}</div>` : ''}
             <div class="file-card">
                 <div class="file-card-icon ${ftBg(r.file_type)}">${ftLabel(r.file_type)}</div>
                 <div class="file-card-info">

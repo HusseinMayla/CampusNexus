@@ -3,7 +3,7 @@ from flask import render_template, redirect, url_for, request, jsonify, abort, f
 from flask_login import login_required, current_user
 from app.extensions import db
 from app.models import (Campus, CampusMember, StudyRoom, StudyRoomMember,
-                        StudyRoomMessage, UserCourse, Notification)
+                        StudyRoomMessage, Notification)
 from app.study import study_bp
 
 
@@ -49,39 +49,8 @@ def browse(campus_id):
     campus = _member_or_403(campus_id)
     rooms  = _visible_rooms(campus_id, current_user.id)
     joined_ids = {m.room_id for m in StudyRoomMember.query.filter_by(user_id=current_user.id).all()}
-    my_courses = UserCourse.query.filter_by(user_id=current_user.id, campus_id=campus_id)\
-                                 .order_by(UserCourse.course_code).all()
     return render_template('study/browse.html', campus=campus, rooms=rooms,
-                           joined_ids=joined_ids, my_courses=my_courses,
-                           active_page='study')
-
-
-# ── Course enrollment ─────────────────────────────────────────────────────────
-
-@study_bp.route('/campus/<int:campus_id>/study-rooms/courses/add', methods=['POST'])
-@login_required
-def add_course(campus_id):
-    _member_or_403(campus_id)
-    code = (request.json or {}).get('course_code', '').strip().upper()
-    if not code:
-        return jsonify({'error': 'Course code required'}), 400
-    if UserCourse.query.filter_by(user_id=current_user.id, campus_id=campus_id, course_code=code).first():
-        return jsonify({'error': 'Already enrolled'}), 400
-    uc = UserCourse(user_id=current_user.id, campus_id=campus_id, course_code=code)
-    db.session.add(uc)
-    db.session.commit()
-    return jsonify({'ok': True, 'course_code': code, 'id': uc.id})
-
-
-@study_bp.route('/campus/<int:campus_id>/study-rooms/courses/remove/<int:uc_id>', methods=['POST'])
-@login_required
-def remove_course(campus_id, uc_id):
-    uc = UserCourse.query.get_or_404(uc_id)
-    if uc.user_id != current_user.id:
-        abort(403)
-    db.session.delete(uc)
-    db.session.commit()
-    return jsonify({'ok': True})
+                           joined_ids=joined_ids, active_page='study')
 
 
 # ── Create ────────────────────────────────────────────────────────────────────
@@ -92,13 +61,12 @@ def create(campus_id):
     campus = _member_or_403(campus_id)
     data   = request.json or {}
 
-    course_code  = data.get('course_code', '').strip().upper()
-    chapter      = data.get('chapter', '').strip()
+    title        = data.get('title', '').strip()
     location     = data.get('location', '').strip()
     session_time = data.get('session_time', '').strip()
     max_members  = data.get('max_members')
 
-    if not all([course_code, chapter, location, session_time, max_members]):
+    if not all([title, location, session_time, max_members]):
         return jsonify({'error': 'All fields are required'}), 400
 
     try:
@@ -130,16 +98,9 @@ def create(campus_id):
     if existing:
         return jsonify({'error': 'You are already in an active study room'}), 400
 
-    # Auto-enroll in the course if not already
-    if not UserCourse.query.filter_by(user_id=current_user.id, campus_id=campus_id,
-                                      course_code=course_code).first():
-        db.session.add(UserCourse(user_id=current_user.id, campus_id=campus_id,
-                                  course_code=course_code))
-
     room = StudyRoom(campus_id=campus_id, owner_id=current_user.id,
-                     course_code=course_code, chapter=chapter,
-                     location=location, session_time=session_dt,
-                     max_members=max_members)
+                     title=title, location=location,
+                     session_time=session_dt, max_members=max_members)
     db.session.add(room)
     db.session.flush()
     db.session.add(StudyRoomMember(room_id=room.id, user_id=current_user.id))
@@ -185,7 +146,7 @@ def join(campus_id, room_id):
         db.session.add(Notification(
             user_id=room.owner_id,
             title='Someone joined your study room',
-            message=f'{current_user.name} joined {room.course_code} — {room.chapter}',
+            message=f'{current_user.name} joined "{room.title}"',
             link=url_for('study.room', campus_id=campus_id, room_id=room_id)
         ))
 

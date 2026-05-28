@@ -76,9 +76,8 @@
                             <div class="card-header">
                                 <h4>{{ club.name }}</h4>
                                 {% if is_admin %}
-                                <form action="{{ url_for('map.delete_club', campus_id=campus.id, club_id=club.id) }}" method="POST" style="display: inline;" onsubmit="return confirm('Delete this club?');">
-                                    <button type="submit" class="card-delete-btn">🗑️</button>
-                                </form>
+                                <button class="card-delete-btn" onclick="showMapConfirm('Delete this club?', () => document.getElementById('delClub{{ club.id }}').submit())">🗑️</button>
+                                <form id="delClub{{ club.id }}" action="{{ url_for('map.delete_club', campus_id=campus.id, club_id=club.id) }}" method="POST" style="display:none;"></form>
                                 {% endif %}
                             </div>
                             <p>{{ club.description or 'No description provided.' }}</p>
@@ -107,9 +106,8 @@
                             <div class="card-header">
                                 <h4>{{ office.name }}</h4>
                                 {% if is_admin %}
-                                <form action="{{ url_for('map.delete_office', campus_id=campus.id, office_id=office.id) }}" method="POST" style="display: inline;" onsubmit="return confirm('Delete this office?');">
-                                    <button type="submit" class="card-delete-btn">🗑️</button>
-                                </form>
+                                <button class="card-delete-btn" onclick="showMapConfirm('Delete this office?', () => document.getElementById('delOffice{{ office.id }}').submit())">🗑️</button>
+                                <form id="delOffice{{ office.id }}" action="{{ url_for('map.delete_office', campus_id=campus.id, office_id=office.id) }}" method="POST" style="display:none;"></form>
                                 {% endif %}
                             </div>
                             <p>{{ office.description or 'No description provided.' }}</p>
@@ -277,6 +275,18 @@
      data-campus-id="{{ campus.id }}" 
      data-is-admin="{{ 'true' if is_admin else 'false' }}"
      style="display: none;">
+</div>
+
+<!-- Map Confirm Overlay -->
+<div id="mapConfirmOverlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:2000;align-items:center;justify-content:center;">
+    <div style="background:var(--base-card-bg);border:1px solid var(--base-border-color);border-radius:14px;padding:32px 28px;max-width:340px;width:90%;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,0.5);">
+        <h3 style="margin:0 0 10px;font-family:var(--font-display);color:var(--base-text-color);" id="mapConfirmMsg">Are you sure?</h3>
+        <p style="color:var(--base-text-muted);margin:0 0 24px;font-size:0.95rem;">This action cannot be undone.</p>
+        <div style="display:flex;gap:10px;justify-content:center;">
+            <button onclick="doMapConfirm()" style="padding:9px 24px;background:#dc2626;border:none;border-radius:8px;color:#fff;font-family:var(--font-display);font-weight:700;cursor:pointer;">Delete</button>
+            <button onclick="closeMapConfirm()" style="padding:9px 24px;background:none;border:1.5px solid var(--base-border-color);border-radius:8px;color:var(--base-text-muted);font-family:var(--font-display);font-weight:700;cursor:pointer;">Cancel</button>
+        </div>
+    </div>
 </div>
 
 {% endblock %}

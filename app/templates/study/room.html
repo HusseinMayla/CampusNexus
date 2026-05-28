@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}{{ room.course_code }} Study Room — {{ campus.name }} | Agora{% endblock %}
+{% block title %}{{ room.title }} — {{ campus.name }} | Agora{% endblock %}
 
 {% block extra_css %}
 <style>
@@ -55,9 +55,10 @@
 {% block content %}
 <div class="sr-header">
     <div class="sr-header-left">
-        <h2>{{ room.course_code }} — {{ room.chapter }}</h2>
+        <h2>
+            <a href="{{ url_for('study.browse', campus_id=campus.id) }}" style="text-decoration:none;color:var(--base-text-muted);font-size:0.85em;margin-right:6px;opacity:0.7;" title="All study rooms">←</a>{{ room.title }}
+        </h2>
         <div class="sr-header-tags">
-            <span class="sr-tag sr-tag-course">{{ room.course_code }}</span>
             <span class="sr-tag">📍 {{ room.location }}</span>
             <span class="sr-tag">🕐 {{ room.session_time.strftime('%b %d, %I:%M %p') }}</span>
             <span class="sr-tag">👥 {{ room.member_count }}/{{ room.max_members }}</span>

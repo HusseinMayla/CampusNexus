@@ -104,9 +104,17 @@
 
 {% block content %}
 <div class="chat-header">
-    <h2>{{ room.name }}</h2>
-    <button class="base-button-secondary" style="font-size:0.9rem;padding:7px 16px;"
-            onclick="document.getElementById('leaveOverlay').classList.add('open')">Leave</button>
+    <h2>
+        <a href="{{ url_for('main.chat_browse', campus_id=campus.id) }}" style="text-decoration:none;color:var(--base-text-muted);font-size:0.85em;margin-right:6px;opacity:0.7;" title="All chat rooms">←</a>{{ room.name }}
+    </h2>
+    <div style="display:flex;gap:8px;">
+        {% if member.role in ('owner', 'admin') %}
+        <button class="base-button-secondary" style="font-size:0.9rem;padding:7px 16px;background:#dc2626;border-color:#dc2626;color:#fff;"
+                onclick="document.getElementById('deleteOverlay').classList.add('open')">Delete</button>
+        {% endif %}
+        <button class="base-button-secondary" style="font-size:0.9rem;padding:7px 16px;"
+                onclick="document.getElementById('leaveOverlay').classList.add('open')">Leave</button>
+    </div>
 </div>
 
 <div class="chat-messages" id="msgList">
@@ -139,6 +147,21 @@
            onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendMsg();}">
     <button class="base-button" onclick="sendMsg()" style="padding:11px 20px;">Send</button>
 </div>
+
+{% if member.role in ('owner', 'admin') %}
+<div class="leave-overlay" id="deleteOverlay">
+    <div class="leave-box">
+        <h3 style="margin-bottom:10px;">Delete {{ room.name }}?</h3>
+        <p style="color:var(--base-text-muted);margin-bottom:24px;font-size:0.95rem;">This will remove the room and all messages for everyone.</p>
+        <div style="display:flex;gap:10px;justify-content:center;">
+            <button onclick="confirmDelete()"
+                    style="padding:9px 24px;background:#dc2626;border:none;border-radius:8px;color:#fff;font-family:var(--font-display);font-weight:700;cursor:pointer;">Delete</button>
+            <button onclick="document.getElementById('deleteOverlay').classList.remove('open')"
+                    style="padding:9px 24px;background:none;border:1.5px solid var(--base-border-color);border-radius:8px;color:var(--base-text-muted);font-family:var(--font-display);font-weight:700;cursor:pointer;">Cancel</button>
+        </div>
+    </div>
+</div>
+{% endif %}
 
 <div class="leave-overlay" id="leaveOverlay">
     <div class="leave-box">
@@ -236,6 +259,11 @@ setInterval(poll, 3000);
 
 async function confirmLeave() {
     const res = await fetch(`/campus/${CAMPUS_ID}/chat/${ROOM_ID}/leave`, { method: 'POST' });
+    if (res.ok) window.location.href = `/campus/${CAMPUS_ID}/chat`;
+}
+
+async function confirmDelete() {
+    const res = await fetch(`/campus/${CAMPUS_ID}/chat/${ROOM_ID}/delete`, { method: 'POST' });
     if (res.ok) window.location.href = `/campus/${CAMPUS_ID}/chat`;
 }
 </script>

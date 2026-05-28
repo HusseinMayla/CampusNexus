@@ -87,14 +87,9 @@ def create_campus():
         name = request.form.get('name', '').strip()
         description = request.form.get('description', '').strip()
         domain = request.form.get('domain', '').strip().lower()
-        first_room = request.form.get('first_room', '').strip()
 
         if not name:
             flash('Campus name is required!', 'error')
-            return redirect(url_for('main.create_campus'))
-
-        if not first_room:
-            flash('At least one chat room name is required.', 'error')
             return redirect(url_for('main.create_campus'))
 
         # Name Uniqueness Check
@@ -146,13 +141,6 @@ def create_campus():
 
         # Auto-join creator as owner of their own campus
         db.session.add(CampusMember(user_id=current_user.id, campus_id=new_campus.id, role='owner'))
-        db.session.commit()
-
-        # Create the required first chat room and auto-join creator
-        room = ChatRoom(campus_id=new_campus.id, name=first_room)
-        db.session.add(room)
-        db.session.commit()
-        db.session.add(ChatMember(user_id=current_user.id, room_id=room.id))
         db.session.commit()
 
         flash('Campus created successfully!')
@@ -547,6 +535,7 @@ def resource_create(campus_id):
         return jsonify({'error': 'Unauthorized'}), 403
 
     course_code = request.form.get('course_code', '').strip().upper()
+    chapters    = request.form.get('chapters', '').strip()
     file        = request.files.get('file')
 
     if not course_code:
@@ -571,6 +560,7 @@ def resource_create(campus_id):
         campus_id=campus_id,
         uploader_id=current_user.id,
         course_code=course_code,
+        chapters=chapters if chapters else None,
         file_type=ext,
         original_filename=original_filename
     )
@@ -580,6 +570,7 @@ def resource_create(campus_id):
     return jsonify({
         'id':                resource.id,
         'course_code':       resource.course_code,
+        'chapters':          resource.chapters or '',
         'file_type':         resource.file_type,
         'original_filename': resource.original_filename,
         'uploader_id':       resource.uploader_id,
@@ -742,6 +733,18 @@ def chat_join(campus_id, room_id):
     return jsonify({'ok': True})
 
 
+@main_bp.route('/campus/<int:campus_id>/chat/<int:room_id>/delete', methods=['POST'])
+@login_required
+def chat_delete(campus_id, room_id):
+    campus, member = _campus_member_or_403(campus_id)
+    if member.role not in ('owner', 'admin'):
+        abort(403)
+    room = ChatRoom.query.filter_by(id=room_id, campus_id=campus_id).first_or_404()
+    db.session.delete(room)
+    db.session.commit()
+    return jsonify({'ok': True})
+
+
 @main_bp.route('/campus/<int:campus_id>/chat/<int:room_id>/leave', methods=['POST'])
 @login_required
 def chat_leave(campus_id, room_id):
@@ -754,7 +757,7 @@ def chat_leave(campus_id, room_id):
 @main_bp.route('/campus/<int:campus_id>/chat/<int:room_id>')
 @login_required
 def chat_room(campus_id, room_id):
-    campus, _ = _campus_member_or_403(campus_id)
+    campus, member = _campus_member_or_403(campus_id)
     room = ChatRoom.query.filter_by(id=room_id, campus_id=campus_id).first_or_404()
     cm   = ChatMember.query.filter_by(user_id=current_user.id, room_id=room_id).first()
     if not cm:
@@ -763,7 +766,7 @@ def chat_room(campus_id, room_id):
     db.session.commit()
     msgs = ChatMessage.query.filter_by(room_id=room_id).order_by(ChatMessage.sent_at.asc()).all()
     return render_template('main/chat_room.html', campus=campus, room=room,
-                           messages=msgs, active_page='chat')
+                           messages=msgs, member=member, active_page='chat')
 
 
 @main_bp.route('/campus/<int:campus_id>/chat/<int:room_id>/send', methods=['POST'])
