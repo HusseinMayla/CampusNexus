@@ -36,6 +36,30 @@ class User(UserMixin, db.Model):
                     
         return False
 
+    def is_campus_owner(self, campus_id):
+        if not campus_id:
+            return False
+        from app.models import CampusMember, Campus
+        membership = CampusMember.query.filter_by(user_id=self.id, campus_id=campus_id).first()
+        if membership and membership.role == 'owner':
+            return True
+        campus = Campus.query.get(campus_id)
+        if campus and campus.creator_id == self.id:
+            return True
+        return False
+
+    def is_campus_admin(self, campus_id):
+        if not campus_id:
+            return False
+        from app.models import CampusMember, Campus
+        membership = CampusMember.query.filter_by(user_id=self.id, campus_id=campus_id).first()
+        if membership and membership.role in ('owner', 'admin'):
+            return True
+        campus = Campus.query.get(campus_id)
+        if campus and campus.creator_id == self.id:
+            return True
+        return False
+
     def __repr__(self):
         return f'<User {self.name}>'
 

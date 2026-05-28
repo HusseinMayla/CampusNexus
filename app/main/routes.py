@@ -220,6 +220,114 @@ def settings():
     return render_template('main/settings.html')
 
 
+@main_bp.route('/campus/<int:campus_id>/settings', methods=['GET', 'POST'])
+@login_required
+def campus_settings(campus_id):
+    campus = Campus.query.get_or_404(campus_id)
+    if not current_user.is_campus_owner(campus.id):
+        flash('Unauthorized action. Only the campus owner can access campus settings.', 'error')
+        return redirect(url_for('main.dashboard'))
+
+    if request.method == 'POST':
+        name = request.form.get('name', '').strip()
+        description = request.form.get('description', '').strip()
+        domain = request.form.get('domain', '').strip().lower()
+
+        if not name:
+            flash('Campus name is required!', 'error')
+            return redirect(url_for('main.campus_settings', campus_id=campus.id))
+
+        if name != campus.name:
+            existing = Campus.query.filter_by(name=name).first()
+            if existing:
+                flash('A campus with this name already exists. Please choose a unique name.', 'error')
+                return redirect(url_for('main.campus_settings', campus_id=campus.id))
+            campus.name = name
+
+        if domain:
+            if domain.startswith('@'):
+                domain = domain[1:]
+            if not current_user.has_verified_domain(domain):
+                flash(f'To restrict this campus to @{domain}, you must verify an email ending in @{domain} first.', 'error')
+                return redirect(url_for('main.campus_settings', campus_id=campus.id))
+            campus.domain = domain
+        else:
+            campus.domain = None
+
+        campus.description = description
+
+        # Handle file uploads
+        upload_folder = os.path.join(current_app.static_folder, 'uploads')
+        os.makedirs(upload_folder, exist_ok=True)
+
+        banner_file = request.files.get('banner_image')
+        if banner_file and allowed_file(banner_file.filename):
+            filename = secure_filename(f"banner_{campus.name}_{banner_file.filename}")
+            banner_file.save(os.path.join(upload_folder, filename))
+            campus.banner_image = url_for('static', filename=f"uploads/{filename}")
+
+        map_file = request.files.get('map_image')
+        if map_file and allowed_file(map_file.filename):
+            filename = secure_filename(f"map_{campus.name}_{map_file.filename}")
+            map_file.save(os.path.join(upload_folder, filename))
+            campus.map_image = url_for('static', filename=f"uploads/{filename}")
+
+        db.session.commit()
+        flash('Campus settings updated successfully!', 'success')
+        return redirect(url_for('main.campus_settings', campus_id=campus.id))
+
+    # GET request
+    admins = CampusMember.query.filter_by(campus_id=campus.id, role='admin').all()
+    owner_membership = CampusMember.query.filter_by(campus_id=campus.id, role='owner').first()
+    return render_template('main/campus_settings.html', campus=campus, admins=admins, owner_membership=owner_membership, active_page='campus_settings')
+
+
+@main_bp.route('/campus/<int:campus_id>/settings/add-moderator', methods=['POST'])
+@login_required
+def add_moderator(campus_id):
+    campus = Campus.query.get_or_404(campus_id)
+    if not current_user.is_campus_owner(campus.id):
+        flash('Unauthorized action. Only the campus owner can manage roles.', 'error')
+        return redirect(url_for('main.dashboard'))
+
+    email = request.form.get('email', '').strip().lower()
+    if not email:
+        flash('Email address is required.', 'error')
+        return redirect(url_for('main.campus_settings', campus_id=campus.id))
+
+    from app.models import User
+    user = User.query.filter_by(email=email).first()
+    if not user:
+        flash(f'No user found with email {email}.', 'error')
+        return redirect(url_for('main.campus_settings', campus_id=campus.id))
+
+    member = CampusMember.query.filter_by(user_id=user.id, campus_id=campus.id).first()
+    if not member:
+        flash(f'{user.name} ({email}) has not joined this campus. They must join the campus first.', 'error')
+        return redirect(url_for('main.campus_settings', campus_id=campus.id))
+
+    if member.role == 'owner':
+        flash('This user is already the owner.', 'info')
+        return redirect(url_for('main.campus_settings', campus_id=campus.id))
+
+    if member.role == 'admin':
+        flash(f'{user.name} is already an admin.', 'info')
+        return redirect(url_for('main.campus_settings', campus_id=campus.id))
+
+    member.role = 'admin'
+    
+    # Notify user
+    notif = Notification(
+        user_id=user.id,
+        title='Promoted to Admin',
+        message=f'You have been promoted to Admin in {campus.name}!',
+        link=url_for('main.dashboard')
+    )
+    db.session.add(notif)
+    db.session.commit()
+
+    flash(f'{user.name} has been successfully added as a moderator (admin).', 'success')
+    return redirect(url_for('main.campus_settings', campus_id=campus.id))
 
 
 @main_bp.route('/campuses/<int:campus_id>/members/<int:user_id>/promote', methods=['POST'])
@@ -235,15 +343,15 @@ def promote_member(campus_id, user_id):
     target_membership = CampusMember.query.filter_by(user_id=user_id, campus_id=campus_id).first()
     if not target_membership:
         flash('Member not found in this campus.', 'error')
-        return redirect(url_for('main.dashboard'))
+        return redirect(request.referrer or url_for('main.dashboard'))
 
     if target_membership.role == 'owner':
         flash('Cannot promote the owner.', 'error')
-        return redirect(url_for('main.dashboard'))
+        return redirect(request.referrer or url_for('main.dashboard'))
 
     if target_membership.role == 'admin':
         flash('This member is already an admin.', 'info')
-        return redirect(url_for('main.dashboard'))
+        return redirect(request.referrer or url_for('main.dashboard'))
 
     # Promote
     target_membership.role = 'admin'
@@ -260,7 +368,7 @@ def promote_member(campus_id, user_id):
     db.session.commit()
 
     flash(f'{target_membership.user.name} has been promoted to Admin.', 'success')
-    return redirect(url_for('main.dashboard'))
+    return redirect(request.referrer or url_for('main.campus_settings', campus_id=campus_id))
 
 
 @main_bp.route('/campuses/<int:campus_id>/members/<int:user_id>/demote', methods=['POST'])
@@ -276,15 +384,15 @@ def demote_member(campus_id, user_id):
     target_membership = CampusMember.query.filter_by(user_id=user_id, campus_id=campus_id).first()
     if not target_membership:
         flash('Member not found in this campus.', 'error')
-        return redirect(url_for('main.dashboard'))
+        return redirect(request.referrer or url_for('main.dashboard'))
 
     if target_membership.role == 'owner':
         flash('Cannot demote the owner.', 'error')
-        return redirect(url_for('main.dashboard'))
+        return redirect(request.referrer or url_for('main.dashboard'))
 
     if target_membership.role == 'user':
         flash('This member is already a basic member.', 'info')
-        return redirect(url_for('main.dashboard'))
+        return redirect(request.referrer or url_for('main.dashboard'))
 
     # Demote
     target_membership.role = 'user'
@@ -301,7 +409,7 @@ def demote_member(campus_id, user_id):
     db.session.commit()
 
     flash(f'{target_membership.user.name} has been demoted to Member.', 'success')
-    return redirect(url_for('main.dashboard'))
+    return redirect(request.referrer or url_for('main.campus_settings', campus_id=campus_id))
 
 
 @main_bp.route('/campuses/<int:campus_id>/delete', methods=['POST', 'DELETE'])
