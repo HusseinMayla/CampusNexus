@@ -1,4 +1,4 @@
-﻿{% extends "base.html" %}
+{% extends "base.html" %}
 
 {% block title %}Dashboard - Agora{% endblock %}
 
@@ -18,7 +18,7 @@
     {% for campus in campuses %}
     <a href="{{ url_for('map.campus_map', campus_id=campus.id) }}" class="base-card campus-item" style="text-decoration: none; display: block; color: inherit;">
         {% if campus.banner_image %}
-        <img src="{{ campus.banner_image }}" alt="{{ campus.name }}" class="base-card-image">
+        <img src="{{ campus.banner_image }}" alt="{{ campus.name }}" class="base-card-image" onerror="this.onerror=null; this.outerHTML='<div class=&quot;base-card-image&quot; style=&quot;display: flex; align-items: center; justify-content: center; font-size: 3rem;&quot;>🏫</div>';">
         {% else %}
         <div class="base-card-image" style="display: flex; align-items: center; justify-content: center; font-size: 3rem;">🏫</div>
         {% endif %}

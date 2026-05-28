@@ -48,7 +48,7 @@
 
             <div class="blueprint-canvas-wrapper" id="blueprintCanvasWrapper">
                 {% set blueprint_src = campus.map_image or url_for('static', filename='images/default_blueprint.png') %}
-                <img src="{{ blueprint_src }}" id="blueprintImage" alt="{{ campus.name }} Blueprint" class="blueprint-img">
+                <img src="{{ blueprint_src }}" id="blueprintImage" alt="{{ campus.name }} Blueprint" class="blueprint-img" onerror="this.onerror=null; this.src='{{ url_for('static', filename='images/default_blueprint.png') }}';">
                 
                 <!-- Overlay Pins Container (Absolute Positioned) -->
                 <div class="pins-container" id="pinsContainer">
