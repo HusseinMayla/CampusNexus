@@ -14,8 +14,9 @@ function closeMapConfirm() {
   _mapConfirmAction = null;
 }
 function doMapConfirm() {
+  const action = _mapConfirmAction;
   closeMapConfirm();
-  if (_mapConfirmAction) _mapConfirmAction();
+  if (action) action();
 }
 
 document.addEventListener("DOMContentLoaded", () => {

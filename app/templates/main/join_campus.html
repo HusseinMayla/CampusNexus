@@ -1,4 +1,4 @@
-﻿{% extends "base.html" %}
+{% extends "base.html" %}
 
 {% block title %}Join Campus - Agora{% endblock %}
 
@@ -21,7 +21,7 @@
     <div class="base-card campus-item" style="display: flex; flex-direction: column; justify-content: space-between; height: 100%;">
         <div>
             {% if item.campus.banner_image %}
-            <img src="{{ item.campus.banner_image }}" alt="{{ item.campus.name }}" class="base-card-image">
+            <img src="{{ item.campus.banner_image }}" alt="{{ item.campus.name }}" class="base-card-image" onerror="this.onerror=null; this.outerHTML='<div class=&quot;base-card-image&quot; style=&quot;display: flex; align-items: center; justify-content: center; font-size: 3rem;&quot;>🏫</div>';">
             {% else %}
             <div class="base-card-image" style="display: flex; align-items: center; justify-content: center; font-size: 3rem;">🏫</div>
             {% endif %}
