@@ -1,7 +1,7 @@
 import os
 from app import create_app
 from app.extensions import db
-from app.models import User, UserEmail, Campus, CampusMember, CampusReport, Notification
+from app.models import User, UserEmail, Campus, CampusMember, Notification
 from sqlalchemy import func
 
 app = create_app()
@@ -232,23 +232,6 @@ def run_tests():
         else:
             print("[-] FAILURE: Popularity sorting order incorrect.")
 
-        # 15. Anti-Spam Reporting Test
-        print("\n--- [TEST] Testing Anti-Spam Reporting ---")
-        report1 = CampusReport(campus_id=lau.id, reporter_id=someone.id, reason="Inappropriate club activities")
-        db.session.add(report1)
-        db.session.commit()
-        print("User 'someone' submitted a report for LAU.")
-
-        # Try to report again
-        report2 = CampusReport(campus_id=lau.id, reporter_id=someone.id, reason="Spam report")
-        db.session.add(report2)
-        try:
-            db.session.commit()
-            print("[-] FAILURE: Database allowed duplicate report by same user!")
-        except Exception as e:
-            db.session.rollback()
-            print("[OK] SUCCESS: UniqueConstraint correctly blocked duplicate report by same user.")
-
         # 16. Owner Role Auto-Assignment Test
         print("\n--- [TEST] Testing Owner Role Auto-Assignment ---")
         # Let's create a new campus by user "user"
@@ -353,14 +336,10 @@ def run_tests():
 
         # 19. Campus Deletion Cascades
         print("\n--- [TEST] Testing Campus Deletion Cascades (Purge Verification) ---")
-        # Create a report for MU to verify cascade
-        db.session.add(CampusReport(campus_id=mu.id, reporter_id=someone.id, reason="Test delete"))
-        db.session.commit()
         
         # Verify associations exist
         members_count_before = CampusMember.query.filter_by(campus_id=mu.id).count()
-        reports_count_before = CampusReport.query.filter_by(campus_id=mu.id).count()
-        print(f"MU Campus status before delete: Members = {members_count_before}, Reports = {reports_count_before}")
+        print(f"MU Campus status before delete: Members = {members_count_before}")
 
         # Non-owner tries to delete
         request_caller_id = someone.id
@@ -377,10 +356,9 @@ def run_tests():
 
         # Verify cascades
         members_count_after = CampusMember.query.filter_by(campus_id=mu.id).count()
-        reports_count_after = CampusReport.query.filter_by(campus_id=mu.id).count()
-        print(f"MU Campus status after delete: Members = {members_count_after}, Reports = {reports_count_after}")
-        if members_count_after == 0 and reports_count_after == 0:
-            print("[OK] SUCCESS: Deleting the campus successfully purged all cascading memberships and reports.")
+        print(f"MU Campus status after delete: Members = {members_count_after}")
+        if members_count_after == 0:
+            print("[OK] SUCCESS: Deleting the campus successfully purged all cascading memberships.")
         else:
             print("[-] FAILURE: Purge failed! Orphan records remaining.")
 

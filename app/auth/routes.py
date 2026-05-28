@@ -1,4 +1,4 @@
-﻿import re
+import re
 from flask import Blueprint, render_template, redirect, url_for, flash, request
 from flask_login import login_user, logout_user, login_required, current_user
 from app.extensions import db
@@ -158,3 +158,37 @@ def delete_email(email_id):
     
     flash(f'Email {email_str} has been removed.', 'success')
     return redirect(url_for('main.settings'))
+
+
+@auth_bp.route('/delete-account', methods=['POST'])
+@login_required
+def delete_account():
+    # 1. Campus Ownership Safety Check
+    from app.models import Campus
+    owned_campuses = Campus.query.filter_by(creator_id=current_user.id).all()
+    if owned_campuses:
+        campus_names = ", ".join([f'"{c.name}"' for c in owned_campuses])
+        flash(f"Cannot delete account. You are the owner of the following campus(es): {campus_names}. You must delete them first.", "error")
+        return redirect(url_for('main.settings'))
+
+    # 2. Cleanup physical file uploads for user resources
+    for resource in current_user.resources:
+        if resource.file_url:
+            from flask import current_app
+            import os
+            file_path = os.path.join(current_app.static_folder, resource.file_url)
+            if os.path.exists(file_path):
+                try:
+                    os.remove(file_path)
+                except Exception:
+                    pass
+
+    # 3. Perform logout and user deletion (dependent records will be cascade deleted)
+    user = current_user._get_current_object()
+    logout_user()
+    db.session.delete(user)
+    db.session.commit()
+
+    flash("Your account and all associated data have been permanently deleted.", "success")
+    return redirect(url_for('auth.page'))
+
