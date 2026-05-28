@@ -231,16 +231,6 @@ class ChatMessage(db.Model):
     sender = db.relationship('User', backref=db.backref('chat_messages', lazy=True))
 
 
-class UserCourse(db.Model):
-    __tablename__ = 'user_course'
-    id          = db.Column(db.Integer, primary_key=True)
-    user_id     = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
-    campus_id   = db.Column(db.Integer, db.ForeignKey('campus.id'), nullable=False)
-    course_code = db.Column(db.String(32), nullable=False)
-    __table_args__ = (db.UniqueConstraint('user_id', 'campus_id', 'course_code'),)
-
-    user   = db.relationship('User',   backref=db.backref('enrolled_courses', lazy=True, cascade='all, delete-orphan'))
-    campus = db.relationship('Campus', backref=db.backref('course_enrollments', lazy=True, cascade='all, delete-orphan'))
 
 
 class StudyRoom(db.Model):
