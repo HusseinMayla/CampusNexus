@@ -220,32 +220,6 @@ def settings():
     return render_template('main/settings.html')
 
 
-@main_bp.route('/explore')
-@login_required
-def explore():
-    # Sort campuses by popularity (member count)
-    campuses_with_counts = db.session.query(
-        Campus, 
-        func.count(CampusMember.id).label('member_count')
-    ).outerjoin(CampusMember)\
-     .group_by(Campus.id)\
-     .order_by(func.count(CampusMember.id).desc())\
-     .all()
-     
-    # Convert list of tuples (Campus, member_count) into a clean context structure
-    # and check if the current user has already joined
-    joined_ids = {m.campus_id for m in CampusMember.query.filter_by(user_id=current_user.id).all()}
-    
-    explore_list = []
-    for campus, member_count in campuses_with_counts:
-        explore_list.append({
-            'campus': campus,
-            'member_count': member_count,
-            'is_joined': campus.id in joined_ids or campus.creator_id == current_user.id
-        })
-
-    return render_template('main/explore.html', campuses=explore_list)
-
 
 @main_bp.route('/campuses/<int:campus_id>/report', methods=['POST'])
 @login_required

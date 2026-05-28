@@ -39,13 +39,11 @@ def create_app(config_class=Config):
 
     from app.auth.routes import auth_bp
     from app.main.routes import main_bp
-    from app.events.routes import events_bp
     from app.map.routes import map_bp
     from app.study import study_bp
 
     app.register_blueprint(auth_bp)
     app.register_blueprint(main_bp)
-    app.register_blueprint(events_bp)
     app.register_blueprint(map_bp)
     app.register_blueprint(study_bp)
 

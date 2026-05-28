@@ -25,6 +25,7 @@
     --base-tan:              #c8a96e;
     --base-tan-light:        #e0c898;
     --base-tan-dim:          #8a7048;
+    --icon-brand:            #c8a96e;
     --base-green:            #4a6741;
     --base-slate:            #4a5568;
     --base-slate-light:      #718096;
@@ -39,6 +40,7 @@
 /* ── Light Mode ──────────────────────────────────────────────── */
 [data-theme="light"] {
     --base-bg-color:         #dde2ed;
+    --icon-brand:            #0a1628;
     --base-card-bg:          #cdd4e4;
     --base-card-bg-alt:      #bdc8da;
     --base-topbar-bg:        #4a5568;
@@ -286,6 +288,12 @@ body {
     background-color: rgba(200,169,110,0.12);
     color: var(--base-tan);
     border-left-color: var(--base-tan);
+}
+
+.icon-brand,
+.base-nav-icon.icon-brand {
+    color: var(--icon-brand) !important;
+    -webkit-text-fill-color: var(--icon-brand) !important;
 }
 
 .base-nav-icon {
