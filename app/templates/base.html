@@ -96,9 +96,9 @@
                     {% for sr in sidebar_study %}{% if sr.campus_id == campus.id %}
                     <a href="{{ url_for('study.room', campus_id=campus.id, room_id=sr.room_id) }}"
                        class="base-nav-item chat-room-link"
-                       title="{{ sr.chapter }}&#10;📍 {{ sr.location }}&#10;👥 {{ sr.member_count }}/{{ sr.max_members }}">
+                       title="{{ sr.title }}&#10;📍 {{ sr.location }}&#10;👥 {{ sr.member_count }}/{{ sr.max_members }}">
                         {% if sr.has_unread %}<span class="chat-dot"></span>{% endif %}
-                        {{ sr.course_code }} - {{ sr.session_time.strftime('%I:%M %p') }}
+                        {{ sr.title }} - {{ sr.session_time.strftime('%I:%M %p') }}
                     </a>
                     {% endif %}{% endfor %}
                     <a href="{{ url_for('study.browse', campus_id=campus.id) }}" class="base-nav-item chat-join-link">＋ Browse study rooms</a>
@@ -147,9 +147,9 @@
                     {% for sr in sidebar_study %}{% if sr.campus_id == group.campus_id %}
                     <a href="{{ url_for('study.room', campus_id=sr.campus_id, room_id=sr.room_id) }}"
                        class="base-nav-item chat-room-link"
-                       title="{{ sr.chapter }}&#10;📍 {{ sr.location }}&#10;👥 {{ sr.member_count }}/{{ sr.max_members }}">
+                       title="{{ sr.title }}&#10;📍 {{ sr.location }}&#10;👥 {{ sr.member_count }}/{{ sr.max_members }}">
                         {% if sr.has_unread %}<span class="chat-dot"></span>{% endif %}
-                        {{ sr.course_code }} - {{ sr.session_time.strftime('%I:%M %p') }}
+                        {{ sr.title }} - {{ sr.session_time.strftime('%I:%M %p') }}
                     </a>
                     {% endif %}{% endfor %}
                     <a href="{{ url_for('study.browse', campus_id=group.campus_id) }}" class="base-nav-item chat-join-link">＋ Browse study rooms</a>

@@ -50,7 +50,7 @@
 <div style="margin-top:24px;padding-top:20px;border-top:1px solid var(--base-border-color);">
     <p style="color:var(--base-text-muted);font-size:0.9rem;margin-bottom:10px;">Create a chat group:</p>
     <div class="create-row">
-        <input type="text" id="newRoomName" class="base-input" placeholder="e.g. CS101 Study Group…" style="max-width:300px;" onkeydown="if(event.key==='Enter')createRoom()">
+        <input type="text" id="newRoomName" class="base-input" placeholder="e.g. CSCI205 or Computer Science" style="max-width:300px;" onkeydown="if(event.key==='Enter')createRoom()">
         <button class="base-button" onclick="createRoom()">Create</button>
     </div>
     <span id="createErr" style="color:#ef4444;font-size:0.85rem;display:block;margin-top:6px;"></span>
@@ -84,7 +84,7 @@ async function createRoom() {
     });
     const data = await res.json();
     if (res.ok) {
-        window.location.href = `/campus/${CAMPUS_ID}/chat/${data.id}`;
+        window.location.reload();
     } else {
         document.getElementById('createErr').textContent = data.error || 'Failed to create.';
     }

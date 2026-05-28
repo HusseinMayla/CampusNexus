@@ -155,6 +155,7 @@ class Resource(db.Model):
     campus_id         = db.Column(db.Integer, db.ForeignKey('campus.id'), nullable=False)
     uploader_id       = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     course_code       = db.Column(db.String(32), nullable=True)
+    chapters          = db.Column(db.String(512), nullable=True)
     file_type         = db.Column(db.String(16), nullable=True)
     original_filename = db.Column(db.String(255), nullable=True)
 
@@ -164,22 +165,6 @@ class Resource(db.Model):
     def __repr__(self):
         return f'<Resource {self.title}>'
 
-class MarketListing(db.Model):
-    id          = db.Column(db.Integer, primary_key=True)
-    title       = db.Column(db.String(128), nullable=False)
-    description = db.Column(db.Text)
-    price       = db.Column(db.Float, nullable=False)
-    image_url   = db.Column(db.String(255))
-    contact     = db.Column(db.String(128), nullable=False)
-    created_at  = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
-    campus_id   = db.Column(db.Integer, db.ForeignKey('campus.id'), nullable=False)
-    seller_id   = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
-
-    seller      = db.relationship('User', backref=db.backref('listings', lazy=True, cascade='all, delete-orphan'))
-    campus      = db.relationship('Campus', backref=db.backref('listings', lazy=True, cascade='all, delete-orphan'))
-
-    def __repr__(self):
-        return f'<MarketListing {self.title}>'
 
 class TutorPost(db.Model):
     __tablename__ = 'tutor_post'
@@ -263,8 +248,7 @@ class StudyRoom(db.Model):
     id           = db.Column(db.Integer, primary_key=True)
     campus_id    = db.Column(db.Integer, db.ForeignKey('campus.id'), nullable=False)
     owner_id     = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
-    course_code  = db.Column(db.String(32), nullable=False)
-    chapter      = db.Column(db.String(128), nullable=False)
+    title        = db.Column(db.String(128), nullable=False)
     location     = db.Column(db.String(128), nullable=False)
     session_time = db.Column(db.DateTime, nullable=False)
     max_members  = db.Column(db.Integer, nullable=False)

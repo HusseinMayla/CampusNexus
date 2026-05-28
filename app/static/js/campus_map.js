@@ -2,6 +2,22 @@
    Agora — campus_map.js
    ════════════════════════════════════════════════════════════════ */
 
+let _mapConfirmAction = null;
+function showMapConfirm(msg, action) {
+  const overlay = document.getElementById('mapConfirmOverlay');
+  document.getElementById('mapConfirmMsg').textContent = msg;
+  _mapConfirmAction = action;
+  overlay.style.display = 'flex';
+}
+function closeMapConfirm() {
+  document.getElementById('mapConfirmOverlay').style.display = 'none';
+  _mapConfirmAction = null;
+}
+function doMapConfirm() {
+  closeMapConfirm();
+  if (_mapConfirmAction) _mapConfirmAction();
+}
+
 document.addEventListener("DOMContentLoaded", () => {
   // ── DOM State ────────────────────────────────────────────────
   const configEl = document.getElementById("workspaceConfig");
@@ -498,25 +514,24 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // ── Delete Pin / Event ────────────────────────────────────────
   async function deletePin(type, id) {
-    if (!confirm(`Are you sure you want to remove this ${type}?`)) return;
+    showMapConfirm(`Remove this ${type}?`, async () => {
+      try {
+        const res = await fetch(`/api/pin/delete/${type}/${id}`, { method: "DELETE" });
 
-    try {
-      const res = await fetch(`/api/pin/delete/${type}/${id}`, { method: "DELETE" });
+        if (!res.ok) {
+          const err = await res.json();
+          throw new Error(err.error || "Failed to delete");
+        }
 
-      if (!res.ok) {
-        const err = await res.json();
-        throw new Error(err.error || "Failed to delete");
+        closePopover();
+        pins = pins.filter(p => !(p.type === type && p.id === id));
+        renderAllPins();
+        renderEventsList();
+        document.querySelector(`.legacy-list-card[data-pin-type="${type}"][data-pin-id="${id}"]`)?.remove();
+      } catch (err) {
+        alert(err.message);
       }
-
-      closePopover();
-      pins = pins.filter(p => !(p.type === type && p.id === id));
-      renderAllPins();
-      renderEventsList();
-      // Also remove from legacy list if present
-      document.querySelector(`.legacy-list-card[data-pin-type="${type}"][data-pin-id="${id}"]`)?.remove();
-    } catch (err) {
-      alert(err.message);
-    }
+    });
   }
 
   // ── Toggle Interest & Notifications (AJAX POST) ───────────────
@@ -581,9 +596,8 @@ document.addEventListener("DOMContentLoaded", () => {
       <div class="card-header">
         <h4>${escapeHtml(pin.name)}</h4>
         ${IS_ADMIN ? `
-        <form action="/campus/${CAMPUS_ID}/delete-${pin.type}/${pin.id}" method="POST" style="display: inline;" onsubmit="return confirm('Delete this ${pin.type}?');">
-          <button type="submit" class="card-delete-btn">🗑️</button>
-        </form>
+        <button class="card-delete-btn" onclick="showMapConfirm('Delete this ${pin.type}?', () => document.getElementById('delPin_${pin.type}_${pin.id}').submit())">🗑️</button>
+        <form id="delPin_${pin.type}_${pin.id}" action="/campus/${CAMPUS_ID}/delete-${pin.type}/${pin.id}" method="POST" style="display:none;"></form>
         ` : ''}
       </div>
       <p>${escapeHtml(pin.description || 'No description provided.')}</p>
