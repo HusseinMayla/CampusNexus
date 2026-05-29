@@ -1,13 +1,26 @@
 import re
-from flask import Blueprint, render_template, redirect, url_for, flash, request
+from flask import Blueprint, render_template, redirect, url_for, flash, request, current_app
 from flask_login import login_user, logout_user, login_required, current_user
-from app.extensions import db
+from itsdangerous import URLSafeTimedSerializer, SignatureExpired, BadSignature
+from flask_mail import Message
+from app.extensions import db, mail
 from app.models import User, UserEmail
 import bcrypt
 
 auth_bp = Blueprint('auth', __name__, url_prefix='/auth')
 
 EMAIL_RE = re.compile(r'^[^\s@]+@[^\s@]+\.(edu(\.[a-z]{2,})?|ac\.[a-z]{2,})$', re.IGNORECASE)
+
+
+def send_verification_email(email):
+    s = URLSafeTimedSerializer(current_app.config['SECRET_KEY'])
+    token = s.dumps(email, salt='email-verify')
+    link = url_for('auth.verify_token', token=token, _external=True)
+    sender = current_app.config['MAIL_USERNAME']
+    current_app.logger.error(f'DEBUG sender={sender}')
+    msg = Message('Verify your Agora account', sender=sender, recipients=[email])
+    msg.body = f'Hi! Click the link below to verify your email address:\n\n{link}\n\nThis link expires in 1 hour.'
+    mail.send(msg)
 
 
 @auth_bp.route('/')
@@ -34,6 +47,10 @@ def login():
     user = User.query.filter_by(email=email).first()
     if not user or not bcrypt.checkpw(password.encode('utf-8'), user.password_hash.encode('utf-8')):
         flash('Invalid email or password.', 'error')
+        return redirect(url_for('auth.page'))
+
+    if not user.is_verified:
+        flash('Please verify your email before logging in. Check your inbox.', 'error')
         return redirect(url_for('auth.page'))
 
     login_user(user)
@@ -65,16 +82,52 @@ def register():
         flash('Password must be at least 8 characters.', 'error')
         return redirect(signup_url)
 
-    if User.query.filter_by(email=email).first():
+    existing = User.query.filter_by(email=email).first()
+    if existing:
+        if not existing.is_verified:
+            try:
+                send_verification_email(email)
+                flash('This email is already registered but unverified. A new verification link has been sent.', 'success')
+            except Exception as e:
+                flash(f'Mail error: {e}', 'error')
+            return redirect(url_for('auth.page'))
         flash('An account with this email already exists.', 'error')
         return redirect(signup_url)
 
     hashed = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
-    user   = User(name=name, email=email, password_hash=hashed)
+    user   = User(name=name, email=email, password_hash=hashed, is_verified=False)
     db.session.add(user)
     db.session.commit()
+    try:
+        send_verification_email(email)
+        flash(f'Account created! Check {email} for a verification link.', 'success')
+    except Exception as e:
+        current_app.logger.error(f'Mail error: {e}')
+        flash(f'Mail error: {e}', 'error')
+    return redirect(url_for('auth.page'))
+
+
+@auth_bp.route('/verify/<token>')
+def verify_token(token):
+    s = URLSafeTimedSerializer(current_app.config['SECRET_KEY'])
+    try:
+        email = s.loads(token, salt='email-verify', max_age=3600)
+    except SignatureExpired:
+        flash('Verification link has expired. Please sign up again.', 'error')
+        return redirect(url_for('auth.page'))
+    except BadSignature:
+        flash('Invalid verification link.', 'error')
+        return redirect(url_for('auth.page'))
+
+    user = User.query.filter_by(email=email).first()
+    if not user:
+        flash('Account not found.', 'error')
+        return redirect(url_for('auth.page'))
+
+    user.is_verified = True
+    db.session.commit()
     login_user(user)
-    flash(f'Welcome to Agora, {name}!', 'success')
+    flash(f'Email verified! Welcome to Agora, {user.name}!', 'success')
     return redirect(url_for('main.dashboard'))
 
 

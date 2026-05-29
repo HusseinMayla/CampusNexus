@@ -2,7 +2,7 @@ import os
 import sys
 from flask import Flask
 from config import Config
-from app.extensions import db, login_manager, socketio
+from app.extensions import db, login_manager, socketio, mail
 
 def create_app(config_class=Config):
     app = Flask(__name__)
@@ -31,6 +31,7 @@ def create_app(config_class=Config):
 
     db.init_app(app)
     login_manager.init_app(app)
+    mail.init_app(app)
     login_manager.login_view = 'auth.page'
     _async_mode = 'gevent' if 'gunicorn' in sys.argv[0] else 'threading'
     socketio.init_app(app, cors_allowed_origins='*', async_mode=_async_mode)

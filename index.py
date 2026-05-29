@@ -2,6 +2,8 @@ import os
 import sys
 import traceback
 from flask import Flask
+from dotenv import load_dotenv
+load_dotenv()
 
 sys.path.append(os.path.abspath(os.path.dirname(__file__)))
 
