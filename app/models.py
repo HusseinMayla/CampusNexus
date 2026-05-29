@@ -124,6 +124,7 @@ class Event(db.Model):
     end_date    = db.Column(db.DateTime, nullable=False)
     lat         = db.Column(db.Float, nullable=False)
     lng         = db.Column(db.Float, nullable=False)
+    created_at  = db.Column(db.DateTime, default=datetime.utcnow)
 
     campus      = db.relationship('Campus', backref=db.backref('events', lazy=True, cascade='all, delete-orphan'))
     creator     = db.relationship('User', backref=db.backref('created_events', lazy=True, cascade='all, delete-orphan'))
@@ -304,4 +305,14 @@ class EventParticipation(db.Model):
 
     event = db.relationship('Event', backref=db.backref('participations', lazy=True, cascade='all, delete-orphan'))
     user = db.relationship('User', backref=db.backref('event_participations', lazy=True, cascade='all, delete-orphan'))
+
+
+class EventCreationLog(db.Model):
+    __tablename__ = 'event_creation_log'
+    id         = db.Column(db.Integer, primary_key=True)
+    user_id    = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+
+    user = db.relationship('User', backref=db.backref('event_creation_logs', lazy=True, cascade='all, delete-orphan'))
+
 
