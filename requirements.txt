@@ -1,4 +1,6 @@
 flask
+flask-mail
+python-dotenv
 flask-sqlalchemy
 flask-login
 flask-wtf
