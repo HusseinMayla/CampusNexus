@@ -2,6 +2,17 @@
 
 {% block title %}Campus Settings - {{ campus.name }}{% endblock %}
 
+{% block extra_css %}
+<style>
+.cs-top-grid    { display: grid; grid-template-columns: 1fr 400px; gap: 40px; align-items: start; margin-bottom: 48px; }
+.cs-bottom-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; align-items: start; }
+@media (max-width: 768px) {
+    .cs-top-grid    { grid-template-columns: 1fr; }
+    .cs-bottom-grid { grid-template-columns: 1fr; }
+}
+</style>
+{% endblock %}
+
 {% block content %}
 <div class="base-container">
     <h1 style="margin-bottom: 8px;"><span class="icon-brand">⚙️</span> Campus Settings</h1>
@@ -17,7 +28,7 @@
         {% endif %}
     {% endwith %}
 
-    <div style="display: grid; grid-template-columns: 1fr 400px; gap: 40px; align-items: start; margin-bottom: 48px;">
+    <div class="cs-top-grid">
         <div class="base-form-side">
             <div class="base-card" style="padding: 28px;">
                 <h3 style="margin-top: 0; margin-bottom: 20px; font-size: 1.3rem;">Edit Campus Details</h3>
@@ -89,7 +100,7 @@
     <!-- Divider -->
     <div style="margin: 40px 0; border-bottom: 1px solid var(--base-border-color); opacity: 0.6;"></div>
 
-    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 40px; align-items: start;">
+    <div class="cs-bottom-grid">
         <!-- Add Moderator -->
         <div class="base-card" style="padding: 28px;">
             <h3 style="margin-top: 0; margin-bottom: 6px; font-size: 1.3rem;">Add Moderator</h3>
@@ -160,7 +171,35 @@
             </div>
         </div>
     </div>
+
+    <!-- Divider -->
+    <div style="margin: 40px 0; border-bottom: 1px solid var(--base-border-color); opacity: 0.6;"></div>
+
+    <!-- Danger Zone -->
+    <div style="margin-bottom: 48px;">
+        <h3 style="color: #ef4444; margin-bottom: 8px;">Danger Zone</h3>
+        <p style="color: var(--base-text-muted); font-size: 0.92rem; margin-bottom: 16px;">Permanently delete this campus, all its members, chat rooms, resources, and events.</p>
+        <button onclick="document.getElementById('deleteCampusOverlay').style.display='flex'"
+                style="padding:9px 24px;background:#dc2626;border:none;border-radius:8px;color:#fff;font-family:var(--font-display);font-weight:700;cursor:pointer;font-size:0.95rem;">
+            Delete Campus
+        </button>
+    </div>
 </div>
+
+<div id="deleteCampusOverlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:1000;align-items:center;justify-content:center;">
+    <div style="background:var(--base-card-bg);border:1px solid var(--base-border-color);border-radius:14px;padding:32px 28px;max-width:340px;width:90%;text-align:center;">
+        <h3 style="margin:0 0 10px;font-family:var(--font-display);">Delete {{ campus.name }}?</h3>
+        <p style="color:var(--base-text-muted);margin:0 0 24px;font-size:0.95rem;">This will permanently remove the campus and all its data for everyone.</p>
+        <div style="display:flex;gap:10px;justify-content:center;">
+            <button onclick="document.getElementById('deleteCampusForm').submit()"
+                    style="padding:9px 24px;background:#dc2626;border:none;border-radius:8px;color:#fff;font-family:var(--font-display);font-weight:700;cursor:pointer;">Delete</button>
+            <button onclick="document.getElementById('deleteCampusOverlay').style.display='none'"
+                    style="padding:9px 24px;background:none;border:1.5px solid var(--base-border-color);border-radius:8px;color:var(--base-text-muted);font-family:var(--font-display);font-weight:700;cursor:pointer;">Cancel</button>
+        </div>
+    </div>
+</div>
+<form id="deleteCampusForm" action="{{ url_for('main.delete_campus', campus_id=campus.id) }}" method="POST" style="display:none;"></form>
+
 {% endblock %}
 
 {% block extra_js %}
