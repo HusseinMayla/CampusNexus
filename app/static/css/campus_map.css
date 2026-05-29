@@ -43,15 +43,27 @@
   z-index: 20; /* Higher than the right sidebar's z-index of 15 */
 }
 
-.workspace-main.active-placement-mode {
-  z-index: 2500;
+/* Dissolve local stacking contexts during placement mode without shifting positions */
+body.active-placement-mode .workspace-layout,
+body.active-placement-mode .workspace-main {
+  position: relative !important; /* Keep relative to prevent layout glitches/shifts */
+  z-index: auto !important; /* Remove z-index to dissolve the stacking context */
 }
 
 body.active-placement-mode .base-topbar {
-  z-index: 50 !important;
-  filter: blur(4px);
-  pointer-events: none;
-  transition: filter 0.3s ease, z-index 0.3s ease;
+  z-index: 2400 !important; /* Set to 2400 as requested */
+  filter: none !important; /* Keep it perfectly clear, no blur */
+  pointer-events: auto !important; /* Keep it interactive */
+  background: rgba(15, 32, 64, 0.75) !important; /* Premium semi-transparent dark glass background */
+  backdrop-filter: blur(12px) !important;
+  -webkit-backdrop-filter: blur(12px) !important;
+  border-bottom: 2px solid rgba(200, 169, 110, 0.35) !important;
+  transition: filter 0.3s ease, z-index 0.3s ease, background 0.3s ease;
+}
+
+[data-theme="light"] body.active-placement-mode .base-topbar {
+  background: rgba(74, 85, 104, 0.75) !important; /* Premium semi-transparent light glass background */
+  border-bottom-color: rgba(10, 22, 40, 0.25) !important;
 }
 
 body.active-placement-mode .base-sidebar {
@@ -59,6 +71,15 @@ body.active-placement-mode .base-sidebar {
   filter: blur(4px);
   pointer-events: none;
   transition: filter 0.3s ease, z-index 0.3s ease;
+}
+
+/* Blur and disable other surrounding page controls & lists to focus on location placement */
+body.active-placement-mode .workspace-header,
+body.active-placement-mode .legacy-lists-grid,
+body.active-placement-mode .workspace-sidebar {
+  filter: blur(4px);
+  pointer-events: none;
+  transition: filter 0.3s ease;
 }
 
 /* Workspace Header & Title */
@@ -212,10 +233,25 @@ body.active-placement-mode .base-sidebar {
   left: 0;
   width: 100vw;
   height: 100vh;
-  background: rgba(2, 6, 23, 0.72);
-  backdrop-filter: blur(8px);
-  z-index: 2400;
-  transition: all 0.3s ease;
+  background: rgba(6, 12, 26, 0.76);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  z-index: 2450; /* Set to 2455 as requested */
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  animation: fadeInOverlay 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@keyframes fadeInOverlay {
+  from {
+    opacity: 0;
+    backdrop-filter: blur(0px);
+    -webkit-backdrop-filter: blur(0px);
+  }
+  to {
+    opacity: 1;
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+  }
 }
 
 /* Blueprint Card Canvas */

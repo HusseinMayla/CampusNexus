@@ -616,6 +616,20 @@ document.addEventListener("DOMContentLoaded", () => {
     blueprintCanvasWrapper.classList.add("choosing-location");
     blueprintBlurOverlay.classList.remove("hidden");
     placementGoldCaption.classList.remove("hidden");
+    document.body.classList.add("active-placement-mode");
+
+    // Dynamic caption text based on placement type
+    if (placementGoldCaption) {
+      if (type === "event") {
+        placementGoldCaption.textContent = "Choose the event location by clicking on the blueprint map below...";
+      } else if (type === "pin") {
+        const selectedRadio = document.querySelector('input[name="pinType"]:checked');
+        const subType = selectedRadio ? selectedRadio.value : "location";
+        placementGoldCaption.textContent = `Choose the ${subType} location by clicking on the blueprint map below...`;
+      } else {
+        placementGoldCaption.textContent = "Choose the location by clicking on the blueprint map below...";
+      }
+    }
     
     // Hide all existing pins while creating a new one to declutter map
     const pinsEls = document.querySelectorAll(".blueprint-pin");
@@ -633,6 +647,7 @@ document.addEventListener("DOMContentLoaded", () => {
     blueprintCanvasWrapper.classList.remove("choosing-location");
     blueprintBlurOverlay.classList.add("hidden");
     placementGoldCaption.classList.add("hidden");
+    document.body.classList.remove("active-placement-mode");
     
     // Restore all pins visibility
     renderAllPins();

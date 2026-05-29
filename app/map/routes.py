@@ -1,7 +1,7 @@
 from flask import Blueprint, render_template, request, jsonify, redirect, url_for, flash
 from flask_login import login_required, current_user
 from app.extensions import db
-from app.models import Campus, Club, Office, Event, CampusMember, EventParticipation
+from app.models import Campus, Club, Office, Event, CampusMember, EventParticipation, EventCreationLog
 from datetime import datetime, timedelta
 
 map_bp = Blueprint('map', __name__)
@@ -209,6 +209,34 @@ def add_pin():
                         'description': desc, 'lat': lat, 'lng': lng})
 
     elif pin_type == 'event':
+        if not is_admin:
+            four_days_ago = datetime.utcnow() - timedelta(days=4)
+            recent_event = EventCreationLog.query.filter(
+                EventCreationLog.user_id == current_user.id,
+                EventCreationLog.created_at >= four_days_ago
+            ).order_by(EventCreationLog.created_at.desc()).first()
+
+            if recent_event:
+                time_passed = datetime.utcnow() - recent_event.created_at
+                time_remaining = timedelta(days=4) - time_passed
+                
+                days = time_remaining.days
+                hours, remainder = divmod(time_remaining.seconds, 3600)
+                minutes, _ = divmod(remainder, 60)
+                
+                time_str = []
+                if days > 0:
+                    time_str.append(f"{days} day{'s' if days > 1 else ''}")
+                if hours > 0:
+                    time_str.append(f"{hours} hour{'s' if hours > 1 else ''}")
+                if minutes > 0 or not time_str:
+                    time_str.append(f"{minutes} minute{'s' if minutes > 1 else ''}")
+                
+                remaining_formatted = ", ".join(time_str)
+                return jsonify({
+                    'error': f'Event creation cooldown active: Students can only create one event every 4 days. Please wait {remaining_formatted}.'
+                }), 400
+
         date_str = data.get('date')
         end_date_str = data.get('end_date')
         if not date_str or not end_date_str:
@@ -251,9 +279,16 @@ def add_pin():
             date=event_date,
             end_date=event_end_date,
             lat=lat,
-            lng=lng
+            lng=lng,
+            created_at=datetime.utcnow()
         )
         db.session.add(obj)
+        
+        # Log event creation for students
+        if not is_admin:
+            log = EventCreationLog(user_id=current_user.id, created_at=datetime.utcnow())
+            db.session.add(log)
+
         db.session.commit()
         return jsonify({
             'id': obj.id,

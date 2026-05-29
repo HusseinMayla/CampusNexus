@@ -1,4 +1,4 @@
-﻿/* Base Layout Styles — Agora */
+/* Base Layout Styles — Agora */
 :root {
     --base-primary-color:    #c8a96e;
     --base-primary-light:    #162a52;
@@ -659,3 +659,94 @@ h3, h4 { font-family: var(--font-display); color: var(--base-tan); letter-spacin
     .base-logo { font-size: 1.1rem; }
     .base-logo img { height: 32px !important; }
 }
+
+/* ── Danger Cards ────────────────────────────────────────────── */
+.base-card-danger {
+    background: linear-gradient(160deg, rgba(107, 31, 42, 0.15) 0%, rgba(10, 22, 40, 0.9) 100%) !important;
+    border: 1.5px solid rgba(139, 48, 69, 0.3) !important;
+    border-top: 4px solid #8b3045 !important;
+}
+
+.base-card-danger:hover {
+    border-color: rgba(139, 48, 69, 0.5) !important;
+    box-shadow: 0 8px 28px rgba(107, 31, 42, 0.25) !important;
+}
+
+.base-card-danger h3 {
+    color: #f43f5e !important;
+}
+
+[data-theme="light"] .base-card-danger {
+    background: linear-gradient(160deg, rgba(139, 48, 69, 0.05) 0%, #dde2ed 100%) !important;
+    border-color: rgba(139, 48, 69, 0.22) !important;
+    border-top-color: #6b1f2a !important;
+}
+
+[data-theme="light"] .base-card-danger h3 {
+    color: #991b1b !important;
+}
+
+/* ── Modals & Dialogs ────────────────────────────────────────── */
+.base-modal-overlay,
+.base-confirm-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.7);
+    z-index: 2000;
+    align-items: center;
+    justify-content: center;
+    backdrop-filter: blur(4px);
+    opacity: 0;
+    transition: opacity 0.2s ease;
+}
+
+.base-modal-overlay.open,
+.base-confirm-overlay.open {
+    display: flex;
+}
+
+.base-modal-box,
+.base-confirm-box {
+    background: var(--base-card-bg);
+    border: 1.5px solid var(--base-border-color);
+    border-radius: 16px;
+    width: 90%;
+    padding: 32px 28px;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6);
+    transform: scale(0.95);
+    transition: transform 0.2s ease;
+}
+
+.base-modal-box {
+    max-width: 520px;
+    max-height: 90vh;
+    overflow-y: auto;
+    position: relative;
+}
+
+.base-confirm-box {
+    max-width: 440px;
+    text-align: center;
+}
+
+.base-confirm-box.danger-dialog {
+    border-color: rgba(139, 48, 69, 0.4);
+    border-top: 4px solid var(--base-maroon-light, #8b3045);
+}
+
+.base-confirm-box h3 {
+    font-family: var(--font-display);
+    color: var(--base-text-color);
+    margin: 0 0 12px;
+    font-size: 1.5rem;
+    font-weight: 700;
+}
+
+.base-confirm-box p {
+    color: var(--base-text-muted);
+    font-size: 0.95rem;
+    line-height: 1.6;
+    margin: 0 0 24px;
+}
+
