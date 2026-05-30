@@ -39,20 +39,46 @@
         <!-- Floating Viewport Blur Overlay -->
         <div class="blueprint-viewport-overlay hidden" id="blueprintBlurOverlay"></div>
 
-        <!-- The Interactive Blueprint Canvas Card -->
-        <div class="blueprint-card" id="blueprintCard">
-            <!-- Independent gold caption, displayed above the map only in placement mode -->
-            <div class="placement-gold-caption hidden" id="placementGoldCaption">
-                Choose the event location by clicking on the blueprint map below...
-            </div>
+        <div class="workspace-middle-container">
+            <!-- The Interactive Blueprint Canvas Card -->
+            <div class="blueprint-card" id="blueprintCard">
+                <!-- Independent gold caption, displayed above the map only in placement mode -->
+                <div class="placement-gold-caption hidden" id="placementGoldCaption">
+                    Choose the event location by clicking on the blueprint map below...
+                </div>
 
-            <div class="blueprint-canvas-wrapper" id="blueprintCanvasWrapper">
-                {% set blueprint_src = campus.map_image or url_for('static', filename='images/default_blueprint.png') %}
-                <img src="{{ blueprint_src }}" id="blueprintImage" alt="{{ campus.name }} Blueprint" class="blueprint-img" onerror="this.onerror=null; this.src='{{ url_for('static', filename='images/default_blueprint.png') }}';">
+                <div class="blueprint-canvas-wrapper" id="blueprintCanvasWrapper">
+                    {% set blueprint_src = campus.map_image or url_for('static', filename='images/default_blueprint.png') %}
+                    <img src="{{ blueprint_src }}" id="blueprintImage" alt="{{ campus.name }} Blueprint" class="blueprint-img" onerror="this.onerror=null; this.src='{{ url_for('static', filename='images/default_blueprint.png') }}';">
+                    
+                    <!-- Overlay Pins Container (Absolute Positioned) -->
+                    <div class="pins-container" id="pinsContainer">
+                        <!-- Dynamic pins go here via JS -->
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Animated Right Sidebar Section: Events List Panel -->
+            <div class="workspace-sidebar collapsed" id="eventsSidebar">
+                <div class="sidebar-header">
+                    <h3>📅 Events Schedule</h3>
+                    <button class="sidebar-close-btn" id="btnCloseSidebar" title="Collapse Panel">✕</button>
+                </div>
                 
-                <!-- Overlay Pins Container (Absolute Positioned) -->
-                <div class="pins-container" id="pinsContainer">
-                    <!-- Dynamic pins go here via JS -->
+                <div class="sidebar-content">
+                    <div class="sidebar-quick-create">
+                        <button class="btn btn-primary btn-full-width" id="btnSidebarAddEvent">
+                            ➕ Schedule New Event
+                        </button>
+                    </div>
+                    
+                    <!-- Active Events List -->
+                    <div class="events-list-container" id="eventsListContainer">
+                        <div class="loading-placeholder">
+                            <div class="spinner"></div>
+                            <p>Loading events...</p>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -116,30 +142,6 @@
                     {% else %}
                         <p class="empty-text">No offices registered yet.</p>
                     {% endif %}
-                </div>
-            </div>
-        </div>
-    </div>
-    
-    <!-- Animated Right Sidebar Section: Events List Panel -->
-    <div class="workspace-sidebar collapsed" id="eventsSidebar">
-        <div class="sidebar-header">
-            <h3>📅 Events Schedule</h3>
-            <button class="sidebar-close-btn" id="btnCloseSidebar" title="Collapse Panel">✕</button>
-        </div>
-        
-        <div class="sidebar-content">
-            <div class="sidebar-quick-create">
-                <button class="btn btn-primary btn-full-width" id="btnSidebarAddEvent">
-                    ➕ Schedule New Event
-                </button>
-            </div>
-            
-            <!-- Active Events List -->
-            <div class="events-list-container" id="eventsListContainer">
-                <div class="loading-placeholder">
-                    <div class="spinner"></div>
-                    <p>Loading events...</p>
                 </div>
             </div>
         </div>

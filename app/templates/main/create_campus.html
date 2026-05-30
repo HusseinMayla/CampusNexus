@@ -1,12 +1,36 @@
-﻿{% extends "base.html" %}
+{% extends "base.html" %}
 
 {% block title %}Create Campus - Agora{% endblock %}
+
+{% block extra_css %}
+<style>
+.create-campus-grid {
+    display: grid;
+    grid-template-columns: 1fr 400px;
+    gap: 40px;
+    align-items: start;
+}
+
+@media (max-width: 768px) {
+    .create-campus-grid {
+        grid-template-columns: 1fr;
+        gap: 24px;
+    }
+    .base-preview-side {
+        grid-row: 1;
+    }
+    .base-form-side {
+        grid-row: 2;
+    }
+}
+</style>
+{% endblock %}
 
 {% block content %}
 <div class="base-container">
     <h1 style="margin-bottom: 32px;"><span class="icon-brand">🛠&#xFE0E;</span> Create a New Campus</h1>
     
-    <div style="display: grid; grid-template-columns: 1fr 400px; gap: 40px; align-items: start;">
+    <div class="create-campus-grid">
         <div class="base-form-side">
             <form action="{{ url_for('main.create_campus') }}" method="post" enctype="multipart/form-data">
                 <div class="base-form-group">

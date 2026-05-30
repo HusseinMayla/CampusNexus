@@ -2,6 +2,42 @@
 
 {% block title %}Notifications - CampusNexus{% endblock %}
 
+{% block extra_css %}
+<style>
+.notif-card {
+    padding: 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+}
+.notif-content {
+    flex: 1;
+    margin-right: 16px;
+    min-width: 0;
+}
+.notif-actions {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    flex-shrink: 0;
+}
+@media (max-width: 600px) {
+    .notif-card {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 16px;
+    }
+    .notif-content {
+        margin-right: 0;
+    }
+    .notif-actions {
+        justify-content: flex-start;
+        width: 100%;
+    }
+}
+</style>
+{% endblock %}
+
 {% block content %}
 <div style="max-width: 800px; margin: 0 auto; padding: 24px 0;">
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 32px;">
@@ -26,28 +62,28 @@
     {% if notifications %}
         <div style="display: flex; flex-direction: column; gap: 16px;">
             {% for notif in notifications %}
-                <div class="base-card" style="padding: 20px; display: flex; justify-content: space-between; align-items: flex-start; border-left: 4px solid {% if notif.is_read %}var(--base-border-color){% else %}var(--base-primary-color, #3b82f6){% endif %};">
-                    <div style="flex: 1; margin-right: 16px;">
-                        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px;">
-                            <h4 style="margin: 0; font-size: 1.1rem; font-weight: 600;">{{ notif.title }}</h4>
+                <div class="base-card notif-card" style="border-left: 4px solid {% if notif.is_read %}var(--base-border-color){% else %}var(--base-primary-color, #3b82f6){% endif %};">
+                    <div class="notif-content">
+                        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px; flex-wrap: wrap;">
+                            <h4 style="margin: 0; font-size: 1.1rem; font-weight: 600; word-break: break-word;">{{ notif.title }}</h4>
                             {% if not notif.is_read %}
                                 <span style="font-size: 0.72rem; padding: 2px 8px; border-radius: 9999px; background: var(--base-primary-color, #3b82f6); color: white; font-weight: 500; letter-spacing: 0.04em;">NEW</span>
                             {% endif %}
                         </div>
-                        <p style="margin: 0; color: var(--base-text-muted); font-size: 0.95rem; line-height: 1.5;">{{ notif.message }}</p>
+                        <p style="margin: 0; color: var(--base-text-muted); font-size: 0.95rem; line-height: 1.5; word-break: break-word;">{{ notif.message }}</p>
                         <span style="font-size: 0.78rem; color: var(--base-text-muted); display: block; margin-top: 8px;">
                             {{ notif.created_at.strftime('%Y-%m-%d %H:%M') }}
                         </span>
                     </div>
                     
-                    <div style="display: flex; gap: 8px; align-items: center;">
+                    <div class="notif-actions">
                         {% if notif.link %}
                             <a href="{{ notif.link }}" class="base-button-secondary" style="font-size: 0.82rem; padding: 6px 12px;">View</a>
                         {% endif %}
                         
                         {% if not notif.is_read %}
-                            <form action="{{ url_for('main.read_notification', notification_id=notif.id) }}" method="POST">
-                                <button class="base-button" style="font-size: 0.82rem; padding: 6px 12px; background: #e2e8f0; color: #334155; border: none;">Mark Read</button>
+                            <form action="{{ url_for('main.read_notification', notification_id=notif.id) }}" method="POST" style="margin: 0;">
+                                <button class="base-button" style="font-size: 0.82rem; padding: 6px 12px; background: #e2e8f0; color: #334155; border: none; box-shadow: none;">Mark Read</button>
                             </form>
                         {% endif %}
                     </div>

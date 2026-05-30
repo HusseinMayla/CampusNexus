@@ -142,7 +142,8 @@ def seed_database():
             u = User(
                 name=name,
                 email=email,
-                password_hash=password_hash
+                password_hash=password_hash,
+                is_verified=True
             )
             db.session.add(u)
             users.append(u)

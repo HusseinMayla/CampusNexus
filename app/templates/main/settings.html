@@ -2,6 +2,50 @@
 
 {% block title %}Settings - CampusNexus{% endblock %}
 
+{% block extra_css %}
+<style>
+.email-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 14px 18px;
+    background: var(--base-card-bg);
+    border: 1px solid var(--base-border-color);
+    border-radius: 8px;
+}
+.email-info {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+    min-width: 0;
+}
+.email-address {
+    font-weight: 500;
+    font-size: 0.95rem;
+    word-break: break-all;
+}
+.email-actions {
+    display: flex;
+    gap: 8px;
+}
+@media (max-width: 600px) {
+    .email-row {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 14px;
+    }
+    .email-info {
+        width: 100%;
+    }
+    .email-actions {
+        width: 100%;
+        justify-content: flex-end;
+    }
+}
+</style>
+{% endblock %}
+
 {% block content %}
 <div style="max-width: 800px; margin: 0 auto; padding: 24px 0;">
     <h1 style="margin-bottom: 8px;"><span class="icon-brand">⚙&#xFE0E;</span> Settings</h1>
@@ -48,10 +92,10 @@
             {% if current_user.secondary_emails %}
             <div style="display: flex; flex-direction: column; gap: 12px; margin-bottom: 24px;">
                 {% for email in current_user.secondary_emails %}
-                <div style="display: flex; justify-content: space-between; align-items: center; padding: 14px 18px; background: var(--base-card-bg); border: 1px solid var(--base-border-color); border-radius: 8px;">
-                    <div style="display: flex; align-items: center; gap: 12px;">
+                <div class="email-row">
+                    <div class="email-info">
                         <span style="font-size: 1.1rem;">✉</span>
-                        <span style="font-weight: 500; font-size: 0.95rem;">{{ email.email }}</span>
+                        <span class="email-address">{{ email.email }}</span>
                         {% if email.is_verified %}
                             <span style="font-size: 0.72rem; padding: 3px 8px; border-radius: 6px; background: #dcfce7; color: #166534; font-weight: 600; border: 1px solid #bbf7d0;">Verified</span>
                         {% else %}
@@ -59,7 +103,7 @@
                         {% endif %}
                     </div>
                     
-                    <div style="display: flex; gap: 8px;">
+                    <div class="email-actions">
                         {% if not email.is_verified %}
                         <form action="{{ url_for('auth.verify_email', email_id=email.id) }}" method="POST" style="margin: 0;">
                             <button type="submit" class="base-button-secondary" style="font-size: 0.8rem; padding: 6px 12px; border-color: #3b82f6; color: #3b82f6; background: transparent;">Verify</button>

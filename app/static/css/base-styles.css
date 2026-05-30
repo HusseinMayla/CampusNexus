@@ -636,7 +636,7 @@ h3, h4 { font-family: var(--font-display); color: var(--base-tan); letter-spacin
 }
 [data-theme="light"] .chat-dot { background: #0a1628; }
 
-@media (max-width: 768px) {
+@media (max-width: 1200px) {
     .base-hamburger { display: flex; }
 
     .base-sidebar {

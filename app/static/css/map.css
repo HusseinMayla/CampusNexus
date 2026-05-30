@@ -573,7 +573,7 @@ body {
 .leaflet-control-attribution a { color: var(--tan-dim) !important; }
 
 /* ── Responsive ──────────────────────────────────────────────── */
-@media (max-width: 768px) {
+@media (max-width: 1200px) {
   .map-sidebar {
     position: absolute;
     top: 0; left: 0;

@@ -43,6 +43,12 @@
   z-index: 20; /* Higher than the right sidebar's z-index of 15 */
 }
 
+.workspace-middle-container {
+  display: flex;
+  gap: 24px;
+  position: relative;
+}
+
 /* Dissolve local stacking contexts during placement mode without shifting positions */
 body.active-placement-mode .workspace-layout,
 body.active-placement-mode .workspace-main {
@@ -576,7 +582,7 @@ body.active-placement-mode .workspace-sidebar {
   margin-top: 16px;
 }
 
-@media (min-width: 768px) {
+@media (min-width: 1201px) {
   .legacy-lists-grid {
     grid-template-columns: 1fr 1fr;
   }
@@ -1028,8 +1034,14 @@ body.active-placement-mode .workspace-sidebar {
 }
 
 /* Sidebar responsive behaviour */
-@media (max-width: 991px) {
+@media (max-width: 1200px) {
   .workspace-layout {
+    flex-direction: column;
+  }
+}
+
+@media (max-width: 913px) {
+  .workspace-middle-container {
     flex-direction: column;
   }
   .workspace-sidebar {
@@ -1390,4 +1402,105 @@ body.active-placement-mode .workspace-sidebar {
   text-transform: uppercase;
   letter-spacing: 0.05em;
 }
+
+/* ── Mobile Modal & Form Scale Downs ───────────────────────────────── */
+@media (max-width: 576px) {
+  .modal-card {
+    width: calc(100% - 32px) !important;
+    margin: 16px !important;
+    max-height: 90vh !important;
+    overflow-y: auto !important;
+  }
+  .modal-header {
+    padding: 14px 18px !important;
+  }
+  .modal-header h3 {
+    font-size: 1.2rem !important;
+  }
+  .modal-body {
+    padding: 16px !important;
+  }
+  .form-group {
+    gap: 6px !important;
+    margin-bottom: 12px !important;
+  }
+  .form-group label {
+    font-size: 0.72rem !important;
+  }
+  .form-input, .form-textarea {
+    padding: 8px 10px !important;
+    font-size: 0.88rem !important;
+  }
+  .form-actions {
+    gap: 8px !important;
+  }
+  .form-actions button, .form-actions .btn {
+    padding: 8px 16px !important;
+    font-size: 0.88rem !important;
+  }
+}
+
+/* ── Mobile Map Pin Sizing & Sizing Scales ────────────────────────── */
+@media (max-width: 768px) {
+  /* Scale down default size */
+  .blueprint-pin {
+    width: 24px !important;
+    height: 24px !important;
+  }
+  
+  /* Scale down glowing/active halo center and dimensions */
+  .active-halo {
+    top: 12px !important;
+    left: 12px !important;
+    width: 24px !important;
+    height: 24px !important;
+  }
+  
+  /* Make glow ring pulse smaller */
+  @keyframes activeRingPulse {
+    0% {
+      transform: translate(-50%, -50%) scale(0.6);
+      opacity: 1;
+    }
+    100% {
+      transform: translate(-50%, -50%) scale(2.0); /* smaller ring footprint */
+      opacity: 0;
+    }
+  }
+  
+  /* Scale down pin beat expansions */
+  @keyframes activePinBeat {
+    0%, 100% {
+      transform: translate(-50%, -100%) scale(1);
+    }
+    50% {
+      transform: translate(-50%, -100%) scale(1.06); /* lower hover pulse */
+    }
+  }
+  
+  /* Make the pulsing appeal scale down */
+  @keyframes pulseAppeal {
+    0%, 100% {
+      transform: translate(-50%, -100%) scale(1);
+    }
+    50% {
+      transform: translate(-50%, -100%) scale(1.2); /* 1.2x instead of 1.7x */
+      filter: drop-shadow(0 6px 12px rgba(244, 63, 94, 0.8));
+    }
+  }
+  
+  /* Lower interactive hover expansions on touch screens */
+  .blueprint-pin:hover {
+    transform: translate(-50%, -100%) scale(1.1) !important;
+  }
+  
+  /* Scale down below-pin elegant text label */
+  .pin-label {
+    font-size: 0.62rem !important;
+    padding: 1px 6px !important;
+    margin-top: 2px !important;
+  }
+}
+
+
 
