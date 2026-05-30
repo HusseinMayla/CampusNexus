@@ -1,4 +1,4 @@
-﻿{% extends "base.html" %}
+{% extends "base.html" %}
 {% block title %}{{ room.name }} — {{ campus.name }} | Agora{% endblock %}
 
 {% block extra_css %}
@@ -40,7 +40,7 @@
     align-self: flex-end;
 }
 .msg-avatar-other { background: #334155; color: #e8e0d0; }
-[data-theme="light"] .msg-avatar-other { background: #0a1628; color: #fff; }
+[data-theme="light"] .msg-avatar-other { background: #f6f4ee; color: #0f172a; border: 1px solid rgba(200, 169, 110, 0.5); }
 .msg-avatar-mine { background: #c8a96e; color: #0a1628; }
 .msg-avatar-spacer { width: 30px; flex-shrink: 0; }
 
@@ -71,7 +71,7 @@
 .msg-row-mine:not(.msg-consecutive)  .msg { border-radius: 12px 2px 12px 12px; }
 
 .msg-other { background: #334155; color: #e8e0d0; }
-[data-theme="light"] .msg-other { background: #0a1628; color: #fff; }
+[data-theme="light"] .msg-other { background: #ffffff; color: #0f172a; border: 1px solid rgba(200, 169, 110, 0.4); box-shadow: 0 2px 8px rgba(10, 22, 40, 0.04); }
 .msg-mine  { background: #c8a96e; color: #0a1628; }
 
 /* ── Timestamp ──────────────────────────────────── */

@@ -39,109 +39,133 @@
 
 /* ── Light Mode ──────────────────────────────────────────────── */
 [data-theme="light"] {
-    --base-bg-color:         #dde2ed;
-    --icon-brand:            #0a1628;
-    --base-card-bg:          #cdd4e4;
-    --base-card-bg-alt:      #bdc8da;
-    --base-topbar-bg:        #4a5568;
-    --base-sidebar-bg:       #4a5568;
-    --base-text-color:       #0a1628;
-    --base-text-muted:       #2a3a55;
-    --base-text-on-primary:  #e8e0d0;
-    --base-border-color:     rgba(10,22,40,0.18);
-    --base-hover-bg:         rgba(10,22,40,0.07);
-    --base-success-bg:       rgba(74,103,65,0.15);
-    --base-success-text:     #1a3010;
-    --base-success-border:   #3a5630;
-    --base-tan-dim:          #8a7048;
+    --base-bg-color:         #f3f1eb; /* Distinct light sand/cream background */
+    --icon-brand:            #c8a96e; /* Gold icons */
+    --base-card-bg:          #ffffff; /* Pristine white cards */
+    --base-card-bg-alt:      #f6f4ee; /* Soft warm-beige nested cards */
+    --base-topbar-bg:        #0f2040; /* High contrast Deep Navy Topbar */
+    --base-sidebar-bg:       #0a1628; /* High contrast Deep Navy Sidebar */
+    --base-text-color:       #0f172a; /* Rich deep slate-navy */
+    --base-text-muted:       #475569; /* Slate grey muted text */
+    --base-text-on-primary:  #0a1628; /* Navy text on gold buttons */
+    --base-border-color:     rgba(200, 169, 110, 0.45); /* Structured gold-tinted borders */
+    --base-hover-bg:         rgba(200, 169, 110, 0.08); /* Gold hover background tint */
+    --base-success-bg:       rgba(34, 197, 94, 0.1);
+    --base-success-text:     #15803d;
+    --base-success-border:   rgba(34, 197, 94, 0.2);
+    --base-tan:              #8a7048; /* Deeper, rich bronze-gold for light mode text */
+    --base-tan-light:        #6a5230; /* High contrast dark bronze-gold for headings */
+    --base-tan-dim:          #524025; /* Very dark bronze-gold for secondary texts */
+    --base-primary-color:    #8a7048;
     --base-primary-light:    #0f2040;
+    --color-event-text-light: #c2410c; /* Deep warm red/orange for high legibility */
+    --color-event-border:     #ef4444; /* High contrast event red border */
 }
 
 [data-theme="light"] body {
-    background-color: #dde2ed;
+    background-color: #f3f1eb;
     background-image:
-        radial-gradient(at 0% 0%,    rgba(10,22,40,0.1)     0px, transparent 45%),
-        radial-gradient(at 100% 0%,  rgba(74,85,104,0.3)    0px, transparent 50%),
-        radial-gradient(at 0% 100%,  rgba(10,22,40,0.06)    0px, transparent 45%),
-        radial-gradient(at 100% 100%,rgba(74,85,104,0.15)   0px, transparent 40%);
+        radial-gradient(at 0% 0%,    rgba(200, 169, 110, 0.1)  0px, transparent 45%),
+        radial-gradient(at 100% 0%,  rgba(10, 22, 40, 0.06)   0px, transparent 50%),
+        radial-gradient(at 0% 100%,  rgba(74, 103, 65, 0.03)  0px, transparent 45%),
+        radial-gradient(at 100% 100%,rgba(200, 169, 110, 0.05) 0px, transparent 40%);
 }
 
 [data-theme="light"] .base-topbar {
-    background: linear-gradient(90deg, #3d4a5c 0%, #4a5568 100%);
-    border-bottom-color: rgba(10,22,40,0.3);
+    background: linear-gradient(90deg, #0f2040 0%, #0a1628 100%);
+    border-bottom: 2px solid rgba(200, 169, 110, 0.3);
 }
 
 [data-theme="light"] .base-sidebar {
-    background: linear-gradient(180deg, #3d4a5c 0%, #4a5568 100%);
-    border-right-color: rgba(10,22,40,0.2);
+    background: linear-gradient(180deg, #0f2040 0%, #0a1628 100%);
+    border-right: 2px solid rgba(200, 169, 110, 0.2);
 }
 
 [data-theme="light"] .base-card {
-    background: linear-gradient(160deg, #cdd4e4 0%, #dde2ed 100%);
-    border-color: rgba(10,22,40,0.12);
-    border-top-color: #0f2040;
+    background: #ffffff;
+    border: 1px solid rgba(200, 169, 110, 0.45);
+    border-top: 3px solid #c8a96e;
+    box-shadow: 0 4px 20px rgba(10, 22, 40, 0.06);
 }
 
 [data-theme="light"] .base-campus-profile-preview {
-    background: linear-gradient(160deg, #cdd4e4 0%, #dde2ed 100%);
+    background: #ffffff;
+    border: 1px solid rgba(200, 169, 110, 0.4);
+    box-shadow: 0 4px 20px rgba(10, 22, 40, 0.06);
 }
 
 [data-theme="light"] .base-input,
 [data-theme="light"] .base-textarea {
-    background-color: rgba(221,226,237,0.8);
-    border-color: rgba(10,22,40,0.2);
-    color: #0a1628;
+    background-color: #ffffff;
+    border: 1px solid rgba(200, 169, 110, 0.45);
+    color: #0f172a;
 }
 
-[data-theme="light"] .base-nav-item { color: #c8d4e4; }
+[data-theme="light"] .base-input:focus,
+[data-theme="light"] .base-textarea:focus {
+    border-color: #c8a96e;
+    box-shadow: 0 0 0 3px rgba(200, 169, 110, 0.25);
+}
+
+[data-theme="light"] .base-nav-item {
+    color: #8a9ab0;
+}
 [data-theme="light"] .base-nav-item:hover {
-    background-color: rgba(10,22,40,0.15);
-    color: #e8f0f8;
-    border-left-color: #0f2040;
+    background-color: rgba(200, 169, 110, 0.08);
+    color: #e0c898;
+    border-left-color: rgba(200, 169, 110, 0.4);
 }
 [data-theme="light"] .base-nav-item.active {
-    background-color: rgba(10,22,40,0.25);
-    color: #ffffff;
-    border-left-color: #0a1628;
+    background-color: rgba(200, 169, 110, 0.12);
+    color: #c8a96e;
+    border-left-color: #c8a96e;
+    font-weight: 600;
 }
 
-[data-theme="light"] .base-logo { color: #e8f0f8; }
+[data-theme="light"] .base-logo {
+    color: #c8a96e;
+}
 
-[data-theme="light"] .base-profile-avatar { color: #0a1628; }
+[data-theme="light"] .base-profile-avatar {
+    background: linear-gradient(135deg, #c8a96e, #e0c898);
+    color: #0a1628;
+    border: 2px solid rgba(200, 169, 110, 0.35);
+}
 
 [data-theme="light"] h1 {
-    background: linear-gradient(90deg, #0a1628, #1e3a72);
+    background: linear-gradient(90deg, #0a1628, #c8a96e);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
 }
-[data-theme="light"] h2 { color: #0f2040; }
-[data-theme="light"] h3, [data-theme="light"] h4 { color: #162a52; }
+[data-theme="light"] h2 { color: #0a1628; }
+[data-theme="light"] h3, [data-theme="light"] h4 { color: #8a7048; }
 
-[data-theme="light"] .base-card-title { color: #0f2040; }
-[data-theme="light"] .base-card-desc  { color: #2a3a55; }
-[data-theme="light"] .base-preview-name { color: #0f2040; }
+[data-theme="light"] .base-card-title { color: #0a1628; }
+[data-theme="light"] .base-card-desc  { color: #475569; }
+[data-theme="light"] .base-preview-name { color: #0a1628; }
 
 [data-theme="light"] .base-button {
-    background: transparent;
+    background: linear-gradient(135deg, #c8a96e, #e0c898);
     color: #0a1628;
-    border: 2px solid #0a1628;
-    box-shadow: none;
+    box-shadow: 0 2px 12px rgba(200, 169, 110, 0.3);
 }
 [data-theme="light"] .base-button:hover {
-    background: rgba(10,22,40,0.08);
-    box-shadow: none;
+    opacity: 0.88;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 18px rgba(200, 169, 110, 0.4);
 }
 
 [data-theme="light"] .base-button-secondary {
     background: transparent;
     color: #0a1628;
-    border-color: #0a1628;
+    border: 1.5px solid rgba(10, 22, 40, 0.35);
 }
 [data-theme="light"] .base-button-secondary:hover {
-    background: rgba(10,22,40,0.08);
+    background: rgba(10, 22, 40, 0.05);
     color: #0a1628;
     border-color: #0a1628;
+    transform: translateY(-1px);
 }
 
 /* ── Theme toggle button ─────────────────────────────────────── */
@@ -677,13 +701,13 @@ h3, h4 { font-family: var(--font-display); color: var(--base-tan); letter-spacin
 }
 
 [data-theme="light"] .base-card-danger {
-    background: linear-gradient(160deg, rgba(139, 48, 69, 0.05) 0%, #dde2ed 100%) !important;
-    border-color: rgba(139, 48, 69, 0.22) !important;
-    border-top-color: #6b1f2a !important;
+    background: linear-gradient(160deg, rgba(239, 68, 68, 0.04) 0%, #ffffff 100%) !important;
+    border-color: rgba(239, 68, 68, 0.18) !important;
+    border-top-color: #ef4444 !important;
 }
 
 [data-theme="light"] .base-card-danger h3 {
-    color: #991b1b !important;
+    color: #b91c1c !important;
 }
 
 /* ── Modals & Dialogs ────────────────────────────────────────── */
