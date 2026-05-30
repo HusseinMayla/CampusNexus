@@ -23,6 +23,17 @@ def send_verification_email(email):
     mail.send(msg)
 
 
+def send_secondary_verification_email(user_email):
+    s = URLSafeTimedSerializer(current_app.config['SECRET_KEY'])
+    token = s.dumps(user_email.id, salt='secondary-email-verify')
+    link = url_for('auth.verify_secondary_token', token=token, _external=True)
+    sender = current_app.config['MAIL_USERNAME']
+    current_app.logger.error(f'DEBUG sender={sender}')
+    msg = Message('Verify your secondary email address', sender=sender, recipients=[user_email.email])
+    msg.body = f'Hi! Click the link below to verify your secondary email address:\n\n{link}\n\nThis link expires in 1 hour.'
+    mail.send(msg)
+
+
 @auth_bp.route('/')
 def page():
     if current_user.is_authenticated:
@@ -82,17 +93,23 @@ def register():
         flash('Password must be at least 8 characters.', 'error')
         return redirect(signup_url)
 
-    existing = User.query.filter_by(email=email).first()
-    if existing:
-        if not existing.is_verified:
-            try:
-                send_verification_email(email)
-                flash('This email is already registered but unverified. A new verification link has been sent.', 'success')
-            except Exception as e:
-                flash(f'Mail error: {e}', 'error')
-            return redirect(url_for('auth.page'))
+    # Check if this email exists as a verified primary or verified secondary email
+    verified_primary = User.query.filter_by(email=email, is_verified=True).first()
+    verified_secondary = UserEmail.query.filter_by(email=email, is_verified=True).first()
+
+    if verified_primary or verified_secondary:
         flash('An account with this email already exists.', 'error')
         return redirect(signup_url)
+
+    # If it exists as an unverified primary email, resend the verification email
+    unverified_primary = User.query.filter_by(email=email, is_verified=False).first()
+    if unverified_primary:
+        try:
+            send_verification_email(email)
+            flash('This email is already registered but unverified. A new verification link has been sent.', 'success')
+        except Exception as e:
+            flash(f'Mail error: {e}', 'error')
+        return redirect(url_for('auth.page'))
 
     hashed = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
     user   = User(name=name, email=email, password_hash=hashed, is_verified=False)
@@ -171,7 +188,12 @@ def add_email():
     if is_auto_verified:
         flash(f'Added and auto-verified administrator email: {email}', 'success')
     else:
-        flash(f'Added {email} to your account. Please verify it to enable multi-campus access.', 'success')
+        try:
+            send_secondary_verification_email(new_email)
+            flash(f'Added {email} to your account. A verification link has been sent. Please check your inbox.', 'success')
+        except Exception as e:
+            current_app.logger.error(f'Mail error: {e}')
+            flash(f'Added {email} to your account, but failed to send verification email: {e}', 'error')
     return redirect(url_for('main.settings'))
 
 
@@ -185,14 +207,139 @@ def verify_email(email_id):
         flash('Unauthorized action.', 'error')
         return redirect(url_for('main.settings'))
         
-    # Mock/TODO Verification:
-    # In production, this would validate a code/token sent to the email.
-    # For testing and development, we mock it by verifying it immediately.
+    try:
+        send_secondary_verification_email(user_email)
+        flash(f'A verification link has been sent to {user_email.email}. Please check your inbox.', 'success')
+    except Exception as e:
+        current_app.logger.error(f'Mail error: {e}')
+        flash(f'Mail error: {e}', 'error')
+        
+    return redirect(url_for('main.settings'))
+
+
+@auth_bp.route('/verify-secondary/<token>')
+def verify_secondary_token(token):
+    s = URLSafeTimedSerializer(current_app.config['SECRET_KEY'])
+    try:
+        email_id = s.loads(token, salt='secondary-email-verify', max_age=3600)
+    except SignatureExpired:
+        flash('Verification link has expired. Please request a new link from Settings.', 'error')
+        if current_user.is_authenticated:
+            return redirect(url_for('main.settings'))
+        return redirect(url_for('auth.page'))
+    except BadSignature:
+        flash('Invalid verification link.', 'error')
+        if current_user.is_authenticated:
+            return redirect(url_for('main.settings'))
+        return redirect(url_for('auth.page'))
+
+    user_email = UserEmail.query.get(email_id)
+    if not user_email:
+        flash('Email record not found.', 'error')
+        if current_user.is_authenticated:
+            return redirect(url_for('main.settings'))
+        return redirect(url_for('auth.page'))
+
     user_email.is_verified = True
     db.session.commit()
     
-    flash(f'Email {user_email.email} has been verified successfully!', 'success')
-    return redirect(url_for('main.settings'))
+    flash(f'Secondary email {user_email.email} has been verified successfully!', 'success')
+    if current_user.is_authenticated:
+        return redirect(url_for('main.settings'))
+    return redirect(url_for('auth.page'))
+
+
+@auth_bp.route('/forgot-password', methods=['GET', 'POST'])
+def forgot_password_request():
+    if current_user.is_authenticated:
+        return redirect(url_for('main.dashboard'))
+        
+    if request.method == 'POST':
+        email = request.form.get('email', '').strip().lower()
+        if not email:
+            flash('Email address is required.', 'error')
+            return redirect(url_for('auth.forgot_password_request'))
+            
+        if not EMAIL_RE.match(email):
+            flash('Please enter a valid university email address.', 'error')
+            return redirect(url_for('auth.forgot_password_request'))
+
+        # Look up user by primary email
+        user = User.query.filter_by(email=email).first()
+        
+        # If not found, look up by verified secondary email
+        if not user:
+            user_email = UserEmail.query.filter_by(email=email, is_verified=True).first()
+            if user_email:
+                user = user_email.user
+                
+        if user:
+            # Generate timed reset token
+            s = URLSafeTimedSerializer(current_app.config['SECRET_KEY'])
+            token = s.dumps(user.id, salt='password-reset')
+            link = url_for('auth.reset_password', token=token, _external=True)
+            
+            # Send the reset email
+            sender = current_app.config['MAIL_USERNAME']
+            msg = Message('Reset your Agora password', sender=sender, recipients=[email])
+            msg.body = f'Hi {user.name}!\n\nClick the link below to reset your password:\n\n{link}\n\nThis link expires in 1 hour.'
+            try:
+                mail.send(msg)
+            except Exception as e:
+                current_app.logger.error(f'Mail error during forgot password: {e}')
+                
+        # Generic success message for privacy/security
+        flash('If this email is registered, a password reset link has been sent. Please check your inbox.', 'success')
+        return redirect(url_for('auth.page'))
+
+    return render_template('auth/forgot_password.html')
+
+
+@auth_bp.route('/reset-password/<token>', methods=['GET', 'POST'])
+def reset_password(token):
+    if current_user.is_authenticated:
+        return redirect(url_for('main.dashboard'))
+
+    s = URLSafeTimedSerializer(current_app.config['SECRET_KEY'])
+    try:
+        user_id = s.loads(token, salt='password-reset', max_age=3600)
+    except SignatureExpired:
+        flash('The password reset link has expired.', 'error')
+        return redirect(url_for('auth.forgot_password_request'))
+    except BadSignature:
+        flash('Invalid password reset link.', 'error')
+        return redirect(url_for('auth.forgot_password_request'))
+
+    user = User.query.get(user_id)
+    if not user:
+        flash('User account not found.', 'error')
+        return redirect(url_for('auth.forgot_password_request'))
+
+    if request.method == 'POST':
+        password = request.form.get('password', '')
+        confirm_password = request.form.get('confirm_password', '')
+
+        if not password or not confirm_password:
+            flash('All fields are required.', 'error')
+            return redirect(url_for('auth.reset_password', token=token))
+
+        if len(password) < 8:
+            flash('Password must be at least 8 characters.', 'error')
+            return redirect(url_for('auth.reset_password', token=token))
+
+        if password != confirm_password:
+            flash('Passwords do not match.', 'error')
+            return redirect(url_for('auth.reset_password', token=token))
+
+        # Update user's password
+        hashed = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+        user.password_hash = hashed
+        db.session.commit()
+
+        flash('Your password has been reset successfully! You can now sign in with your new password.', 'success')
+        return redirect(url_for('auth.page'))
+
+    return render_template('auth/reset_password.html', token=token)
 
 
 @auth_bp.route('/emails/<int:email_id>/delete', methods=['POST', 'DELETE'])
