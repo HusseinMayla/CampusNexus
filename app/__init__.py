@@ -4,61 +4,71 @@ from flask import Flask
 from config import Config
 from app.extensions import db, login_manager, socketio, mail
 
+
 def create_app(config_class=Config):
     app = Flask(__name__)
+    
+    # Load general configurations (SECRET_KEY, MAIL settings, etc.) from config.py
     app.config.from_object(config_class)
 
-    # Use SQLite or PostgreSQL based on environments.
-    # In local development, we default to SQLite even if a global DATABASE_URL is set (from another project).
-    # We only use DATABASE_URL if we are deployed (Vercel/Railway) or if USE_POSTGRES is explicitly set.
-    is_deployed = os.environ.get('VERCEL') or os.environ.get('RAILWAY_ENVIRONMENT') or os.environ.get('PORT')
-    
-    if os.environ.get('DATABASE_URL') and (is_deployed or os.environ.get('USE_POSTGRES')):
-        database_url = os.environ.get('DATABASE_URL')
-        if database_url.startswith("postgres://"):
-            database_url = database_url.replace("postgres://", "postgresql://", 1)
-        app.config['SQLALCHEMY_DATABASE_URI'] = database_url
-    else:
-        db_path = os.path.join(app.instance_path, 'campus.db')
-        app.config['SQLALCHEMY_DATABASE_URI'] = f'sqlite:///{db_path}'
+    # configure database in Flask instance folder
+    db_path = os.path.join(app.instance_path, 'campus.db')
+    app.config['SQLALCHEMY_DATABASE_URI'] = f'sqlite:///{db_path}'
 
-
-    # Ensure the instance folder exists for local development
+    #check if folder exists
     try:
         os.makedirs(app.instance_path)
     except OSError:
         pass
 
+    # Initialize extensions 
     db.init_app(app)
     login_manager.init_app(app)
     mail.init_app(app)
+    
+    # Redirect users to the login page if they try to access a @login_required route while logged out
     login_manager.login_view = 'auth.page'
+    
+    # Configure WebSocket mode: use 'gevent' for production deployments, and fallback to 
+    # 'threading' during local development runs
     _async_mode = 'gevent' if 'gunicorn' in sys.argv[0] else 'threading'
     socketio.init_app(app, cors_allowed_origins='*', async_mode=_async_mode)
 
+    # 6. Import database models so SQLAlchemy registers them with metadata
     from app import models
 
+    # 7. Import Blueprints (modular route groups)
     from app.auth.routes import auth_bp
     from app.main.routes import main_bp
     from app.map.routes import map_bp
     from app.study import study_bp
 
+    # 8. Register Blueprints with the Flask application
     app.register_blueprint(auth_bp)
     app.register_blueprint(main_bp)
     app.register_blueprint(map_bp)
     app.register_blueprint(study_bp)
 
-    from app.study import events as _study_events  # registers socketio handlers  # noqa
+    # 9. Import study events to bind SocketIO event listeners (e.g., chat message triggers)
+    from app.study import events as _study_events  # noqa
 
+    # --- GLOBAL CONTEXT PROCESSOR ---
+    # This function automatically injects variables into ALL HTML templates rendering,
+    # so we don't have to manually pass this data (like sidebar notifications) in every single route.
     @app.context_processor
     def inject_global_data():
         from flask_login import current_user
         from flask import request as req
         from datetime import timedelta
 
+        # List of endpoints/paths to skip sidebar queries on (performance optimization for AJAX requests)
         skip_paths = ('/send', '/poll', '/join', '/leave', '/create', '/delete', '/add', '/courses/remove')
+        
+        # If user is not logged in, return empty sidebar variables
         if not current_user.is_authenticated:
             return {'sidebar_chat': [], 'sidebar_study': [], 'unread_notifications_count': 0}
+            
+        # If it's a JSON response or an excluded path, return empty variables to save database queries
         if req.is_json or req.path.endswith(skip_paths):
             return {'sidebar_chat': [], 'sidebar_study': [], 'unread_notifications_count': 0}
 
@@ -66,11 +76,14 @@ def create_app(config_class=Config):
                                 StudyRoomMember, StudyRoomMessage, StudyRoom, Notification)
         import datetime as dt
 
-        # ── Chat sidebar ─────────────────────────────────────────
+        # -- Ingest Chat Sidebar data --
         by_campus = {}
+        # Fetch campuses that the current logged-in user belongs to
         for m in CampusMember.query.filter_by(user_id=current_user.id).all():
             c = m.campus
             by_campus[c.id] = {'campus_id': c.id, 'campus_name': c.name, 'rooms': []}
+            
+        # Fetch active chat rooms the user has joined and check if they have unread messages
         for cm in ChatMember.query.filter_by(user_id=current_user.id).all():
             room = cm.room
             cid  = room.campus_id
@@ -83,7 +96,8 @@ def create_app(config_class=Config):
             by_campus[cid]['rooms'].append({'id': room.id, 'name': room.name,
                                             'has_unread': has_unread})
 
-        # ── Study room sidebar ───────────────────────────────────
+        # -- Ingest Study Room Sidebar data --
+        # Hide study rooms whose sessions occurred more than 2 hours ago
         cutoff = dt.datetime.utcnow() - timedelta(hours=2)
         study_items = []
         for srm in StudyRoomMember.query.filter_by(user_id=current_user.id).all():
@@ -107,7 +121,7 @@ def create_app(config_class=Config):
             })
         study_items.sort(key=lambda x: x['session_time'])
 
-        # ── Unread notifications count ───────────────────────────
+        # -- Unread Notification Badge Count --
         unread_notifications_count = Notification.query.filter_by(user_id=current_user.id, is_read=False).count()
 
         return {
@@ -116,12 +130,16 @@ def create_app(config_class=Config):
             'unread_notifications_count': unread_notifications_count
         }
 
+    # --- ERROR HANDLER ---
+    # Catches any server-side exceptions (500 errors) and logs their stack trace for debugging
     @app.errorhandler(500)
     def internal_error(error):
         import traceback
         app.logger.error(traceback.format_exc())
         return "<h1>Something went wrong.</h1><p>Please try again later.</p>", 500
 
+    # --- DATABASE INITIALIZATION ---
+    # Automatically creates all database tables if they do not already exist on startup
     with app.app_context():
         try:
             db.create_all()

@@ -1,7 +1,5 @@
 # Git Workflow Guide
 
-## Before starting work:
-
 ```
     git pull
 ```
