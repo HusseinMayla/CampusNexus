@@ -2,122 +2,28 @@
 {% block title %}{{ room.name }} — {{ campus.name }} | Agora{% endblock %}
 
 {% block extra_css %}
-<style>
-.chat-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 16px;
-}
-.chat-messages {
-    height: 60vh;
-    overflow-y: auto;
-    display: flex;
-    flex-direction: column;
-    padding: 8px 0 12px;
-    border-bottom: 1px solid var(--base-border-color);
-    margin-bottom: 12px;
-}
-
-/* ── Message row ─────────────────────────────────── */
-.msg-row {
-    display: flex;
-    align-items: flex-end;
-    gap: 8px;
-    padding: 0 14px;
-    margin-top: 10px;
-}
-.msg-row.msg-consecutive { margin-top: 2px; }
-.msg-row-mine { flex-direction: row-reverse; }
-
-/* ── Avatar ─────────────────────────────────────── */
-.msg-avatar {
-    width: 30px; height: 30px;
-    border-radius: 50%;
-    font-size: 0.72rem; font-weight: 700;
-    display: flex; align-items: center; justify-content: center;
-    flex-shrink: 0;
-    align-self: flex-end;
-}
-.msg-avatar-other { background: #334155; color: #e8e0d0; }
-[data-theme="light"] .msg-avatar-other { background: #f6f4ee; color: #0f172a; border: 1px solid rgba(200, 169, 110, 0.5); }
-.msg-avatar-mine { background: #c8a96e; color: #0a1628; }
-.msg-avatar-spacer { width: 30px; flex-shrink: 0; }
-
-/* ── Bubble column ──────────────────────────────── */
-.msg-col {
-    display: flex; flex-direction: column;
-    max-width: 68%;
-}
-.msg-row-mine  .msg-col { align-items: flex-end; }
-.msg-row-other .msg-col { align-items: flex-start; }
-
-.msg-sender {
-    font-size: 0.72rem; font-weight: 600;
-    margin-bottom: 2px; padding: 0 4px;
-    opacity: 0.6;
-}
-
-/* ── Bubble ─────────────────────────────────────── */
-.msg {
-    padding: 8px 12px 6px;
-    border-radius: 12px;
-    font-size: 0.95rem;
-    line-height: 1.45;
-    word-break: break-word;
-}
-/* tail only on first of a group */
-.msg-row-other:not(.msg-consecutive) .msg { border-radius: 2px 12px 12px 12px; }
-.msg-row-mine:not(.msg-consecutive)  .msg { border-radius: 12px 2px 12px 12px; }
-
-.msg-other { background: #334155; color: #e8e0d0; }
-[data-theme="light"] .msg-other { background: #ffffff; color: #0f172a; border: 1px solid rgba(200, 169, 110, 0.4); box-shadow: 0 2px 8px rgba(10, 22, 40, 0.04); }
-.msg-mine  { background: #c8a96e; color: #0a1628; }
-
-/* ── Timestamp ──────────────────────────────────── */
-.msg-time {
-    display: block;
-    text-align: right;
-    font-size: 0.63rem;
-    opacity: 0.5;
-    margin-top: 3px;
-    white-space: nowrap;
-}
-
-/* ── Input ──────────────────────────────────────── */
-.chat-input-row { display: flex; gap: 8px; }
-
-/* ── Leave overlay ──────────────────────────────── */
-.leave-overlay {
-    display: none; position: fixed; inset: 0;
-    background: rgba(0,0,0,0.6); z-index: 1000;
-    align-items: center; justify-content: center;
-}
-.leave-overlay.open { display: flex; }
-.leave-box {
-    background: var(--base-card-bg); border: 1px solid var(--base-border-color);
-    border-radius: 14px; padding: 32px 28px; max-width: 340px; width: 90%;
-    text-align: center;
-}
-</style>
+<link rel="stylesheet" href="{{ url_for('static', filename='css/chat_room.css') }}">
 {% endblock %}
 
 {% block content %}
 <div class="chat-header">
     <h2>
-        <a href="{{ url_for('main.chat_browse', campus_id=campus.id) }}" style="text-decoration:none;color:var(--base-text-muted);font-size:0.85em;margin-right:6px;opacity:0.7;" title="All chat rooms">←</a>{{ room.name }}
+        <a href="{{ url_for('main.chat_browse', campus_id=campus.id) }}" class="back-arrow" title="All chat rooms">←</a>{{ room.name }}
     </h2>
-    <div style="display:flex;gap:8px;">
+    <div class="chat-header-actions">
         {% if member.role in ('owner', 'admin') %}
-        <button class="base-button-secondary" style="font-size:0.9rem;padding:7px 16px;background:#dc2626;border-color:#dc2626;color:#fff;"
-                onclick="document.getElementById('deleteOverlay').classList.add('open')">Delete</button>
+        <button class="base-button-danger btn-sm" id="triggerDeleteBtn">Delete</button>
         {% endif %}
-        <button class="base-button-secondary" style="font-size:0.9rem;padding:7px 16px;"
-                onclick="document.getElementById('leaveOverlay').classList.add('open')">Leave</button>
+        <button class="base-button-secondary btn-sm" id="triggerLeaveBtn">Leave</button>
     </div>
 </div>
 
-<div class="chat-messages" id="msgList">
+<div class="chat-messages" id="msgList"
+     data-campus-id="{{ campus.id }}"
+     data-room-id="{{ room.id }}"
+     data-last-id="{{ messages[-1].id if messages else 0 }}"
+     data-last-sender="{{ messages[-1].sender.name | e if messages else '' }}"
+     data-last-mine="{{ 'true' if messages and messages[-1].sender_id == current_user.id else 'false' }}">
     {% for msg in messages %}
     {% set mine = msg.sender_id == current_user.id %}
     {% set prev_same = loop.previtem is defined and loop.previtem.sender_id == msg.sender_id %}
@@ -143,21 +49,18 @@
 </div>
 
 <div class="chat-input-row">
-    <input class="base-input" id="msgInput" placeholder="Type a message…" style="flex:1;"
-           onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendMsg();}">
-    <button class="base-button" onclick="sendMsg()" style="padding:11px 20px;">Send</button>
+    <input class="base-input" id="msgInput" placeholder="Type a message…">
+    <button class="base-button" id="sendBtn">Send</button>
 </div>
 
 {% if member.role in ('owner', 'admin') %}
 <div class="leave-overlay" id="deleteOverlay">
     <div class="leave-box">
-        <h3 style="margin-bottom:10px;">Delete {{ room.name }}?</h3>
-        <p style="color:var(--base-text-muted);margin-bottom:24px;font-size:0.95rem;">This will remove the room and all messages for everyone.</p>
-        <div style="display:flex;gap:10px;justify-content:center;">
-            <button onclick="confirmDelete()"
-                    style="padding:9px 24px;background:#dc2626;border:none;border-radius:8px;color:#fff;font-family:var(--font-display);font-weight:700;cursor:pointer;">Delete</button>
-            <button onclick="document.getElementById('deleteOverlay').classList.remove('open')"
-                    style="padding:9px 24px;background:none;border:1.5px solid var(--base-border-color);border-radius:8px;color:var(--base-text-muted);font-family:var(--font-display);font-weight:700;cursor:pointer;">Cancel</button>
+        <h3>Delete {{ room.name }}?</h3>
+        <p>This will remove the room and all messages for everyone.</p>
+        <div class="leave-box-actions">
+            <button class="base-button-danger" id="confirmDeleteBtn">Delete</button>
+            <button class="base-button-secondary" id="cancelDeleteBtn">Cancel</button>
         </div>
     </div>
 </div>
@@ -165,106 +68,16 @@
 
 <div class="leave-overlay" id="leaveOverlay">
     <div class="leave-box">
-        <h3 style="margin-bottom:10px;">Leave {{ room.name }}?</h3>
-        <p style="color:var(--base-text-muted);margin-bottom:24px;font-size:0.95rem;">You won't see this room anymore unless you rejoin.</p>
-        <div style="display:flex;gap:10px;justify-content:center;">
-            <button onclick="confirmLeave()"
-                    style="padding:9px 24px;background:#dc2626;border:none;border-radius:8px;color:#fff;font-family:var(--font-display);font-weight:700;cursor:pointer;">Leave</button>
-            <button onclick="document.getElementById('leaveOverlay').classList.remove('open')"
-                    style="padding:9px 24px;background:none;border:1.5px solid var(--base-border-color);border-radius:8px;color:var(--base-text-muted);font-family:var(--font-display);font-weight:700;cursor:pointer;">Cancel</button>
+        <h3>Leave {{ room.name }}?</h3>
+        <p>You won't see this room anymore unless you rejoin.</p>
+        <div class="leave-box-actions">
+            <button class="base-button-danger" id="confirmLeaveBtn">Leave</button>
+            <button class="base-button-secondary" id="cancelLeaveBtn">Cancel</button>
         </div>
     </div>
 </div>
 {% endblock %}
 
 {% block extra_js %}
-<script>
-const CAMPUS_ID = {{ campus.id }};
-const ROOM_ID   = {{ room.id }};
-let lastId     = {{ messages[-1].id if messages else 0 }};
-let lastSender = {{ messages[-1].sender.name | tojson if messages else 'null' }};
-let lastMine   = {{ 'true' if messages and messages[-1].sender_id == current_user.id else 'false' }};
-
-const list = document.getElementById('msgList');
-list.scrollTop = list.scrollHeight;
-
-function esc(s) {
-    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-}
-
-function fmtTime(d) {
-    let h = d.getHours(), m = d.getMinutes(), ampm = h >= 12 ? 'PM' : 'AM';
-    h = h % 12 || 12;
-    return h + ':' + String(m).padStart(2, '0') + ' ' + ampm;
-}
-
-function appendMsg(body, sender, mine, id, consecutive) {
-    const time = fmtTime(new Date());
-    const row  = document.createElement('div');
-    row.className = 'msg-row ' + (mine ? 'msg-row-mine' : 'msg-row-other') + (consecutive ? ' msg-consecutive' : '');
-
-    const avatarHtml = consecutive
-        ? `<div class="msg-avatar-spacer"></div>`
-        : `<div class="msg-avatar ${mine ? 'msg-avatar-mine' : 'msg-avatar-other'}">${esc(sender[0].toUpperCase())}</div>`;
-
-    const senderHtml = (!consecutive && !mine)
-        ? `<div class="msg-sender">${esc(sender)}</div>`
-        : '';
-
-    row.innerHTML = `${avatarHtml}
-        <div class="msg-col">
-            ${senderHtml}
-            <div class="msg ${mine ? 'msg-mine' : 'msg-other'}">
-                ${esc(body)}<span class="msg-time">${time}</span>
-            </div>
-        </div>`;
-
-    list.appendChild(row);
-    list.scrollTop = list.scrollHeight;
-    lastSender = sender;
-    lastMine   = mine;
-    if (id) lastId = id;
-}
-
-async function sendMsg() {
-    const inp  = document.getElementById('msgInput');
-    const body = inp.value.trim();
-    if (!body) return;
-    inp.value = '';
-    const consecutive = lastMine === true;
-    const res  = await fetch(`/campus/${CAMPUS_ID}/chat/${ROOM_ID}/send`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ body })
-    });
-    const data = await res.json();
-    if (data.id) appendMsg(data.body, data.sender, true, data.id, consecutive);
-}
-
-async function poll() {
-    try {
-        const res  = await fetch(`/campus/${CAMPUS_ID}/chat/${ROOM_ID}/poll?after=${lastId}`);
-        const msgs = await res.json();
-        for (const m of msgs) {
-            if (!m.mine) {
-                const consecutive = !lastMine && lastSender === m.sender;
-                appendMsg(m.body, m.sender, false, m.id, consecutive);
-            }
-            if (m.id > lastId) lastId = m.id;
-        }
-    } catch {}
-}
-
-setInterval(poll, 3000);
-
-async function confirmLeave() {
-    const res = await fetch(`/campus/${CAMPUS_ID}/chat/${ROOM_ID}/leave`, { method: 'POST' });
-    if (res.ok) window.location.href = `/campus/${CAMPUS_ID}/chat`;
-}
-
-async function confirmDelete() {
-    const res = await fetch(`/campus/${CAMPUS_ID}/chat/${ROOM_ID}/delete`, { method: 'POST' });
-    if (res.ok) window.location.href = `/campus/${CAMPUS_ID}/chat`;
-}
-</script>
+<script src="{{ url_for('static', filename='js/chat_room.js') }}"></script>
 {% endblock %}

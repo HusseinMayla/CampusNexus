@@ -28,7 +28,6 @@
               <img
                 src="{{ url_for('static', filename='logo.png') }}"
                 alt="Agora"
-                style="width: 80px; height: 80px; object-fit: contain"
               />
             </div>
           </div>
@@ -53,14 +52,8 @@
       <section class="form-panel">
         <div class="form-card">
           <div class="tab-bar">
-            <button
-              class="tab active"
-              id="tabLogin"
-              onclick="switchTab('login')"
-            >
-              Sign In
-            </button>
-            <button class="tab" id="tabSignup" onclick="switchTab('signup')">
+            <button class="tab active" id="tabLogin">Sign In</button>
+            <button class="tab" id="tabSignup">
               Sign Up
             </button>
             <div class="tab-indicator" id="tabIndicator"></div>
@@ -99,7 +92,7 @@
             <div class="field-group">
               <label for="loginPassword">
                 <span>Password</span>
-                <a href="{{ url_for('auth.forgot_password_request') }}" style="color: var(--tan); text-decoration: underline; font-size: 0.82rem; font-family: var(--font-body); font-weight: normal; text-underline-offset: 2px;">Forgot password?</a>
+                <a href="{{ url_for('auth.forgot_password_request') }}" class="forgot-link">Forgot password?</a>
               </label>
               <div class="input-wrap">
                 <svg class="input-icon" viewBox="0 0 20 20">
@@ -116,7 +109,7 @@
                 <button
                   type="button"
                   class="eye-btn"
-                  onclick="togglePassword('loginPassword', this)"
+                  data-target="loginPassword"
                   tabindex="-1"
                 >
                   <svg class="eye-icon eye-closed" viewBox="0 0 20 20">
@@ -141,9 +134,7 @@
             </button>
             <p class="form-switch">
               New to Agora?
-              <button type="button" onclick="switchTab('signup')">
-                Create an account
-              </button>
+              <button type="button" id="switchToSignup">Create an account</button>
             </p>
           </form>
 
@@ -208,7 +199,7 @@
                 <button
                   type="button"
                   class="eye-btn"
-                  onclick="togglePassword('signupPassword', this)"
+                  data-target="signupPassword"
                   tabindex="-1"
                 >
                   <svg class="eye-icon eye-closed" viewBox="0 0 20 20">
@@ -239,9 +230,7 @@
             </button>
             <p class="form-switch">
               Already have an account?
-              <button type="button" onclick="switchTab('login')">
-                Sign in
-              </button>
+              <button type="button" id="switchToLogin">Sign in</button>
             </p>
           </form>
         </div>

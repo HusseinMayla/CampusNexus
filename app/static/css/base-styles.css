@@ -441,6 +441,12 @@ body {
     transform: translateY(-1px);
 }
 
+/* Small size modifier */
+.btn-sm {
+    font-size: 0.9rem;
+    padding: 7px 16px;
+}
+
 /* Danger — maroon */
 .base-button-danger {
     background: linear-gradient(135deg, #6b1f2a, #8b3045);
@@ -772,5 +778,69 @@ h3, h4 { font-family: var(--font-display); color: var(--base-tan); letter-spacin
     font-size: 0.95rem;
     line-height: 1.6;
     margin: 0 0 24px;
+}
+
+/* ── Back arrow link in room headers ─────────────────────────── */
+.back-arrow {
+    text-decoration: none;
+    color: var(--base-text-muted);
+    font-size: 0.85em;
+    margin-right: 6px;
+    opacity: 0.7;
+}
+.back-arrow:hover { opacity: 1; }
+
+/* ── Logo image ──────────────────────────────────────────────── */
+.base-logo img {
+    height: 44px;
+    object-fit: contain;
+    vertical-align: middle;
+    margin-right: 8px;
+}
+
+/* ── Notification button (anchor variant) ────────────────────── */
+a.base-notification-btn {
+    text-decoration: none;
+    font-size: 1.3rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    margin-right: 12px;
+    position: relative;
+}
+
+/* ── Notification badge ──────────────────────────────────────── */
+.notification-badge {
+    position: absolute;
+    top: -3px;
+    right: -6px;
+    background-color: #f43f5e;
+    color: white;
+    border-radius: 50%;
+    font-size: 0.68rem;
+    width: 16px;
+    height: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    border: 2px solid var(--base-card-bg, #0b1528);
+    line-height: 1;
+}
+
+/* ── Profile avatar link ─────────────────────────────────────── */
+a.base-profile-avatar { text-decoration: none; }
+
+/* ── Sidebar campus name label ───────────────────────────────── */
+.sidebar-campus-name {
+    padding: 4px 16px;
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--base-tan-dim);
+    font-weight: bold;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 

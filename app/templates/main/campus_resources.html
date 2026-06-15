@@ -3,245 +3,37 @@
 {% block title %}Resources — {{ campus.name }} | Agora{% endblock %}
 
 {% block extra_css %}
-<style>
-.res-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
-    margin-bottom: 28px;
-    flex-wrap: wrap;
-    gap: 16px;
-}
-.res-actions { display: flex; gap: 10px; flex-wrap: wrap; }
-
-.compose-bar {
-    display: flex;
-    align-items: center;
-    gap: 14px;
-    background: var(--base-card-bg);
-    border: 1px solid var(--base-border-color);
-    border-radius: 12px;
-    padding: 14px 20px;
-    margin-bottom: 20px;
-    cursor: pointer;
-    transition: border-color 0.2s, box-shadow 0.2s;
-}
-.compose-bar:hover { border-color: var(--base-tan); box-shadow: 0 2px 12px rgba(200,169,110,0.12); }
-.compose-avatar {
-    width: 36px; height: 36px; border-radius: 50%;
-    background: linear-gradient(135deg, var(--base-tan), var(--base-tan-light));
-    color: #0a1628;
-    display: flex; align-items: center; justify-content: center;
-    font-family: var(--font-display); font-weight: 700; font-size: 1rem; flex-shrink: 0;
-}
-.compose-placeholder { color: var(--base-text-muted); font-style: italic; font-size: 0.95rem; font-family: var(--font-body); }
-
-/* Post card */
-.post-card {
-    background: var(--base-card-bg);
-    border: 1px solid var(--base-border-color);
-    border-radius: 14px;
-    padding: 18px 20px;
-    margin-bottom: 12px;
-    position: relative;
-    transition: border-color 0.2s;
-}
-.post-card:hover { border-color: rgba(200,169,110,0.3); }
-.post-header { display: flex; align-items: center; gap: 10px; margin-bottom: 0; }
-.post-avatar {
-    width: 38px; height: 38px; border-radius: 50%;
-    background: linear-gradient(135deg, var(--base-tan), var(--base-tan-light));
-    color: #0a1628;
-    display: flex; align-items: center; justify-content: center;
-    font-family: var(--font-display); font-weight: 700; font-size: 1rem; flex-shrink: 0;
-}
-.post-username { font-family: var(--font-display); font-weight: 600; font-size: 1.15rem; color: var(--base-text-color); }
-.post-divider  { border: none; border-top: 1px solid var(--base-border-color); margin: 12px 0; }
-.post-body { display: flex; flex-direction: column; gap: 10px; padding-left: 48px; }
-.post-row  { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
-
-/* Tags */
-.tag {
-    display: inline-flex; align-items: center; gap: 5px;
-    padding: 4px 12px; border-radius: 20px;
-    font-size: 0.85rem; font-family: var(--font-body);
-    border: 1.5px solid; white-space: nowrap;
-}
-.tag-course   { border-color: #c8a96e; color: #c8a96e; }
-.tag-chapter  { border-color: #9333ea; color: #9333ea; }
-.tag-email    { border-color: #3b82f6; color: #3b82f6; text-decoration: none; cursor: pointer; }
-.tag-email:hover { background: rgba(59,130,246,0.1); }
-
-/* Request heading */
-.request-label {
-    font-family: var(--font-display);
-    font-size: 1.1rem;
-    font-weight: 700;
-    color: var(--base-tan);
-}
-[data-theme="light"] .request-label { color: #0f172a; }
-
-/* WhatsApp-style file card */
-.file-card {
-    display: flex; align-items: center; gap: 12px;
-    background: var(--base-card-bg-alt);
-    border: 1px solid var(--base-border-color);
-    border-radius: 10px; padding: 12px 14px;
-    max-width: 400px;
-}
-.file-card-icon {
-    width: 44px; height: 44px; border-radius: 8px; flex-shrink: 0;
-    display: flex; align-items: center; justify-content: center;
-    font-family: var(--font-display); font-weight: 700; font-size: 0.7rem;
-    letter-spacing: 0.02em;
-}
-.ft-bg-pdf               { background: rgba(220,38,38,0.15);  color: #dc2626; }
-.ft-bg-pptx, .ft-bg-ppt { background: rgba(234,88,12,0.15);  color: #ea580c; }
-.ft-bg-docx, .ft-bg-doc { background: rgba(37,99,235,0.15);  color: #2563eb; }
-.ft-bg-xlsx              { background: rgba(22,163,74,0.15);  color: #16a34a; }
-.file-card-info { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
-.file-card-name {
-    font-size: 0.88rem; font-weight: 600; color: var(--base-text-color);
-    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-}
-.file-card-type { font-size: 0.78rem; color: var(--base-text-muted); }
-.file-card-dl {
-    width: 32px; height: 32px; border-radius: 50%; flex-shrink: 0;
-    border: 1.5px solid var(--base-border-color); background: transparent;
-    display: flex; align-items: center; justify-content: center;
-    text-decoration: none; color: var(--base-text-muted); font-size: 0.95rem;
-    transition: all 0.2s;
-}
-.file-card-dl:hover { border-color: var(--base-tan); color: var(--base-tan); }
-
-/* Delete btn */
-.post-delete-btn {
-    position: absolute; top: 16px; right: 16px;
-    background: none; border: none; color: var(--base-text-muted);
-    font-size: 0.95rem; cursor: pointer; padding: 4px 8px; border-radius: 4px;
-    transition: color 0.2s, background 0.2s; line-height: 1;
-}
-.post-delete-btn:hover { color: #ef4444; background: rgba(239,68,68,0.1); }
-
-.res-empty { text-align: center; padding: 80px 24px; color: var(--base-text-muted); }
-
-/* Modals */
-.modal-overlay {
-    display: none; position: fixed; inset: 0;
-    background: rgba(0,0,0,0.55); z-index: 1000;
-    align-items: center; justify-content: center;
-}
-.modal-overlay.open { display: flex; }
-.modal-box {
-    background: var(--base-card-bg); border: 1px solid var(--base-border-color);
-    border-radius: 16px; width: 100%; max-width: 480px;
-    padding: 28px; position: relative;
-    box-shadow: 0 20px 60px rgba(0,0,0,0.5);
-}
-.modal-title { font-family: var(--font-display); font-size: 1.3rem; font-weight: 700; color: var(--base-tan-light); margin-bottom: 4px; }
-.modal-close {
-    position: absolute; top: 16px; right: 20px;
-    background: none; border: none; font-size: 1.5rem;
-    color: var(--base-text-muted); cursor: pointer; line-height: 1;
-}
-.modal-close:hover { color: var(--base-text-color); }
-.modal-label {
-    display: block; font-family: var(--font-display); font-size: 0.8rem;
-    font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase;
-    color: var(--base-tan-dim); margin-bottom: 8px; margin-top: 18px;
-}
-.field-err { display: block; font-size: 0.8rem; color: #ef4444; min-height: 1rem; margin-top: 4px; }
-
-/* File drop */
-.file-drop {
-    border: 1.5px dashed var(--base-border-color); border-radius: 8px;
-    padding: 24px; text-align: center; cursor: pointer;
-    transition: border-color 0.2s;
-}
-.file-drop:hover, .file-drop.has-file { border-color: var(--base-tan); }
-.file-drop input[type="file"] { display: none; }
-.file-drop-label { font-size: 0.9rem; color: var(--base-text-muted); }
-.file-name-display { font-size: 0.88rem; color: var(--base-tan); margin-top: 8px; word-break: break-all; }
-
-/* Chapter tag input */
-.chapter-wrap {
-    display: flex; flex-wrap: wrap; gap: 6px; align-items: center;
-    padding: 8px 12px; background: rgba(10,22,40,0.35);
-    border: 1px solid var(--base-border-color); border-radius: 8px;
-    min-height: 44px; cursor: text;
-}
-[data-theme="light"] .chapter-wrap { background: #ffffff; border-color: rgba(200, 169, 110, 0.5); }
-.chapter-wrap input {
-    border: none; background: transparent; color: var(--base-text-color);
-    font-family: var(--font-body); font-size: 0.9rem; outline: none; flex: 1; min-width: 80px;
-}
-.chapter-wrap input::placeholder { color: var(--base-text-muted); font-style: italic; }
-.chtag {
-    display: inline-flex; align-items: center; gap: 4px;
-    padding: 3px 10px; border-radius: 20px;
-    border: 1.5px solid #9333ea; color: #9333ea; font-size: 0.82rem;
-}
-.chtag-x { cursor: pointer; opacity: 0.7; font-size: 0.75rem; padding: 0 2px; }
-.chtag-x:hover { opacity: 1; }
-
-/* Submit */
-.btn-post-submit {
-    width: 100%; margin-top: 22px; padding: 12px;
-    background: linear-gradient(135deg, var(--base-tan), var(--base-tan-light));
-    border: none; border-radius: 8px; color: #0a1628;
-    font-family: var(--font-display); font-size: 1rem; font-weight: 700;
-    letter-spacing: 0.04em; cursor: pointer; transition: opacity 0.2s;
-}
-.btn-post-submit:hover { opacity: 0.88; }
-.btn-post-submit:disabled { opacity: 0.45; cursor: not-allowed; }
-
-/* Confirm */
-.confirm-overlay {
-    display: none; position: fixed; inset: 0;
-    background: rgba(0,0,0,0.6); z-index: 1100;
-    align-items: center; justify-content: center;
-}
-.confirm-overlay.open { display: flex; }
-.confirm-box {
-    background: var(--base-card-bg); border: 1px solid var(--base-border-color);
-    border-radius: 14px; padding: 32px 28px; max-width: 360px; width: 90%;
-    text-align: center; box-shadow: 0 20px 60px rgba(0,0,0,0.5);
-}
-.confirm-box h3 { font-family: var(--font-display); color: var(--base-text-color); margin: 0 0 10px; }
-.confirm-box p  { color: var(--base-text-muted); font-size: 0.95rem; margin: 0 0 24px; }
-.confirm-actions { display: flex; gap: 10px; justify-content: center; }
-.btn-del-yes { padding: 9px 26px; background: #dc2626; border: none; border-radius: 8px; color: white; font-family: var(--font-display); font-weight: 700; cursor: pointer; }
-.btn-del-no  { padding: 9px 26px; background: none; border: 1.5px solid var(--base-border-color); border-radius: 8px; color: var(--base-text-muted); font-family: var(--font-display); font-weight: 700; cursor: pointer; }
-.btn-del-no:hover { border-color: var(--base-tan-dim); color: var(--base-text-color); }
-</style>
+<link rel="stylesheet" href="{{ url_for('static', filename='css/campus_resources.css') }}">
 {% endblock %}
 
 {% block content %}
 
 <div class="res-header">
     <div>
-        <h1><span style="color: initial">📚</span> Resources</h1>
-        <p style="color: var(--base-text-muted); margin-top: 4px; font-size: 0.95rem;">Share notes and slides, or request what you need.</p>
+        <h1><span>📚</span> Resources</h1>
+        <p class="res-subtitle">Share notes and slides, or request what you need.</p>
     </div>
     <div class="res-actions">
-        <button class="base-button-secondary" onclick="openRequestModal()" style="padding: 9px 18px; font-size: 0.9rem;">Request Material</button>
-        <button class="base-button" onclick="openShareModal()" style="padding: 9px 18px; font-size: 0.9rem;">+ Share File</button>
+        <button class="base-button-secondary" id="btnOpenRequest">Request Material</button>
+        <button class="base-button" id="btnOpenShare">+ Share File</button>
     </div>
 </div>
 
 {% if posts %}
-<div class="compose-bar" onclick="openShareModal()">
+<div class="compose-bar">
     <div class="compose-avatar">{{ current_user.name[0] | upper }}</div>
     <span class="compose-placeholder">Have a file to share? Upload it here…</span>
 </div>
 {% endif %}
 
-<div id="resFeed">
+<div id="resFeed"
+     data-campus-id="{{ campus.id }}"
+     data-user-initial="{{ current_user.name[0] | upper }}">
 {% for post_type, post, _ in posts %}
 {% if post_type == 'resource' %}
 <div class="post-card" data-id="{{ post.id }}" data-type="resource">
     {% if post.uploader_id == current_user.id %}
-    <button class="post-delete-btn" onclick="confirmDelete({{ post.id }}, 'resource')" title="Delete">✕</button>
+    <button class="post-delete-btn" data-post-id="{{ post.id }}" data-post-type="resource" title="Delete">✕</button>
     {% endif %}
     <div class="post-header">
         <div class="post-avatar">{{ post.uploader.name[0] | upper }}</div>
@@ -285,7 +77,7 @@
 {% else %}
 <div class="post-card" data-id="{{ post.id }}" data-type="request">
     {% if post.poster_id == current_user.id %}
-    <button class="post-delete-btn" onclick="confirmDelete({{ post.id }}, 'request')" title="Delete">✕</button>
+    <button class="post-delete-btn" data-post-id="{{ post.id }}" data-post-type="request" title="Delete">✕</button>
     {% endif %}
     <div class="post-header">
         <div class="post-avatar">{{ post.poster.name[0] | upper }}</div>
@@ -315,68 +107,68 @@
 
 {% if not posts %}
 <div class="res-empty" id="emptyState">
-    <div style="font-size: 3rem; margin-bottom: 16px;">📂</div>
-    <h3 style="margin-bottom: 8px;">Nothing here yet</h3>
-    <p style="margin-bottom: 24px;">Share a file or request material from your campus.</p>
-    <div style="display: flex; gap: 12px; justify-content: center; flex-wrap: wrap;">
-        <button class="base-button-secondary" onclick="openRequestModal()">Request Material</button>
-        <button class="base-button" onclick="openShareModal()">+ Share File</button>
+    <div class="res-empty-icon">📂</div>
+    <h3>Nothing here yet</h3>
+    <p>Share a file or request material from your campus.</p>
+    <div class="res-empty-actions">
+        <button class="base-button-secondary" id="btnEmptyRequest">Request Material</button>
+        <button class="base-button" id="btnEmptyShare">+ Share File</button>
     </div>
 </div>
 {% endif %}
 
 <!-- Share File Modal -->
-<div class="modal-overlay" id="shareModal" onclick="overlayClick(event,'shareModal')">
+<div class="modal-overlay" id="shareModal">
     <div class="modal-box">
-        <button class="modal-close" onclick="closeShareModal()">×</button>
+        <button class="modal-close" id="shareCloseBtn">×</button>
         <div class="modal-title">Share a File</div>
-        <p style="color: var(--base-text-muted); font-size: 0.9rem; margin-bottom: 4px;">PDF, PPTX, PPT, DOCX, DOC, XLSX only.</p>
+        <p class="modal-subtitle">PDF, PPTX, PPT, DOCX, DOC, XLSX only.</p>
 
         <label class="modal-label">Course Code</label>
-        <input type="text" id="f-code" class="base-input" placeholder="e.g. CS101" oninput="validateShare()" style="text-transform: uppercase;" onkeydown="if(event.key==='Enter')document.getElementById('shareSubmitBtn').click()">
+        <input type="text" id="f-code" class="base-input input-uppercase" placeholder="e.g. CS101">
         <span class="field-err" id="err-share-code"></span>
 
         <label class="modal-label">File</label>
-        <div class="file-drop" id="fileDrop" onclick="document.getElementById('f-file').click()">
-            <input type="file" id="f-file" accept=".pdf,.pptx,.ppt,.docx,.doc,.xlsx" onchange="onFileChange(this)">
+        <div class="file-drop" id="fileDrop">
+            <input type="file" id="f-file" accept=".pdf,.pptx,.ppt,.docx,.doc,.xlsx">
             <div class="file-drop-label" id="fileDropLabel">Click to choose a file</div>
-            <div class="file-name-display" id="fileNameDisplay" style="display:none;"></div>
+            <div class="file-name-display res-hidden" id="fileNameDisplay"></div>
         </div>
         <span class="field-err" id="err-share-file"></span>
 
-        <label class="modal-label">Chapter Tags <span style="font-weight:400;text-transform:none;font-size:0.85em;color:var(--base-text-muted);">(optional)</span></label>
-        <div class="chapter-wrap" id="shareChapterWrap" onclick="document.getElementById('shareChapterInput').focus()">
-            <input id="shareChapterInput" placeholder="e.g. Chapter 3 — press Enter to add" onkeydown="shareChapterKey(event)">
+        <label class="modal-label">Chapter Tags <span class="modal-label-opt">(optional)</span></label>
+        <div class="chapter-wrap" id="shareChapterWrap">
+            <input id="shareChapterInput" placeholder="e.g. Chapter 3 — press Enter to add">
         </div>
 
         <span class="field-err" id="err-share-general"></span>
-        <button class="btn-post-submit" id="shareSubmitBtn" onclick="submitUpload()" disabled>Upload</button>
+        <button class="btn-post-submit" id="shareSubmitBtn" disabled>Upload</button>
     </div>
 </div>
 
 <!-- Request Material Modal -->
-<div class="modal-overlay" id="requestModal" onclick="overlayClick(event,'requestModal')">
+<div class="modal-overlay" id="requestModal">
     <div class="modal-box">
-        <button class="modal-close" onclick="closeRequestModal()">×</button>
+        <button class="modal-close" id="requestCloseBtn">×</button>
         <div class="modal-title">Request Material</div>
-        <p style="color: var(--base-text-muted); font-size: 0.9rem; margin-bottom: 4px;">Let your campus know what you're looking for.</p>
+        <p class="modal-subtitle">Let your campus know what you're looking for.</p>
 
         <label class="modal-label">Your Email</label>
-        <input type="email" id="r-email" class="base-input" placeholder="you@university.edu" oninput="validateRequest()" onkeydown="if(event.key==='Enter')submitRequest()">
+        <input type="email" id="r-email" class="base-input" placeholder="you@university.edu">
         <span class="field-err" id="err-req-email"></span>
 
         <label class="modal-label">Course Code</label>
-        <input type="text" id="r-code" class="base-input" placeholder="e.g. CS101" oninput="validateRequest()" style="text-transform: uppercase;" onkeydown="if(event.key==='Enter')submitRequest()">
+        <input type="text" id="r-code" class="base-input input-uppercase" placeholder="e.g. CS101">
         <span class="field-err" id="err-req-code"></span>
 
-        <label class="modal-label">Chapters <span style="font-weight:400; text-transform:none; font-size:0.85em; color:var(--base-text-muted);">(optional)</span></label>
-        <div class="chapter-wrap" id="chapterWrap" onclick="document.getElementById('chapterInput').focus()">
-            <input id="chapterInput" placeholder="e.g. Chapter 3 — press Enter to add" onkeydown="chapterKey(event)">
+        <label class="modal-label">Chapters <span class="modal-label-opt">(optional)</span></label>
+        <div class="chapter-wrap" id="chapterWrap">
+            <input id="chapterInput" placeholder="e.g. Chapter 3 — press Enter to add">
         </div>
         <span class="field-err" id="err-req-chapters"></span>
 
         <span class="field-err" id="err-req-general"></span>
-        <button class="btn-post-submit" id="requestSubmitBtn" onclick="submitRequest()" disabled>Post Request</button>
+        <button class="btn-post-submit" id="requestSubmitBtn" disabled>Post Request</button>
     </div>
 </div>
 
@@ -387,7 +179,7 @@
         <p>This is permanent and cannot be undone.</p>
         <div class="confirm-actions">
             <button class="btn-del-yes" id="confirmYes">Delete</button>
-            <button class="btn-del-no" onclick="closeConfirm()">Cancel</button>
+            <button class="btn-del-no" id="confirmNo">Cancel</button>
         </div>
     </div>
 </div>
@@ -395,276 +187,5 @@
 {% endblock %}
 
 {% block extra_js %}
-<script>
-const CAMPUS_ID   = {{ campus.id }};
-const ALLOWED_EXT = ['pdf','pptx','ppt','docx','doc','xlsx'];
-const EMAIL_RE    = /^[\w.+\-]+@[\w\-]+(\.[a-zA-Z]{2,}){1,3}$/;
-
-/* ── Share modal ─────────────────────────────────────────── */
-let shareChapters = [];
-
-function openShareModal()  { document.getElementById('shareModal').classList.add('open'); document.getElementById('f-code').focus(); }
-function closeShareModal() { document.getElementById('shareModal').classList.remove('open'); resetShare(); }
-
-function resetShare() {
-    document.getElementById('f-code').value = '';
-    document.getElementById('f-file').value = '';
-    document.getElementById('fileNameDisplay').style.display = 'none';
-    document.getElementById('fileDropLabel').style.display = '';
-    document.getElementById('fileDrop').classList.remove('has-file');
-    ['share-code','share-file','share-general'].forEach(k => document.getElementById('err-'+k).textContent = '');
-    document.getElementById('shareSubmitBtn').disabled = true;
-    document.getElementById('shareSubmitBtn').textContent = 'Upload';
-    shareChapters = [];
-    document.getElementById('shareChapterWrap').querySelectorAll('.chtag').forEach(t => t.remove());
-    document.getElementById('shareChapterInput').value = '';
-}
-
-function shareChapterKey(e) {
-    if (e.key !== 'Enter' && e.key !== ',') return;
-    e.preventDefault();
-    const val = document.getElementById('shareChapterInput').value.trim();
-    if (!val || shareChapters.includes(val)) { document.getElementById('shareChapterInput').value = ''; return; }
-    shareChapters.push(val);
-    const tag = document.createElement('span');
-    tag.className = 'chtag';
-    tag.innerHTML = `${esc(val)} <span class="chtag-x" onclick="removeShareChapter(this,'${val.replace(/'/g,"\\'")}')">×</span>`;
-    document.getElementById('shareChapterWrap').insertBefore(tag, document.getElementById('shareChapterInput'));
-    document.getElementById('shareChapterInput').value = '';
-}
-
-function removeShareChapter(el, val) {
-    shareChapters = shareChapters.filter(c => c !== val);
-    el.parentElement.remove();
-}
-
-function onFileChange(input) {
-    const file = input.files[0];
-    if (!file) return;
-    const ext = file.name.split('.').pop().toLowerCase();
-    if (!ALLOWED_EXT.includes(ext)) {
-        document.getElementById('err-share-file').textContent = 'File type not allowed.';
-        input.value = '';
-        return;
-    }
-    document.getElementById('err-share-file').textContent = '';
-    document.getElementById('fileNameDisplay').textContent = file.name;
-    document.getElementById('fileNameDisplay').style.display = '';
-    document.getElementById('fileDropLabel').style.display = 'none';
-    document.getElementById('fileDrop').classList.add('has-file');
-    validateShare();
-}
-
-function validateShare() {
-    const ok = document.getElementById('f-code').value.trim().length > 0 &&
-               !!document.getElementById('f-file').files[0];
-    document.getElementById('shareSubmitBtn').disabled = !ok;
-    return ok;
-}
-
-async function submitUpload() {
-    if (!validateShare()) return;
-    document.getElementById('shareSubmitBtn').disabled = true;
-    document.getElementById('shareSubmitBtn').textContent = 'Uploading…';
-    const fd = new FormData();
-    fd.append('course_code', document.getElementById('f-code').value.trim().toUpperCase());
-    fd.append('chapters', shareChapters.join(','));
-    fd.append('file', document.getElementById('f-file').files[0]);
-    try {
-        const res  = await fetch(`/campus/${CAMPUS_ID}/resources/upload`, { method: 'POST', body: fd });
-        const data = await res.json();
-        if (!res.ok) { document.getElementById('err-share-general').textContent = data.error || 'Something went wrong.'; document.getElementById('shareSubmitBtn').disabled = false; document.getElementById('shareSubmitBtn').textContent = 'Upload'; return; }
-        prependResourceCard(data);
-        closeShareModal();
-        ensureComposeBar();
-    } catch { document.getElementById('err-share-general').textContent = 'Network error. Try again.'; document.getElementById('shareSubmitBtn').disabled = false; document.getElementById('shareSubmitBtn').textContent = 'Upload'; }
-}
-
-/* ── Request modal ───────────────────────────────────────── */
-let chapters = [];
-
-function openRequestModal()  { document.getElementById('requestModal').classList.add('open'); document.getElementById('r-email').focus(); }
-function closeRequestModal() { document.getElementById('requestModal').classList.remove('open'); resetRequest(); }
-
-function resetRequest() {
-    document.getElementById('r-email').value = '';
-    document.getElementById('r-code').value  = '';
-    chapters = [];
-    document.getElementById('chapterWrap').querySelectorAll('.chtag').forEach(t => t.remove());
-    document.getElementById('chapterInput').value = '';
-    ['req-email','req-code','req-chapters','req-general'].forEach(k => document.getElementById('err-'+k).textContent = '');
-    document.getElementById('requestSubmitBtn').disabled = true;
-}
-
-function chapterKey(e) {
-    const inp = document.getElementById('chapterInput');
-    if (e.key === 'Enter' && inp.value.trim()) { e.preventDefault(); addChapter(inp.value.trim()); inp.value = ''; }
-    else if (e.key === 'Backspace' && !inp.value && chapters.length) removeChapter(chapters.length - 1);
-}
-function addChapter(val) {
-    const idx = chapters.length; chapters.push(val);
-    const inp = document.getElementById('chapterInput');
-    const tag = document.createElement('span');
-    tag.className = 'chtag'; tag.dataset.idx = idx;
-    tag.innerHTML = `${esc(val)}<span class="chtag-x" onclick="removeChapter(${idx})">×</span>`;
-    document.getElementById('chapterWrap').insertBefore(tag, inp);
-}
-function removeChapter(idx) {
-    chapters.splice(idx, 1);
-    const wrap = document.getElementById('chapterWrap');
-    wrap.querySelectorAll('.chtag').forEach(t => t.remove());
-    const copy = [...chapters]; chapters = [];
-    copy.forEach(v => addChapter(v));
-    document.getElementById('chapterInput').focus();
-}
-
-function validateRequest() {
-    const email = document.getElementById('r-email').value.trim();
-    const code  = document.getElementById('r-code').value.trim();
-    const ok    = EMAIL_RE.test(email) && code.length > 0;
-    document.getElementById('requestSubmitBtn').disabled = !ok;
-    return ok;
-}
-
-async function submitRequest() {
-    if (!validateRequest()) return;
-    document.getElementById('requestSubmitBtn').disabled = true;
-    try {
-        const res  = await fetch(`/campus/${CAMPUS_ID}/resources/request`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                email:       document.getElementById('r-email').value.trim(),
-                course_code: document.getElementById('r-code').value.trim().toUpperCase(),
-                chapters
-            })
-        });
-        const data = await res.json();
-        if (!res.ok) { document.getElementById('err-req-general').textContent = data.error || 'Something went wrong.'; document.getElementById('requestSubmitBtn').disabled = false; return; }
-        prependRequestCard(data);
-        closeRequestModal();
-        ensureComposeBar();
-    } catch { document.getElementById('err-req-general').textContent = 'Network error. Try again.'; document.getElementById('requestSubmitBtn').disabled = false; }
-}
-
-/* ── Overlay helpers ─────────────────────────────────────── */
-function overlayClick(e, id) { if (e.target === document.getElementById(id)) { id === 'shareModal' ? closeShareModal() : closeRequestModal(); } }
-
-/* ── Card builders ───────────────────────────────────────── */
-function ftBg(ext) {
-    if (ext === 'pdf')  return 'ft-bg-pdf';
-    if (ext === 'pptx' || ext === 'ppt') return 'ft-bg-pptx';
-    if (ext === 'docx' || ext === 'doc') return 'ft-bg-docx';
-    if (ext === 'xlsx') return 'ft-bg-xlsx';
-    return 'ft-bg-pdf';
-}
-function ftLabel(ext) {
-    if (ext === 'pptx' || ext === 'ppt') return 'PPT';
-    if (ext === 'docx' || ext === 'doc') return 'DOC';
-    if (ext === 'xlsx') return 'XLS';
-    return (ext || 'FILE').toUpperCase();
-}
-function ftType(ext) {
-    if (ext === 'pdf')  return 'PDF Document';
-    if (ext === 'pptx' || ext === 'ppt') return 'PowerPoint';
-    if (ext === 'docx' || ext === 'doc') return 'Word Document';
-    if (ext === 'xlsx') return 'Excel Spreadsheet';
-    return 'File';
-}
-
-function prependResourceCard(r) {
-    const card = document.createElement('div');
-    card.className = 'post-card'; card.dataset.id = r.id; card.dataset.type = 'resource';
-    const initial = esc(r.uploader_name.charAt(0).toUpperCase());
-    const dlUrl   = `/campus/${CAMPUS_ID}/resources/${r.id}/download`;
-    const chTags = r.chapters ? r.chapters.split(',').filter(c=>c.trim()).map(c=>`<span class="tag tag-chapter">${esc(c.trim())}</span>`).join('') : '';
-    card.innerHTML = `
-        <button class="post-delete-btn" onclick="confirmDelete(${r.id},'resource')" title="Delete">✕</button>
-        <div class="post-header">
-            <div class="post-avatar">${initial}</div>
-            <span class="post-username">${esc(r.uploader_name)}</span>
-        </div>
-        <hr class="post-divider">
-        <div class="post-body">
-            <div class="post-row"><span class="tag tag-course">${esc(r.course_code)}</span></div>
-            ${chTags ? `<div class="post-row">${chTags}</div>` : ''}
-            <div class="file-card">
-                <div class="file-card-icon ${ftBg(r.file_type)}">${ftLabel(r.file_type)}</div>
-                <div class="file-card-info">
-                    <span class="file-card-name">${esc(r.original_filename)}</span>
-                    <span class="file-card-type">${ftType(r.file_type)}</span>
-                </div>
-                <a href="${dlUrl}" class="file-card-dl" title="Download">↓</a>
-            </div>
-        </div>`;
-    document.getElementById('resFeed').prepend(card);
-    hideEmpty();
-}
-
-function prependRequestCard(r) {
-    const card = document.createElement('div');
-    card.className = 'post-card'; card.dataset.id = r.id; card.dataset.type = 'request';
-    const initial    = esc(r.poster_name.charAt(0).toUpperCase());
-    const chapterTags = r.chapters.map(c => `<span class="tag tag-chapter">${esc(c)}</span>`).join('');
-    card.innerHTML = `
-        <button class="post-delete-btn" onclick="confirmDelete(${r.id},'request')" title="Delete">✕</button>
-        <div class="post-header">
-            <div class="post-avatar">${initial}</div>
-            <span class="post-username">${esc(r.poster_name)}</span>
-        </div>
-        <hr class="post-divider">
-        <div class="post-body">
-            <div class="request-label">Requesting material</div>
-            <div class="post-row">
-                <span class="tag tag-course">${esc(r.course_code)}</span>
-            </div>
-            <div class="post-row">
-                <a href="mailto:${esc(r.email)}" class="tag tag-email">${esc(r.email)}</a>
-            </div>
-            ${chapterTags ? `<div class="post-row">${chapterTags}</div>` : ''}
-        </div>`;
-    document.getElementById('resFeed').prepend(card);
-    hideEmpty();
-}
-
-function ensureComposeBar() {
-    if (document.querySelector('.compose-bar')) return;
-    const bar  = document.createElement('div');
-    bar.className = 'compose-bar'; bar.onclick = openShareModal;
-    bar.innerHTML = `<div class="compose-avatar">{{ current_user.name[0] | upper }}</div><span class="compose-placeholder">Have a file to share? Upload it here…</span>`;
-    document.getElementById('resFeed').before(bar);
-}
-
-function hideEmpty() {
-    const empty = document.getElementById('emptyState');
-    if (empty) empty.style.display = 'none';
-}
-
-/* ── Delete ──────────────────────────────────────────────── */
-function confirmDelete(id, type) {
-    document.getElementById('confirmOverlay').classList.add('open');
-    document.getElementById('confirmYes').onclick = () => doDelete(id, type);
-}
-function closeConfirm() { document.getElementById('confirmOverlay').classList.remove('open'); }
-
-async function doDelete(id, type) {
-    closeConfirm();
-    const url = type === 'request'
-        ? `/campus/${CAMPUS_ID}/resources/request/${id}`
-        : `/campus/${CAMPUS_ID}/resources/${id}`;
-    try {
-        const res = await fetch(url, { method: 'DELETE' });
-        if (res.ok) {
-            document.querySelector(`.post-card[data-id="${id}"][data-type="${type}"]`)?.remove();
-            if (!document.querySelector('.post-card')) {
-                const empty = document.getElementById('emptyState');
-                if (empty) empty.style.display = '';
-                document.querySelector('.compose-bar')?.remove();
-            }
-        }
-    } catch { alert('Failed to delete. Try again.'); }
-}
-
-function esc(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
-</script>
+<script src="{{ url_for('static', filename='js/campus_resources.js') }}"></script>
 {% endblock %}

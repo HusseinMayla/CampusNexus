@@ -466,6 +466,20 @@ input.valid {
   .form-panel { padding: 2rem 1.5rem; }
 }
 
+/* ── Logo image inside placeholder ──────────────────────────── */
+.logo-placeholder img { width: 80px; height: 80px; object-fit: contain; }
+
+/* ── Forgot password link ────────────────────────────────────── */
+.forgot-link {
+  color: var(--tan);
+  text-decoration: underline;
+  font-size: 0.82rem;
+  font-family: var(--font-body);
+  font-weight: normal;
+  text-underline-offset: 2px;
+}
+.forgot-link:hover { color: var(--tan-light); }
+
 @media (max-width: 480px) {
   .brand-panel { padding: 1.5rem; }
   .form-panel  { padding: 1.5rem 1rem; }

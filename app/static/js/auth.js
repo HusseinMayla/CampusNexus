@@ -181,6 +181,16 @@ document.getElementById('formSignup').addEventListener('submit', function (e) {
 });
 
 
+/* ── Tab + eye button wiring ────────────────────────────────── */
+document.getElementById('tabLogin').addEventListener('click',  () => switchTab('login'));
+document.getElementById('tabSignup').addEventListener('click', () => switchTab('signup'));
+document.getElementById('switchToSignup').addEventListener('click', () => switchTab('signup'));
+document.getElementById('switchToLogin').addEventListener('click',  () => switchTab('login'));
+
+document.querySelectorAll('.eye-btn').forEach(btn => {
+  btn.addEventListener('click', () => togglePassword(btn.dataset.target, btn));
+});
+
 /* ── Blur-time validation (validate as user leaves each field) ─ */
 document.getElementById('loginEmail').addEventListener('blur', function () {
   validateEmail(this, document.getElementById('loginEmailErr'));
