@@ -2,99 +2,62 @@
 {% block title %}Study Rooms — {{ campus.name }} | Agora{% endblock %}
 
 {% block extra_css %}
-<style>
-.create-panel { margin-top: 32px; padding-top: 24px; border-top: 1px solid var(--base-border-color); }
-.create-panel h3 { margin-bottom: 16px; }
-.create-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-@media (max-width: 600px) { .create-grid { grid-template-columns: 1fr; } }
-</style>
+<link rel="stylesheet" href="{{ url_for('static', filename='css/study_browse.css') }}">
 {% endblock %}
 
 {% block content %}
-<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:32px;flex-wrap:wrap;gap:12px;">
-    <h1><span style="color:initial;-webkit-text-fill-color:initial;">🎓</span> Study Rooms</h1>
-    <button class="base-button" onclick="document.getElementById('createPanel').scrollIntoView({behavior:'smooth'})">＋ Create study room</button>
+<div class="sb-header">
+    <h1><span class="sb-emoji">🎓</span> Study Rooms</h1>
+    <button class="base-button" id="scrollToCreate">＋ Create study room</button>
 </div>
 
 {% if rooms %}
-<div class="base-card-grid">
+<div class="base-card-grid" id="roomList">
     {% for room in rooms %}
-    <div class="base-card" style="padding: 24px;">
+    <div class="base-card sb-card">
         <h3 class="base-card-title">{{ room.title }}</h3>
-        <p style="color: var(--base-primary-color); font-weight: 600; margin-bottom: 8px;">
-            {{ room.session_time.strftime('%b %d, %I:%M %p') }}
-        </p>
-        <p style="color: var(--base-text-muted);">📍 {{ room.location }}</p>
-        <p style="color: var(--base-text-muted); font-size: 0.88rem; margin-top: 4px;">{{ room.member_count }}/{{ room.max_members }} members</p>
+        <p class="sb-room-time">{{ room.session_time.strftime('%b %d, %I:%M %p') }}</p>
+        <p class="sb-room-loc">📍 {{ room.location }}</p>
+        <p class="sb-room-count">{{ room.member_count }}/{{ room.max_members }} members</p>
         {% if room.id in joined_ids %}
         <a href="{{ url_for('study.room', campus_id=campus.id, room_id=room.id) }}"
-           class="base-button" style="margin-top: 16px; width: 100%; text-align:center; display:block; text-decoration:none;">Open</a>
+           class="base-button sb-room-link">Open</a>
         {% else %}
-        <button class="base-button" style="margin-top: 16px; width: 100%;"
-                onclick="joinRoom({{ room.id }}, this)">Join</button>
+        <button class="base-button sb-join-btn" data-room-id="{{ room.id }}">Join</button>
         {% endif %}
     </div>
     {% endfor %}
 </div>
 {% else %}
-<p style="color: var(--base-text-muted);">No study rooms available right now.</p>
+<p class="sb-empty">No study rooms available right now.</p>
 {% endif %}
 
 <!-- ── Create Study Room ──────────────────────────────────────── -->
-<div class="create-panel" id="createPanel">
+<div class="create-panel" id="createPanel" data-campus-id="{{ campus.id }}">
     <h3>Create a Study Room</h3>
     <div class="create-grid">
         <div class="base-form-group">
             <label class="base-label">Title</label>
-            <input type="text" id="cr-title" class="base-input" placeholder="e.g. CSCI301 Midterm Prep" onkeydown="if(event.key==='Enter')createRoom()">
+            <input type="text" id="cr-title" class="base-input" placeholder="e.g. CSCI301 Midterm Prep">
         </div>
         <div class="base-form-group">
             <label class="base-label">Location</label>
-            <input type="text" id="cr-location" class="base-input" placeholder="e.g. Library Room 3, Zoom" onkeydown="if(event.key==='Enter')createRoom()">
+            <input type="text" id="cr-location" class="base-input" placeholder="e.g. Library Room 3, Zoom">
         </div>
         <div class="base-form-group">
             <label class="base-label">Session Time</label>
             <input type="datetime-local" id="cr-time" class="base-input">
         </div>
         <div class="base-form-group">
-            <label class="base-label">Max Members <span style="color:var(--base-text-muted);font-size:0.82rem;">(2–20)</span></label>
-            <input type="number" id="cr-max" class="base-input" min="2" max="20" placeholder="e.g. 6" onkeydown="if(event.key==='Enter')createRoom()">
+            <label class="base-label">Max Members <span class="sb-label-opt">(2–20)</span></label>
+            <input type="number" id="cr-max" class="base-input" min="2" max="20" placeholder="e.g. 6">
         </div>
     </div>
-    <span id="createErr" style="color:#ef4444;font-size:0.85rem;display:block;margin-bottom:8px;"></span>
-    <button class="base-button" onclick="createRoom()">Create Room</button>
+    <span id="createErr" class="sb-create-err"></span>
+    <button class="base-button" id="createRoomBtn">Create Room</button>
 </div>
 {% endblock %}
 
 {% block extra_js %}
-<script>
-const CAMPUS_ID = {{ campus.id }};
-
-async function joinRoom(id, btn) {
-    btn.disabled = true;
-    const res  = await fetch(`/campus/${CAMPUS_ID}/study-rooms/${id}/join`, { method: 'POST' });
-    const data = await res.json();
-    if (res.ok) window.location.href = data.redirect;
-    else { alert(data.error || 'Failed to join.'); btn.disabled = false; }
-}
-
-async function createRoom() {
-    const title    = document.getElementById('cr-title').value.trim();
-    const location = document.getElementById('cr-location').value.trim();
-    const time     = document.getElementById('cr-time').value;
-    const max      = document.getElementById('cr-max').value;
-    const err      = document.getElementById('createErr');
-    err.textContent = '';
-    if (!title || !location || !time || !max) {
-        err.textContent = 'All fields are required.'; return;
-    }
-    const res  = await fetch(`/campus/${CAMPUS_ID}/study-rooms/create`, {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ title, location, session_time: time, max_members: parseInt(max) })
-    });
-    const data = await res.json();
-    if (res.ok) window.location.reload();
-    else err.textContent = data.error || 'Failed to create.';
-}
-</script>
+<script src="{{ url_for('static', filename='js/study_browse.js') }}"></script>
 {% endblock %}

@@ -3,243 +3,182 @@
 {% block title %}Campus Settings - {{ campus.name }}{% endblock %}
 
 {% block extra_css %}
-<style>
-.cs-top-grid    { display: grid; grid-template-columns: 1fr 400px; gap: 40px; align-items: start; margin-bottom: 48px; }
-.cs-bottom-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; align-items: start; }
-@media (max-width: 1200px) {
-    .cs-top-grid    { grid-template-columns: 1fr; }
-    .cs-bottom-grid { grid-template-columns: 1fr; }
-}
-</style>
+<link rel="stylesheet" href="{{ url_for('static', filename='css/campus_settings.css') }}">
 {% endblock %}
 
 {% block content %}
 <div class="base-container">
-    <h1 style="margin-bottom: 8px;"><span class="icon-brand">⚙️</span> Campus Settings</h1>
-    <p style="color: var(--base-text-muted); margin-bottom: 32px;">Manage details and administrators for {{ campus.name }}.</p>
+    <h1 class="cs-page-title"><span class="icon-brand">⚙️</span> Campus Settings</h1>
+    <p class="cs-page-subtitle">Manage details and administrators for {{ campus.name }}.</p>
 
     {% with messages = get_flashed_messages(with_categories=true) %}
         {% if messages %}
             {% for category, message in messages %}
-                <div style="padding: 12px 16px; border-radius: 8px; margin-bottom: 24px; background: {% if category == 'success' %}#dcfce7; color: #166534{% elif category == 'error' %}#fee2e2; color: #991b1b{% else %}#f1f5f9; color: #334155{% endif %}; border: 1px solid {% if category == 'success' %}#bbf7d0{% elif category == 'error' %}#fecaca{% else %}#e2e8f0{% endif %};">
-                    {{ message }}
-                </div>
+                <div class="cs-flash cs-flash-{{ category }}">{{ message }}</div>
             {% endfor %}
         {% endif %}
     {% endwith %}
 
     <div class="cs-top-grid">
         <div class="base-form-side">
-            <div class="base-card" style="padding: 28px;">
-                <h3 style="margin-top: 0; margin-bottom: 20px; font-size: 1.3rem;">Edit Campus Details</h3>
+            <div class="base-card cs-card">
+                <h3 class="cs-card-title">Edit Campus Details</h3>
                 <form action="{{ url_for('main.campus_settings', campus_id=campus.id) }}" method="post" enctype="multipart/form-data">
-                    <div class="base-form-group" style="margin-bottom: 20px;">
+                    <div class="base-form-group">
                         <label class="base-label" for="name">Campus Name</label>
-                        <input type="text" id="name" name="name" class="base-input" value="{{ campus.name }}" required onkeyup="updateName(this.value)">
+                        <input type="text" id="name" name="name" class="base-input" value="{{ campus.name }}" required>
                     </div>
 
-                    <div class="base-form-group" style="margin-bottom: 20px;">
+                    <div class="base-form-group">
                         <label class="base-label" for="description">Description</label>
-                        <textarea id="description" name="description" class="base-textarea" onkeyup="updateDesc(this.value)">{{ campus.description or '' }}</textarea>
+                        <textarea id="description" name="description" class="base-textarea">{{ campus.description or '' }}</textarea>
                     </div>
 
-                    <div class="base-form-group" style="margin-bottom: 20px;">
+                    <div class="base-form-group">
                         <label class="base-label" for="banner_image">Banner Image</label>
-                        <input type="file" id="banner_image" name="banner_image" class="base-input" accept="image/*" onchange="previewBanner(this)">
-                        <small style="color: var(--base-text-muted); display: block; margin-top: 4px;">Wide image for the campus header.</small>
+                        <input type="file" id="banner_image" name="banner_image" class="base-input" accept="image/*">
+                        <small class="cs-hint">Wide image for the campus header.</small>
                     </div>
 
-                    <div class="base-form-group" style="margin-bottom: 20px;">
+                    <div class="base-form-group">
                         <label class="base-label" for="map_image">Square Map/Blueprint</label>
-                        <input type="file" id="map_image" name="map_image" class="base-input" accept="image/*" onchange="previewMap(this)">
-                        <small style="color: var(--base-text-muted); display: block; margin-top: 4px;">Upload a square image of the campus layout.</small>
+                        <input type="file" id="map_image" name="map_image" class="base-input" accept="image/*">
+                        <small class="cs-hint">Upload a square image of the campus layout.</small>
                     </div>
 
-                    <div class="base-form-group" style="margin-bottom: 24px;">
-                        <label class="base-label" for="domain">Email Domain Restriction <span style="color: var(--base-text-muted); font-size: 0.82rem; font-weight: normal;">(optional)</span></label>
+                    <div class="base-form-group">
+                        <label class="base-label" for="domain">Email Domain Restriction <span class="cs-label-opt">(optional)</span></label>
                         <input type="text" id="domain" name="domain" class="base-input" value="{{ campus.domain or '' }}" placeholder="e.g. usal.edu.lb">
-                        <small style="color: var(--base-text-muted); display: block; margin-top: 4px;">Only users with a verified email ending in this domain can join. You must have a verified email on this domain.</small>
+                        <small class="cs-hint">Only users with a verified email ending in this domain can join. You must have a verified email on this domain.</small>
                     </div>
 
-                    <button type="submit" class="base-button" style="width: 100%;">Save Changes</button>
+                    <button type="submit" class="base-button cs-btn-full">Save Changes</button>
                 </form>
             </div>
         </div>
 
         <div class="base-preview-side">
-            <label class="base-label" style="font-weight: 600; margin-bottom: 12px; display: block; text-transform: uppercase; font-size: 0.8rem; letter-spacing: 0.05em; color: var(--base-text-muted);">Live Preview</label>
-            <div class="base-campus-profile-preview" style="border: 1px solid var(--base-border-color); border-radius: 12px; overflow: hidden; background: var(--base-card-bg);">
-                <div class="base-preview-banner-box" id="bannerPreviewBox" style="position: relative; height: 160px; background: #162a52; display: flex; align-items: center; justify-content: center; color: white;">
+            <label class="cs-preview-label">Live Preview</label>
+            <div class="cs-preview-card">
+                <div class="cs-preview-banner" id="bannerPreviewBox">
                     {% if campus.banner_image %}
-                        <img id="bannerImg" src="{{ campus.banner_image }}" class="base-preview-banner-img" style="display: block; width: 100%; height: 100%; object-fit: cover;">
-                        <div id="bannerPlaceholder" style="display: none;">📷 Banner</div>
+                        <img id="bannerImg" src="{{ campus.banner_image }}" class="cs-preview-banner-img">
+                        <div id="bannerPlaceholder" class="cs-hidden">📷 Banner</div>
                     {% else %}
-                        <img id="bannerImg" class="base-preview-banner-img" style="display: none; width: 100%; height: 100%; object-fit: cover;">
+                        <img id="bannerImg" class="cs-preview-banner-img cs-hidden">
                         <div id="bannerPlaceholder">📷 Banner</div>
                     {% endif %}
-                    
-                    <div class="base-preview-map-inset" id="mapPreviewBox" style="position: absolute; bottom: -40px; left: 24px; width: 80px; height: 80px; border-radius: 8px; border: 3px solid var(--base-card-bg); background: #1f3765; overflow: hidden; display: flex; align-items: center; justify-content: center; color: white; box-shadow: 0 4px 12px rgba(0,0,0,0.15);">
+
+                    <div class="cs-preview-map" id="mapPreviewBox">
                         {% if campus.map_image %}
-                            <img id="mapImg" src="{{ campus.map_image }}" class="base-preview-map-img" style="display: block; width: 100%; height: 100%; object-fit: cover;">
-                            <div id="mapPlaceholder" style="display: none;">🗺️</div>
+                            <img id="mapImg" src="{{ campus.map_image }}" class="cs-preview-map-img">
+                            <div id="mapPlaceholder" class="cs-hidden">🗺️</div>
                         {% else %}
-                            <img id="mapImg" class="base-preview-map-img" style="display: none; width: 100%; height: 100%; object-fit: cover;">
+                            <img id="mapImg" class="cs-preview-map-img cs-hidden">
                             <div id="mapPlaceholder">🗺️</div>
                         {% endif %}
                     </div>
                 </div>
-                
-                <div class="base-preview-info" style="padding: 56px 24px 24px;">
-                    <div class="base-preview-name" id="previewName" style="font-size: 1.4rem; font-weight: 700; margin-bottom: 8px;">{{ campus.name }}</div>
-                    <div class="base-preview-desc" id="previewDesc" style="color: var(--base-text-muted); font-size: 0.92rem; line-height: 1.5;">{{ campus.description or 'No description provided yet...' }}</div>
+
+                <div class="cs-preview-info">
+                    <div class="cs-preview-name" id="previewName">{{ campus.name }}</div>
+                    <div class="cs-preview-desc" id="previewDesc">{{ campus.description or 'No description provided yet...' }}</div>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Divider -->
-    <div style="margin: 40px 0; border-bottom: 1px solid var(--base-border-color); opacity: 0.6;"></div>
+    <div class="cs-divider"></div>
 
     <div class="cs-bottom-grid">
         <!-- Add Moderator -->
-        <div class="base-card" style="padding: 28px;">
-            <h3 style="margin-top: 0; margin-bottom: 6px; font-size: 1.3rem;">Add Moderator</h3>
-            <p style="color: var(--base-text-muted); margin-bottom: 24px; font-size: 0.92rem;">Promote joined campus members to administrators.</p>
-            
+        <div class="base-card cs-card">
+            <h3 class="cs-card-title">Add Moderator</h3>
+            <p class="cs-card-subtitle">Promote joined campus members to administrators.</p>
             <form action="{{ url_for('main.add_moderator', campus_id=campus.id) }}" method="post">
-                <div class="base-form-group" style="margin-bottom: 20px;">
+                <div class="base-form-group">
                     <label class="base-label" for="mod-email">Member's Email Address</label>
-                    <input type="email" id="mod-email" name="email" class="base-input" placeholder="e.g. member@school.edu" required style="width: 100%;">
-                    <small style="color: var(--base-text-muted); display: block; margin-top: 6px;">The user must have already registered and joined this campus.</small>
+                    <input type="email" id="mod-email" name="email" class="base-input" placeholder="e.g. member@school.edu" required>
+                    <small class="cs-hint">The user must have already registered and joined this campus.</small>
                 </div>
                 <button type="submit" class="base-button">Add Moderator</button>
             </form>
         </div>
 
         <!-- Campus Admins List -->
-        <div class="base-card" style="padding: 28px;">
-            <h3 style="margin-top: 0; margin-bottom: 6px; font-size: 1.3rem;">Campus Administrators</h3>
-            <p style="color: var(--base-text-muted); margin-bottom: 24px; font-size: 0.92rem;">List of users who can manage campus maps, clubs, and events.</p>
+        <div class="base-card cs-card">
+            <h3 class="cs-card-title">Campus Administrators</h3>
+            <p class="cs-card-subtitle">List of users who can manage campus maps, clubs, and events.</p>
 
-            <div style="display: flex; flex-direction: column; gap: 14px;">
-                <!-- Owner Entry -->
+            <div class="cs-admin-list">
                 {% if owner_membership %}
-                <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px 16px; background: var(--base-card-bg-alt); border: 1px solid var(--base-border-color); border-radius: 8px;">
-                    <div style="display: flex; align-items: center; gap: 12px;">
-                        <div style="width: 36px; height: 36px; border-radius: 50%; background: #c5a880; color: #0b1528; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 0.95rem;">
-                            {{ owner_membership.user.name[0] | upper }}
-                        </div>
+                <div class="cs-member-row cs-member-row--owner">
+                    <div class="cs-member-left">
+                        <div class="cs-avatar cs-avatar--owner">{{ owner_membership.user.name[0] | upper }}</div>
                         <div>
-                            <div style="font-weight: 600; font-size: 0.95rem; display: flex; align-items: center; gap: 6px;">
+                            <div class="cs-member-name">
                                 {{ owner_membership.user.name }}
-                                <span style="font-size: 0.68rem; padding: 2px 6px; border-radius: 4px; background: #e0f2fe; color: #0369a1; font-weight: 600; text-transform: uppercase; border: 1px solid #bae6fd;">Owner</span>
+                                <span class="cs-role-badge cs-role-badge--owner">Owner</span>
                             </div>
-                            <div style="font-size: 0.8rem; color: var(--base-text-muted);">{{ owner_membership.user.email }}</div>
+                            <div class="cs-member-email">{{ owner_membership.user.email }}</div>
                         </div>
                     </div>
-                    <span style="font-size: 0.85rem; color: var(--base-text-muted); font-style: italic; padding-right: 8px;">Primary Creator</span>
+                    <span class="cs-primary-label">Primary Creator</span>
                 </div>
                 {% endif %}
 
-                <!-- Admin/Moderator Entries -->
                 {% if admins %}
                     {% for admin in admins %}
-                    <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px 16px; background: var(--base-card-bg); border: 1px solid var(--base-border-color); border-radius: 8px;">
-                        <div style="display: flex; align-items: center; gap: 12px;">
-                            <div style="width: 36px; height: 36px; border-radius: 50%; background: #3b82f6; color: white; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 0.95rem;">
-                                {{ admin.user.name[0] | upper }}
-                            </div>
+                    <div class="cs-member-row cs-member-row--admin">
+                        <div class="cs-member-left">
+                            <div class="cs-avatar cs-avatar--admin">{{ admin.user.name[0] | upper }}</div>
                             <div>
-                                <div style="font-weight: 600; font-size: 0.95rem; display: flex; align-items: center; gap: 6px;">
+                                <div class="cs-member-name">
                                     {{ admin.user.name }}
-                                    <span style="font-size: 0.68rem; padding: 2px 6px; border-radius: 4px; background: #ecfdf5; color: #047857; font-weight: 600; text-transform: uppercase; border: 1px solid #a7f3d0;">Admin</span>
+                                    <span class="cs-role-badge cs-role-badge--admin">Admin</span>
                                 </div>
-                                <div style="font-size: 0.8rem; color: var(--base-text-muted);">{{ admin.user.email }}</div>
+                                <div class="cs-member-email">{{ admin.user.email }}</div>
                             </div>
                         </div>
-                        
-                        <form action="{{ url_for('main.demote_member', campus_id=campus.id, user_id=admin.user.id) }}" method="post" style="margin: 0;" onsubmit="return confirm('Are you sure you want to revoke moderator privileges for {{ admin.user.name }}?');">
-                            <button type="submit" class="base-button-secondary" style="font-size: 0.8rem; padding: 6px 12px; border-color: #ef4444; color: #ef4444; background: transparent; cursor: pointer; transition: all 0.2s;">Revoke Access</button>
+                        <form class="cs-revoke-form"
+                              action="{{ url_for('main.demote_member', campus_id=campus.id, user_id=admin.user.id) }}"
+                              method="post"
+                              data-confirm-name="{{ admin.user.name }}">
+                            <button type="submit" class="base-button-secondary cs-btn-revoke">Revoke Access</button>
                         </form>
                     </div>
                     {% endfor %}
                 {% else %}
-                    <div style="text-align: center; padding: 24px; border: 1px dashed var(--base-border-color); border-radius: 8px; color: var(--base-text-muted); font-size: 0.92rem;">
-                        No other moderators assigned yet.
-                    </div>
+                    <div class="cs-empty-admins">No other moderators assigned yet.</div>
                 {% endif %}
             </div>
         </div>
     </div>
 
-    <!-- Divider -->
-    <div style="margin: 40px 0; border-bottom: 1px solid var(--base-border-color); opacity: 0.6;"></div>
+    <div class="cs-divider"></div>
 
     <!-- Danger Zone -->
-    <div style="margin-bottom: 48px;">
-        <h3 style="color: #ef4444; margin-bottom: 8px;">Danger Zone</h3>
-        <p style="color: var(--base-text-muted); font-size: 0.92rem; margin-bottom: 16px;">Permanently delete this campus, all its members, chat rooms, resources, and events.</p>
-        <button onclick="document.getElementById('deleteCampusOverlay').style.display='flex'"
-                style="padding:9px 24px;background:#dc2626;border:none;border-radius:8px;color:#fff;font-family:var(--font-display);font-weight:700;cursor:pointer;font-size:0.95rem;">
-            Delete Campus
-        </button>
+    <div class="cs-danger-zone">
+        <h3 class="cs-danger-title">Danger Zone</h3>
+        <p class="cs-danger-desc">Permanently delete this campus, all its members, chat rooms, resources, and events.</p>
+        <button id="openDeleteOverlay" class="base-button-danger">Delete Campus</button>
     </div>
 </div>
 
-<div id="deleteCampusOverlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:1000;align-items:center;justify-content:center;">
-    <div style="background:var(--base-card-bg);border:1px solid var(--base-border-color);border-radius:14px;padding:32px 28px;max-width:340px;width:90%;text-align:center;">
-        <h3 style="margin:0 0 10px;font-family:var(--font-display);">Delete {{ campus.name }}?</h3>
-        <p style="color:var(--base-text-muted);margin:0 0 24px;font-size:0.95rem;">This will permanently remove the campus and all its data for everyone.</p>
-        <div style="display:flex;gap:10px;justify-content:center;">
-            <button onclick="document.getElementById('deleteCampusForm').submit()"
-                    style="padding:9px 24px;background:#dc2626;border:none;border-radius:8px;color:#fff;font-family:var(--font-display);font-weight:700;cursor:pointer;">Delete</button>
-            <button onclick="document.getElementById('deleteCampusOverlay').style.display='none'"
-                    style="padding:9px 24px;background:none;border:1.5px solid var(--base-border-color);border-radius:8px;color:var(--base-text-muted);font-family:var(--font-display);font-weight:700;cursor:pointer;">Cancel</button>
+<div id="deleteCampusOverlay" class="cs-overlay">
+    <div class="cs-overlay-box">
+        <h3 class="cs-overlay-title">Delete {{ campus.name }}?</h3>
+        <p class="cs-overlay-text">This will permanently remove the campus and all its data for everyone.</p>
+        <div class="cs-overlay-actions">
+            <button id="confirmDelete" class="base-button-danger">Delete</button>
+            <button id="cancelDelete" class="base-button-secondary">Cancel</button>
         </div>
     </div>
 </div>
-<form id="deleteCampusForm" action="{{ url_for('main.delete_campus', campus_id=campus.id) }}" method="POST" style="display:none;"></form>
+<form id="deleteCampusForm" class="cs-hidden" action="{{ url_for('main.delete_campus', campus_id=campus.id) }}" method="POST"></form>
 
 {% endblock %}
 
 {% block extra_js %}
-<script>
-function previewBanner(input) {
-    const placeholder = document.getElementById('bannerPlaceholder');
-    const img = document.getElementById('bannerImg');
-
-    if (input.files && input.files[0]) {
-        const reader = new FileReader();
-        reader.onload = (e) => {
-            img.src = e.target.result;
-            img.style.display = 'block';
-            if (placeholder) placeholder.style.display = 'none';
-        }
-        reader.readAsDataURL(input.files[0]);
-    }
-}
-
-function previewMap(input) {
-    const placeholder = document.getElementById('mapPlaceholder');
-    const img = document.getElementById('mapImg');
-
-    if (input.files && input.files[0]) {
-        const reader = new FileReader();
-        reader.onload = (e) => {
-            img.src = e.target.result;
-            img.style.display = 'block';
-            if (placeholder) placeholder.style.display = 'none';
-        }
-        reader.readAsDataURL(input.files[0]);
-    }
-}
-
-function updateName(val) {
-    document.getElementById('previewName').textContent = val || "New Campus";
-}
-
-function updateDesc(val) {
-    document.getElementById('previewDesc').textContent = val || "Description will appear here...";
-}
-</script>
+<script src="{{ url_for('static', filename='js/campus_settings.js') }}"></script>
 {% endblock %}

@@ -1,0 +1,86 @@
+/* ── Grid layout ─────────────────────────────────────────────── */
+.cs-top-grid    { display: grid; grid-template-columns: 1fr 400px; gap: 40px; align-items: start; margin-bottom: 48px; }
+.cs-bottom-grid { display: grid; grid-template-columns: 1fr 1fr;   gap: 40px; align-items: start; }
+@media (max-width: 1200px) {
+    .cs-top-grid,
+    .cs-bottom-grid { grid-template-columns: 1fr; }
+}
+
+/* ── Page header ─────────────────────────────────────────────── */
+.cs-page-title    { margin-bottom: 8px; }
+.cs-page-subtitle { color: var(--base-text-muted); margin-bottom: 32px; }
+
+/* ── Flash messages ──────────────────────────────────────────── */
+.cs-flash         { padding: 12px 16px; border-radius: 8px; margin-bottom: 24px; border: 1px solid; }
+.cs-flash-success { background: #dcfce7; color: #166534; border-color: #bbf7d0; }
+.cs-flash-error   { background: #fee2e2; color: #991b1b; border-color: #fecaca; }
+.cs-flash-info    { background: #f1f5f9; color: #334155; border-color: #e2e8f0; }
+
+/* ── Card helpers ────────────────────────────────────────────── */
+.cs-card          { padding: 28px; }
+.cs-card-title    { margin-top: 0; margin-bottom: 20px; font-size: 1.3rem; }
+.cs-card-subtitle { color: var(--base-text-muted); margin-bottom: 24px; font-size: 0.92rem; }
+
+/* ── Form helpers ────────────────────────────────────────────── */
+.cs-hint      { color: var(--base-text-muted); display: block; margin-top: 4px; }
+.cs-label-opt { color: var(--base-text-muted); font-size: 0.82rem; font-weight: normal; }
+.cs-btn-full  { width: 100%; }
+
+/* ── Live preview ────────────────────────────────────────────── */
+.cs-preview-label { font-weight: 600; margin-bottom: 12px; display: block; text-transform: uppercase; font-size: 0.8rem; letter-spacing: 0.05em; color: var(--base-text-muted); }
+.cs-preview-card  { border: 1px solid var(--base-border-color); border-radius: 12px; overflow: hidden; background: var(--base-card-bg); }
+
+.cs-preview-banner     { position: relative; height: 160px; background: #162a52; display: flex; align-items: center; justify-content: center; color: white; }
+.cs-preview-banner-img { display: block; width: 100%; height: 100%; object-fit: cover; }
+
+.cs-preview-map     { position: absolute; bottom: -40px; left: 24px; width: 80px; height: 80px; border-radius: 8px; border: 3px solid var(--base-card-bg); background: #1f3765; overflow: hidden; display: flex; align-items: center; justify-content: center; color: white; box-shadow: 0 4px 12px rgba(0,0,0,0.15); }
+.cs-preview-map-img { display: block; width: 100%; height: 100%; object-fit: cover; }
+
+.cs-preview-info { padding: 56px 24px 24px; }
+.cs-preview-name { font-size: 1.4rem; font-weight: 700; margin-bottom: 8px; }
+.cs-preview-desc { color: var(--base-text-muted); font-size: 0.92rem; line-height: 1.5; }
+
+/* ── Section divider ─────────────────────────────────────────── */
+.cs-divider { margin: 40px 0; border-bottom: 1px solid var(--base-border-color); opacity: 0.6; }
+
+/* ── Admin list ──────────────────────────────────────────────── */
+.cs-admin-list { display: flex; flex-direction: column; gap: 14px; }
+
+.cs-member-row        { display: flex; justify-content: space-between; align-items: center; padding: 12px 16px; border: 1px solid var(--base-border-color); border-radius: 8px; }
+.cs-member-row--owner { background: var(--base-card-bg-alt); }
+.cs-member-row--admin { background: var(--base-card-bg); }
+.cs-member-left       { display: flex; align-items: center; gap: 12px; }
+
+.cs-avatar        { width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 0.95rem; flex-shrink: 0; }
+.cs-avatar--owner { background: #c5a880; color: #0b1528; }
+.cs-avatar--admin { background: #3b82f6; color: white; }
+
+.cs-member-name  { font-weight: 600; font-size: 0.95rem; display: flex; align-items: center; gap: 6px; }
+.cs-member-email { font-size: 0.8rem; color: var(--base-text-muted); }
+
+.cs-role-badge        { font-size: 0.68rem; padding: 2px 6px; border-radius: 4px; font-weight: 600; text-transform: uppercase; border: 1px solid; }
+.cs-role-badge--owner { background: #e0f2fe; color: #0369a1; border-color: #bae6fd; }
+.cs-role-badge--admin { background: #ecfdf5; color: #047857; border-color: #a7f3d0; }
+
+.cs-primary-label { font-size: 0.85rem; color: var(--base-text-muted); font-style: italic; padding-right: 8px; }
+
+.cs-revoke-form { margin: 0; }
+.cs-btn-revoke  { font-size: 0.8rem !important; padding: 6px 12px !important; border-color: #ef4444 !important; color: #ef4444 !important; background: transparent !important; }
+
+.cs-empty-admins { text-align: center; padding: 24px; border: 1px dashed var(--base-border-color); border-radius: 8px; color: var(--base-text-muted); font-size: 0.92rem; }
+
+/* ── Danger zone ─────────────────────────────────────────────── */
+.cs-danger-zone  { margin-bottom: 48px; }
+.cs-danger-title { color: #ef4444; margin-bottom: 8px; }
+.cs-danger-desc  { color: var(--base-text-muted); font-size: 0.92rem; margin-bottom: 16px; }
+
+/* ── Delete overlay ──────────────────────────────────────────── */
+.cs-overlay         { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 1000; align-items: center; justify-content: center; }
+.cs-overlay.open    { display: flex; }
+.cs-overlay-box     { background: var(--base-card-bg); border: 1px solid var(--base-border-color); border-radius: 14px; padding: 32px 28px; max-width: 340px; width: 90%; text-align: center; }
+.cs-overlay-title   { margin: 0 0 10px; font-family: var(--font-display); }
+.cs-overlay-text    { color: var(--base-text-muted); margin: 0 0 24px; font-size: 0.95rem; }
+.cs-overlay-actions { display: flex; gap: 10px; justify-content: center; }
+
+/* ── Hidden utility ──────────────────────────────────────────── */
+.cs-hidden { display: none !important; }
