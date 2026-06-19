@@ -201,5 +201,46 @@ def room(campus_id, room_id):
     srm.last_read_at = datetime.utcnow()
     db.session.commit()
 
+    msgs = StudyRoomMessage.query.filter_by(room_id=room_id).order_by(StudyRoomMessage.sent_at.asc()).all()
+    last_id = msgs[-1].id if msgs else 0
+
     return render_template('study/room.html', campus=campus, room=sr,
-                           active_page='study')
+                           messages=msgs, last_id=last_id, active_page='study')
+
+
+@study_bp.route('/campus/<int:campus_id>/study-rooms/<int:room_id>/send', methods=['POST'])
+@login_required
+def send_message(campus_id, room_id):
+    srm = StudyRoomMember.query.filter_by(user_id=current_user.id, room_id=room_id).first()
+    if not srm:
+        return jsonify({'error': 'Not a member'}), 403
+    body = (request.json or {}).get('body', '').strip()
+    if not body or len(body) > 2000:
+        return jsonify({'error': 'Invalid message'}), 400
+    msg = StudyRoomMessage(room_id=room_id, sender_id=current_user.id, body=body)
+    db.session.add(msg)
+    srm.last_read_at = datetime.utcnow()
+    db.session.commit()
+    return jsonify({'id': msg.id, 'body': msg.body, 'sender': current_user.name})
+
+
+@study_bp.route('/campus/<int:campus_id>/study-rooms/<int:room_id>/poll')
+@login_required
+def poll_messages(campus_id, room_id):
+    srm = StudyRoomMember.query.filter_by(user_id=current_user.id, room_id=room_id).first()
+    if not srm:
+        return jsonify({'error': 'Not a member'}), 403
+    after = request.args.get('after', 0, type=int)
+    msgs = StudyRoomMessage.query.filter(
+        StudyRoomMessage.room_id == room_id,
+        StudyRoomMessage.id > after
+    ).order_by(StudyRoomMessage.sent_at.asc()).all()
+    if msgs:
+        srm.last_read_at = datetime.utcnow()
+        db.session.commit()
+    return jsonify([{
+        'id': m.id,
+        'body': m.body,
+        'sender': m.sender.name,
+        'mine': m.sender_id == current_user.id
+    } for m in msgs])

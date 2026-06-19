@@ -1,6 +1,7 @@
 /* ── Page header ─────────────────────────────────────────────── */
-.sb-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 32px; flex-wrap: wrap; gap: 12px; }
-.sb-emoji  { color: initial; -webkit-text-fill-color: initial; }
+.sb-header   { display: flex; justify-content: space-between; align-items: center; margin-bottom: 32px; flex-wrap: wrap; gap: 12px; }
+.sb-emoji    { color: initial; -webkit-text-fill-color: initial; }
+.sb-subtitle { margin: 4px 0 0; font-size: 0.875rem; opacity: 0.6; }
 
 /* ── Room cards ──────────────────────────────────────────────── */
 .sb-card        { padding: 24px; }

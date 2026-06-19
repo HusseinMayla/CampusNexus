@@ -1,68 +1,83 @@
 const msgList   = document.getElementById('msgList');
 const CAMPUS_ID = parseInt(msgList.dataset.campusId);
 const ROOM_ID   = parseInt(msgList.dataset.roomId);
-const MY_NAME   = msgList.dataset.myName;
+let lastId      = parseInt(msgList.dataset.lastId) || 0;
+let lastSender  = msgList.dataset.lastSender || null;
+let lastMine    = msgList.dataset.lastMine === 'true';
 
-let lastSender = null;
-let lastMine   = false;
+msgList.scrollTop = msgList.scrollHeight;
 
 function esc(s) {
     return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 }
 
-function appendMsg(body, sender, mine, time, consecutive) {
-    const row = document.createElement('div');
+function fmtTime(d) {
+    let h = d.getHours(), m = d.getMinutes(), ampm = h >= 12 ? 'PM' : 'AM';
+    h = h % 12 || 12;
+    return h + ':' + String(m).padStart(2, '0') + ' ' + ampm;
+}
+
+function appendMsg(body, sender, mine, id, consecutive) {
+    const time = fmtTime(new Date());
+    const row  = document.createElement('div');
     row.className = 'msg-row ' + (mine ? 'msg-row-mine' : 'msg-row-other') +
                     (consecutive ? ' msg-consecutive' : '');
+
     const avatarHtml = consecutive
         ? `<div class="msg-avatar-spacer"></div>`
         : `<div class="msg-avatar ${mine ? 'msg-avatar-mine' : 'msg-avatar-other'}">${esc(sender[0].toUpperCase())}</div>`;
+
     const senderHtml = (!consecutive && !mine)
-        ? `<div class="msg-sender">${esc(sender)}</div>` : '';
+        ? `<div class="msg-sender">${esc(sender)}</div>`
+        : '';
+
     row.innerHTML = `${avatarHtml}
         <div class="msg-col">
             ${senderHtml}
             <div class="msg ${mine ? 'msg-mine' : 'msg-other'}">
-                ${esc(body)}<span class="msg-time">${esc(time)}</span>
+                ${esc(body)}<span class="msg-time">${time}</span>
             </div>
         </div>`;
+
     msgList.appendChild(row);
     msgList.scrollTop = msgList.scrollHeight;
     lastSender = sender;
     lastMine   = mine;
+    if (id) lastId = id;
 }
 
-const socket = io();
-
-socket.on('connect', () => {
-    socket.emit('join_study_room', { room_id: ROOM_ID });
-});
-
-socket.on('study_history', msgs => {
-    msgList.innerHTML = '';
-    lastSender = null;
-    lastMine   = false;
-    msgs.forEach(m => {
-        const consecutive = lastSender === m.sender && lastMine === m.mine;
-        appendMsg(m.body, m.sender, m.mine, m.time, consecutive);
-    });
-});
-
-socket.on('study_msg', m => {
-    const consecutive = lastSender === m.sender && lastMine === m.mine;
-    appendMsg(m.body, m.sender, m.mine, m.time, consecutive);
-});
-
-function sendMsg() {
+async function sendMsg() {
     const inp  = document.getElementById('msgInput');
     const body = inp.value.trim();
     if (!body) return;
     inp.value = '';
-    socket.emit('send_study_msg', { room_id: ROOM_ID, body });
+    const consecutive = lastMine === true;
+    const res  = await fetch(`/campus/${CAMPUS_ID}/study-rooms/${ROOM_ID}/send`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ body })
+    });
+    const data = await res.json();
+    if (data.id) appendMsg(data.body, data.sender, true, data.id, consecutive);
 }
 
+async function poll() {
+    try {
+        const res  = await fetch(`/campus/${CAMPUS_ID}/study-rooms/${ROOM_ID}/poll?after=${lastId}`);
+        const msgs = await res.json();
+        for (const m of msgs) {
+            if (!m.mine) {
+                const consecutive = !lastMine && lastSender === m.sender;
+                appendMsg(m.body, m.sender, false, m.id, consecutive);
+            }
+            if (m.id > lastId) lastId = m.id;
+        }
+    } catch {}
+}
+
+setInterval(poll, 3000);
+
 async function confirmLeave() {
-    socket.emit('leave_study_room', { room_id: ROOM_ID });
     const res = await fetch(`/campus/${CAMPUS_ID}/study-rooms/${ROOM_ID}/leave`, { method: 'POST' });
     if (res.ok) window.location.href = `/campus/${CAMPUS_ID}/study-rooms`;
 }
@@ -72,7 +87,6 @@ async function confirmDelete() {
     if (res.ok) window.location.href = `/campus/${CAMPUS_ID}/study-rooms`;
 }
 
-// Overlay wiring
 document.getElementById('triggerLeaveBtn').addEventListener('click', () => {
     document.getElementById('leaveOverlay').classList.add('open');
 });

@@ -28,5 +28,4 @@ def get_application():
 app = get_application()
 
 if __name__ == '__main__':
-    from app.extensions import socketio
-    socketio.run(app, debug=True) #socket for live chats
+    app.run(debug=True)

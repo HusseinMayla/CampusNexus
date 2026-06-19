@@ -7,7 +7,4 @@ flask-wtf
 email-validator
 gunicorn
 bcrypt
-flask-socketio
-gevent
-gevent-websocket
 psycopg2-binary

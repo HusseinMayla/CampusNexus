@@ -11,6 +11,12 @@ from sqlalchemy import func
 
 main_bp = Blueprint('main', __name__)
 
+
+def _is_member(campus):
+    return (campus.creator_id == current_user.id or
+            CampusMember.query.filter_by(user_id=current_user.id, campus_id=campus.id).first() is not None)
+
+
 ALLOWED_EXTENSIONS   = {'png', 'jpg', 'jpeg', 'gif'}
 RESOURCE_EXTENSIONS  = {'pdf', 'pptx', 'ppt', 'docx', 'doc', 'xlsx'}
 
@@ -277,9 +283,9 @@ def campus_settings(campus_id):
         return redirect(url_for('main.campus_settings', campus_id=campus.id))
 
     # GET request
-    admins = CampusMember.query.filter_by(campus_id=campus.id, role='admin').all()
+    moderators = CampusMember.query.filter_by(campus_id=campus.id, role='moderator').all()
     owner_membership = CampusMember.query.filter_by(campus_id=campus.id, role='owner').first()
-    return render_template('main/campus_settings.html', campus=campus, admins=admins, owner_membership=owner_membership, active_page='campus_settings')
+    return render_template('main/campus_settings.html', campus=campus, moderators=moderators, owner_membership=owner_membership, active_page='campus_settings')
 
 
 @main_bp.route('/campus/<int:campus_id>/settings/add-moderator', methods=['POST'])
@@ -310,65 +316,24 @@ def add_moderator(campus_id):
         flash('This user is already the owner.', 'info')
         return redirect(url_for('main.campus_settings', campus_id=campus.id))
 
-    if member.role == 'admin':
-        flash(f'{user.name} is already an admin.', 'info')
+    if member.role == 'moderator':
+        flash(f'{user.name} is already a moderator.', 'info')
         return redirect(url_for('main.campus_settings', campus_id=campus.id))
 
-    member.role = 'admin'
-    
+    member.role = 'moderator'
+
     # Notify user
     notif = Notification(
         user_id=user.id,
-        title='Promoted to Admin',
-        message=f'You have been promoted to Admin in {campus.name}!',
+        title='Promoted to Moderator',
+        message=f'You have been promoted to Moderator in {campus.name}!',
         link=url_for('main.dashboard')
     )
     db.session.add(notif)
     db.session.commit()
 
-    flash(f'{user.name} has been successfully added as a moderator (admin).', 'success')
+    flash(f'{user.name} has been successfully added as a moderator.', 'success')
     return redirect(url_for('main.campus_settings', campus_id=campus.id))
-
-
-@main_bp.route('/campuses/<int:campus_id>/members/<int:user_id>/promote', methods=['POST'])
-@login_required
-def promote_member(campus_id, user_id):
-    # Verify current user is owner of the campus
-    owner_membership = CampusMember.query.filter_by(user_id=current_user.id, campus_id=campus_id).first()
-    if not owner_membership or owner_membership.role != 'owner':
-        flash('Unauthorized action. Only the campus owner can manage roles.', 'error')
-        return redirect(url_for('main.dashboard'))
-
-    # Find the target member
-    target_membership = CampusMember.query.filter_by(user_id=user_id, campus_id=campus_id).first()
-    if not target_membership:
-        flash('Member not found in this campus.', 'error')
-        return redirect(request.referrer or url_for('main.dashboard'))
-
-    if target_membership.role == 'owner':
-        flash('Cannot promote the owner.', 'error')
-        return redirect(request.referrer or url_for('main.dashboard'))
-
-    if target_membership.role == 'admin':
-        flash('This member is already an admin.', 'info')
-        return redirect(request.referrer or url_for('main.dashboard'))
-
-    # Promote
-    target_membership.role = 'admin'
-    
-    # Generate Notification
-    campus = Campus.query.get(campus_id)
-    notif = Notification(
-        user_id=user_id,
-        title='Promoted to Admin',
-        message=f'You have been promoted to Admin in {campus.name}!',
-        link=url_for('main.dashboard')
-    )
-    db.session.add(notif)
-    db.session.commit()
-
-    flash(f'{target_membership.user.name} has been promoted to Admin.', 'success')
-    return redirect(request.referrer or url_for('main.campus_settings', campus_id=campus_id))
 
 
 @main_bp.route('/campuses/<int:campus_id>/members/<int:user_id>/demote', methods=['POST'])
@@ -418,9 +383,7 @@ def delete_campus(campus_id):
     # Verify campus exists
     campus = Campus.query.get_or_404(campus_id)
 
-    # Verify current user is owner of the campus
-    owner_membership = CampusMember.query.filter_by(user_id=current_user.id, campus_id=campus_id).first()
-    if not owner_membership or owner_membership.role != 'owner':
+    if campus.creator_id != current_user.id:
         flash('Unauthorized action. Only the campus owner can delete the campus.', 'error')
         return redirect(url_for('main.dashboard'))
 
@@ -520,8 +483,7 @@ def update_profile():
 @login_required
 def campus_resources(campus_id):
     campus = Campus.query.get_or_404(campus_id)
-    is_member = CampusMember.query.filter_by(user_id=current_user.id, campus_id=campus.id).first() is not None or campus.creator_id == current_user.id
-    if not is_member:
+    if not _is_member(campus):
         flash('You must join this campus to view its resources.', 'error')
         return redirect(url_for('main.join_campus'))
     resources = Resource.query.filter_by(campus_id=campus.id).all()
@@ -536,8 +498,7 @@ def campus_resources(campus_id):
 @login_required
 def resource_request_create(campus_id):
     campus = Campus.query.get_or_404(campus_id)
-    is_member = CampusMember.query.filter_by(user_id=current_user.id, campus_id=campus.id).first() is not None or campus.creator_id == current_user.id
-    if not is_member:
+    if not _is_member(campus):
         return jsonify({'error': 'Unauthorized'}), 403
 
     data        = request.get_json()
@@ -585,8 +546,7 @@ def resource_request_delete(campus_id, request_id):
 @login_required
 def resource_create(campus_id):
     campus = Campus.query.get_or_404(campus_id)
-    is_member = CampusMember.query.filter_by(user_id=current_user.id, campus_id=campus.id).first() is not None or campus.creator_id == current_user.id
-    if not is_member:
+    if not _is_member(campus):
         return jsonify({'error': 'Unauthorized'}), 403
 
     course_code = request.form.get('course_code', '').strip().upper()
@@ -665,8 +625,7 @@ def resource_download(campus_id, resource_id):
 @login_required
 def campus_market(campus_id):
     campus = Campus.query.get_or_404(campus_id)
-    is_member = CampusMember.query.filter_by(user_id=current_user.id, campus_id=campus.id).first() is not None or campus.creator_id == current_user.id
-    if not is_member:
+    if not _is_member(campus):
         flash('You must join this campus to view its marketplace.', 'error')
         return redirect(url_for('main.join_campus'))
     posts = TutorPost.query.filter_by(campus_id=campus_id).order_by(TutorPost.created_at.desc()).all()
@@ -677,8 +636,7 @@ def campus_market(campus_id):
 @login_required
 def market_post_create(campus_id):
     campus = Campus.query.get_or_404(campus_id)
-    is_member = CampusMember.query.filter_by(user_id=current_user.id, campus_id=campus.id).first() is not None or campus.creator_id == current_user.id
-    if not is_member:
+    if not _is_member(campus):
         return jsonify({'error': 'Unauthorized'}), 403
 
     data      = request.get_json()
@@ -792,7 +750,7 @@ def chat_join(campus_id, room_id):
 @login_required
 def chat_delete(campus_id, room_id):
     campus, member = _campus_member_or_403(campus_id)
-    if member.role not in ('owner', 'admin'):
+    if member.role not in ('owner', 'moderator'):
         abort(403)
     room = ChatRoom.query.filter_by(id=room_id, campus_id=campus_id).first_or_404()
     db.session.delete(room)

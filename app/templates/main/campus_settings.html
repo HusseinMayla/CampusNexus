@@ -9,7 +9,7 @@
 {% block content %}
 <div class="base-container">
     <h1 class="cs-page-title"><span class="icon-brand">⚙️</span> Campus Settings</h1>
-    <p class="cs-page-subtitle">Manage details and administrators for {{ campus.name }}.</p>
+    <p class="cs-page-subtitle">Manage details and moderators for {{ campus.name }}.</p>
 
     {% with messages = get_flashed_messages(with_categories=true) %}
         {% if messages %}
@@ -94,7 +94,7 @@
         <!-- Add Moderator -->
         <div class="base-card cs-card">
             <h3 class="cs-card-title">Add Moderator</h3>
-            <p class="cs-card-subtitle">Promote joined campus members to administrators.</p>
+            <p class="cs-card-subtitle">Promote joined campus members to moderators.</p>
             <form action="{{ url_for('main.add_moderator', campus_id=campus.id) }}" method="post">
                 <div class="base-form-group">
                     <label class="base-label" for="mod-email">Member's Email Address</label>
@@ -107,7 +107,7 @@
 
         <!-- Campus Admins List -->
         <div class="base-card cs-card">
-            <h3 class="cs-card-title">Campus Administrators</h3>
+            <h3 class="cs-card-title">Campus Moderators</h3>
             <p class="cs-card-subtitle">List of users who can manage campus maps, clubs, and events.</p>
 
             <div class="cs-admin-list">
@@ -127,29 +127,29 @@
                 </div>
                 {% endif %}
 
-                {% if admins %}
-                    {% for admin in admins %}
+                {% if moderators %}
+                    {% for mod in moderators %}
                     <div class="cs-member-row cs-member-row--admin">
                         <div class="cs-member-left">
-                            <div class="cs-avatar cs-avatar--admin">{{ admin.user.name[0] | upper }}</div>
+                            <div class="cs-avatar cs-avatar--admin">{{ mod.user.name[0] | upper }}</div>
                             <div>
                                 <div class="cs-member-name">
-                                    {{ admin.user.name }}
-                                    <span class="cs-role-badge cs-role-badge--admin">Admin</span>
+                                    {{ mod.user.name }}
+                                    <span class="cs-role-badge cs-role-badge--admin">Moderator</span>
                                 </div>
-                                <div class="cs-member-email">{{ admin.user.email }}</div>
+                                <div class="cs-member-email">{{ mod.user.email }}</div>
                             </div>
                         </div>
                         <form class="cs-revoke-form"
-                              action="{{ url_for('main.demote_member', campus_id=campus.id, user_id=admin.user.id) }}"
+                              action="{{ url_for('main.demote_member', campus_id=campus.id, user_id=mod.user.id) }}"
                               method="post"
-                              data-confirm-name="{{ admin.user.name }}">
+                              data-confirm-name="{{ mod.user.name }}">
                             <button type="submit" class="base-button-secondary cs-btn-revoke">Revoke Access</button>
                         </form>
                     </div>
                     {% endfor %}
                 {% else %}
-                    <div class="cs-empty-admins">No other moderators assigned yet.</div>
+                    <div class="cs-empty-admins">No moderators assigned yet.</div>
                 {% endif %}
             </div>
         </div>

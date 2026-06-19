@@ -11,7 +11,7 @@
         <a href="{{ url_for('main.chat_browse', campus_id=campus.id) }}" class="back-arrow" title="All chat rooms">←</a>{{ room.name }}
     </h2>
     <div class="chat-header-actions">
-        {% if member.role in ('owner', 'admin') %}
+        {% if member.role in ('owner', 'moderator') %}
         <button class="base-button-danger btn-sm" id="triggerDeleteBtn">Delete</button>
         {% endif %}
         <button class="base-button-secondary btn-sm" id="triggerLeaveBtn">Leave</button>
@@ -53,7 +53,7 @@
     <button class="base-button" id="sendBtn">Send</button>
 </div>
 
-{% if member.role in ('owner', 'admin') %}
+{% if member.role in ('owner', 'moderator') %}
 <div class="leave-overlay" id="deleteOverlay">
     <div class="leave-box">
         <h3>Delete {{ room.name }}?</h3>

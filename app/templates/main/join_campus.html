@@ -49,7 +49,7 @@
             
             {% if item.is_joined %}
                 <span style="font-size: 0.88rem; padding: 6px 16px; border-radius: 8px; background: #dcfce7; color: #15803d; font-weight: 600;">
-                    ✓ {% if item.role == 'owner' %}Owner{% elif item.role == 'admin' %}Admin{% else %}Joined{% endif %}
+                    ✓ {% if item.role == 'owner' %}Owner{% elif item.role == 'moderator' %}Moderator{% else %}Joined{% endif %}
                 </span>
             {% else %}
                 <form action="{{ url_for('main.join_campus_by_id', campus_id=item.campus.id) }}" method="POST" style="margin: 0;">

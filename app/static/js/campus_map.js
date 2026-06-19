@@ -258,7 +258,7 @@ document.addEventListener("DOMContentLoaded", () => {
       // Action buttons toggle active states
       const interestedClass = event.is_interested ? "active" : "";
       const interestedIcon = event.is_interested ? "★" : "☆";
-      const interestedText = event.is_interested ? "Interested" : "Interested";
+      const interestedText = "Interested";
       
       const notifyClass = event.want_notification ? "active" : "";
       const notifyIcon = event.want_notification ? "🔔" : "🔕";
@@ -755,7 +755,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const dateVal = eventDateInput.value; // start date string
     const lat = parseFloat(document.getElementById("eventLat").value);
     const lng = parseFloat(document.getElementById("eventLng").value);
-    
+
     if (!title || !dateVal || isNaN(lat) || isNaN(lng)) {
       eventFormError.textContent = "Please fill in all required fields.";
       eventFormError.classList.remove("hidden");

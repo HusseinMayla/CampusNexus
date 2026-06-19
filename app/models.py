@@ -13,10 +13,6 @@ class User(UserMixin, db.Model):
     password_hash = db.Column(db.String(255))
     is_verified   = db.Column(db.Boolean, default=False)
 
-    @property
-    def verified_secondary_emails(self):
-        return [e.email for e in self.secondary_emails if e.is_verified]
-
     def has_verified_domain(self, domain):
         if not domain:
             return True
@@ -49,18 +45,6 @@ class User(UserMixin, db.Model):
             return True
         return False
 
-    def is_campus_admin(self, campus_id):
-        if not campus_id:
-            return False
-        from app.models import CampusMember, Campus
-        membership = CampusMember.query.filter_by(user_id=self.id, campus_id=campus_id).first()
-        if membership and membership.role in ('owner', 'admin'):
-            return True
-        campus = Campus.query.get(campus_id)
-        if campus and campus.creator_id == self.id:
-            return True
-        return False
-
     def __repr__(self):
         return f'<User {self.name}>'
 
@@ -87,7 +71,7 @@ class CampusMember(db.Model):
     id         = db.Column(db.Integer, primary_key=True)
     user_id    = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     campus_id  = db.Column(db.Integer, db.ForeignKey('campus.id'), nullable=False)
-    role       = db.Column(db.String(20), default='user', nullable=False) # 'owner', 'admin', 'user'
+    role       = db.Column(db.String(20), default='user', nullable=False) # 'owner', 'moderator', 'user'
     joined_at  = db.Column(db.DateTime, default=datetime.utcnow)
     __table_args__ = (db.UniqueConstraint('user_id', 'campus_id'),)
 

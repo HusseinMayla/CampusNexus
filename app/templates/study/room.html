@@ -29,7 +29,32 @@
 <div class="chat-messages" id="msgList"
      data-campus-id="{{ campus.id }}"
      data-room-id="{{ room.id }}"
-     data-my-name="{{ current_user.name | e }}"></div>
+     data-last-id="{{ messages[-1].id if messages else 0 }}"
+     data-last-sender="{{ messages[-1].sender.name | e if messages else '' }}"
+     data-last-mine="{{ 'true' if messages and messages[-1].sender_id == current_user.id else 'false' }}">
+    {% for msg in messages %}
+    {% set mine = msg.sender_id == current_user.id %}
+    {% set prev_same = loop.previtem is defined and loop.previtem.sender_id == msg.sender_id %}
+    <div class="msg-row {% if mine %}msg-row-mine{% else %}msg-row-other{% endif %}{% if prev_same %} msg-consecutive{% endif %}">
+        {% if prev_same %}
+            <div class="msg-avatar-spacer"></div>
+        {% else %}
+            <div class="msg-avatar {% if mine %}msg-avatar-mine{% else %}msg-avatar-other{% endif %}">
+                {{ msg.sender.name[0] | upper }}
+            </div>
+        {% endif %}
+        <div class="msg-col">
+            {% if not prev_same and not mine %}
+                <div class="msg-sender">{{ msg.sender.name }}</div>
+            {% endif %}
+            <div class="msg {% if mine %}msg-mine{% else %}msg-other{% endif %}">
+                {{ msg.body }}
+                <span class="msg-time">{{ msg.sent_at.strftime('%I:%M %p') }}</span>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
 
 <div class="chat-input-row">
     <input class="base-input" id="msgInput" placeholder="Type a message…">
@@ -62,6 +87,5 @@
 {% endblock %}
 
 {% block extra_js %}
-<script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
 <script src="{{ url_for('static', filename='js/study_room.js') }}"></script>
 {% endblock %}

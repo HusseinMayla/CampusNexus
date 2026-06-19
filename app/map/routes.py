@@ -7,14 +7,18 @@ from datetime import datetime, timedelta
 map_bp = Blueprint('map', __name__)
 
 
+def _is_admin(campus):
+    membership = CampusMember.query.filter_by(user_id=current_user.id, campus_id=campus.id).first()
+    return campus.creator_id == current_user.id or (membership and membership.role in ('moderator', 'owner'))
+
+
 # ── Page ──────────────────────────────────────────────────────────────────────
 
 @map_bp.route('/campus/<int:campus_id>/map')
 @login_required
 def campus_map(campus_id):
     campus   = Campus.query.get_or_404(campus_id)
-    membership = CampusMember.query.filter_by(user_id=current_user.id, campus_id=campus_id).first()
-    is_admin = (campus.creator_id == current_user.id) or (membership and membership.role in ['admin', 'owner'])
+    is_admin = _is_admin(campus)
     view     = request.args.get('view')
     active_page = 'events' if view == 'events' else 'map'
     return render_template('main/campus_map.html', campus=campus, is_admin=is_admin, active_page=active_page)
@@ -24,15 +28,13 @@ def campus_map(campus_id):
 @login_required
 def add_club(campus_id):
     campus = Campus.query.get_or_404(campus_id)
-    membership = CampusMember.query.filter_by(user_id=current_user.id, campus_id=campus.id).first()
-    is_admin = (campus.creator_id == current_user.id) or (membership and membership.role in ['admin', 'owner'])
-    if not is_admin:
+    if not _is_admin(campus):
         flash('Unauthorized action.', 'error')
         return redirect(url_for('map.campus_map', campus_id=campus_id))
-    
+
     name = request.form.get('name', '').strip()
     description = request.form.get('description', '').strip()
-    
+
     if not name:
         flash('Club name is required.', 'error')
         return redirect(url_for('map.campus_map', campus_id=campus_id))
@@ -48,15 +50,13 @@ def add_club(campus_id):
 @login_required
 def add_office(campus_id):
     campus = Campus.query.get_or_404(campus_id)
-    membership = CampusMember.query.filter_by(user_id=current_user.id, campus_id=campus.id).first()
-    is_admin = (campus.creator_id == current_user.id) or (membership and membership.role in ['admin', 'owner'])
-    if not is_admin:
+    if not _is_admin(campus):
         flash('Unauthorized action.', 'error')
         return redirect(url_for('map.campus_map', campus_id=campus_id))
-    
+
     name = request.form.get('name', '').strip()
     description = request.form.get('description', '').strip()
-    
+
     if not name:
         flash('Office name is required.', 'error')
         return redirect(url_for('map.campus_map', campus_id=campus_id))
@@ -72,12 +72,10 @@ def add_office(campus_id):
 @login_required
 def delete_club(campus_id, club_id):
     campus = Campus.query.get_or_404(campus_id)
-    membership = CampusMember.query.filter_by(user_id=current_user.id, campus_id=campus.id).first()
-    is_admin = (campus.creator_id == current_user.id) or (membership and membership.role in ['admin', 'owner'])
-    if not is_admin:
+    if not _is_admin(campus):
         flash('Unauthorized action.', 'error')
         return redirect(url_for('map.campus_map', campus_id=campus_id))
-        
+
     club = Club.query.get_or_404(club_id)
     if club.campus_id != campus.id:
         flash('Invalid action.', 'error')
@@ -93,12 +91,10 @@ def delete_club(campus_id, club_id):
 @login_required
 def delete_office(campus_id, office_id):
     campus = Campus.query.get_or_404(campus_id)
-    membership = CampusMember.query.filter_by(user_id=current_user.id, campus_id=campus.id).first()
-    is_admin = (campus.creator_id == current_user.id) or (membership and membership.role in ['admin', 'owner'])
-    if not is_admin:
+    if not _is_admin(campus):
         flash('Unauthorized action.', 'error')
         return redirect(url_for('map.campus_map', campus_id=campus_id))
-        
+
     office = Office.query.get_or_404(office_id)
     if office.campus_id != campus.id:
         flash('Invalid action.', 'error')
@@ -171,9 +167,8 @@ def add_pin():
         return jsonify({'error': 'Campus not found'}), 404
 
     # Authorization check
-    membership = CampusMember.query.filter_by(user_id=current_user.id, campus_id=campus_id).first()
-    is_admin = (campus.creator_id == current_user.id) or (membership and membership.role in ['admin', 'owner'])
-    is_member = CampusMember.query.filter_by(user_id=current_user.id, campus_id=campus_id).first() is not None or is_admin
+    is_admin = _is_admin(campus)
+    is_member = is_admin or CampusMember.query.filter_by(user_id=current_user.id, campus_id=campus_id).first() is not None
 
     if not is_member:
         return jsonify({'error': 'Unauthorized. You must join this campus to add items.'}), 403
@@ -192,7 +187,7 @@ def add_pin():
 
     if pin_type == 'club':
         if not is_admin:
-            return jsonify({'error': 'Only campus admins can add clubs.'}), 403
+            return jsonify({'error': 'Only campus moderators can add clubs.'}), 403
         obj = Club(name=name, description=desc, campus_id=campus_id, lat=lat, lng=lng)
         db.session.add(obj)
         db.session.commit()
@@ -201,7 +196,7 @@ def add_pin():
 
     elif pin_type == 'office':
         if not is_admin:
-            return jsonify({'error': 'Only campus admins can add offices.'}), 403
+            return jsonify({'error': 'Only campus moderators can add offices.'}), 403
         obj = Office(name=name, description=desc, campus_id=campus_id, lat=lat, lng=lng)
         db.session.add(obj)
         db.session.commit()
@@ -221,18 +216,15 @@ def add_pin():
                 time_remaining = timedelta(days=4) - time_passed
                 
                 days = time_remaining.days
-                hours, remainder = divmod(time_remaining.seconds, 3600)
-                minutes, _ = divmod(remainder, 60)
-                
-                time_str = []
+                hours = time_remaining.seconds // 3600
+                minutes = (time_remaining.seconds % 3600) // 60
+
+                remaining_formatted = ""
                 if days > 0:
-                    time_str.append(f"{days} day{'s' if days > 1 else ''}")
+                    remaining_formatted += f"{days}d, "
                 if hours > 0:
-                    time_str.append(f"{hours} hour{'s' if hours > 1 else ''}")
-                if minutes > 0 or not time_str:
-                    time_str.append(f"{minutes} minute{'s' if minutes > 1 else ''}")
-                
-                remaining_formatted = ", ".join(time_str)
+                    remaining_formatted += f"{hours}h, "
+                remaining_formatted += f"{minutes}m"
                 return jsonify({
                     'error': f'Event creation cooldown active: Students can only create one event every 4 days. Please wait {remaining_formatted}.'
                 }), 400
@@ -243,17 +235,7 @@ def add_pin():
             return jsonify({'error': 'Event start and end times are required.'}), 400
         
         def parse_iso_datetime(dt_str):
-            if not dt_str:
-                raise ValueError("Empty date string")
-            dt_str = dt_str.replace('T', ' ').strip()
-            if dt_str.endswith('Z'):
-                dt_str = dt_str[:-1]
-            for fmt in ('%Y-%m-%d %H:%M:%S.%f', '%Y-%m-%d %H:%M:%S', '%Y-%m-%d %H:%M', '%Y-%m-%d'):
-                try:
-                    return datetime.strptime(dt_str, fmt)
-                except ValueError:
-                    continue
-            raise ValueError(f"Cannot parse datetime: {dt_str}")
+            return datetime.fromisoformat(dt_str.rstrip('Z').replace('T', ' '))
 
         try:
             event_date = parse_iso_datetime(date_str)
@@ -318,19 +300,13 @@ def delete_pin(pin_type, pin_id):
 
     obj = Model.query.get_or_404(pin_id)
 
-    # Resolve campus and perform authorization
-    if pin_type == 'event':
-        campus_id = obj.campus_id
-    else:
-        campus_id = obj.campus_id
-        
+    campus_id = obj.campus_id
+
     campus = Campus.query.get(campus_id)
     if not campus:
         return jsonify({'error': 'Campus not found'}), 404
 
-    membership = CampusMember.query.filter_by(user_id=current_user.id, campus_id=campus_id).first()
-    is_admin = (campus.creator_id == current_user.id) or (membership and membership.role in ['admin', 'owner'])
-    is_authorized = is_admin
+    is_authorized = _is_admin(campus)
     
     if pin_type == 'event':
         # Creator of event can also delete it

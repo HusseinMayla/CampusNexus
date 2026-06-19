@@ -1,8 +1,7 @@
 import os
-import sys
 from flask import Flask
 from config import Config
-from app.extensions import db, login_manager, socketio, mail
+from app.extensions import db, login_manager, mail
 
 
 def create_app(config_class=Config):
@@ -29,11 +28,6 @@ def create_app(config_class=Config):
     # Redirect users to the login page if they try to access a @login_required route while logged out
     login_manager.login_view = 'auth.page'
     
-    # Configure WebSocket mode: use 'gevent' for production deployments, and fallback to 
-    # 'threading' during local development runs
-    _async_mode = 'gevent' if 'gunicorn' in sys.argv[0] else 'threading'
-    socketio.init_app(app, cors_allowed_origins='*', async_mode=_async_mode)
-
     # 6. Import database models so SQLAlchemy registers them with metadata
     from app import models
 
@@ -48,9 +42,6 @@ def create_app(config_class=Config):
     app.register_blueprint(main_bp)
     app.register_blueprint(map_bp)
     app.register_blueprint(study_bp)
-
-    # 9. Import study events to bind SocketIO event listeners (e.g., chat message triggers)
-    from app.study import events as _study_events  # noqa
 
     # --- GLOBAL CONTEXT PROCESSOR ---
     # This function automatically injects variables into ALL HTML templates rendering,

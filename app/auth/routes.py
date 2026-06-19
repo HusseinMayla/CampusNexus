@@ -12,12 +12,19 @@ auth_bp = Blueprint('auth', __name__, url_prefix='/auth')
 EMAIL_RE = re.compile(r'^[^\s@]+@[^\s@]+\.(edu(\.[a-z]{2,})?|ac\.[a-z]{2,})$', re.IGNORECASE)
 
 
+@auth_bp.before_app_request
+def require_verified():
+    if current_user.is_authenticated and not current_user.is_verified:
+        logout_user()
+        flash('Please verify your email before logging in.', 'error')
+        return redirect(url_for('auth.page'))
+
+
 def send_verification_email(email):
     s = URLSafeTimedSerializer(current_app.config['SECRET_KEY'])
     token = s.dumps(email, salt='email-verify')
     link = url_for('auth.verify_token', token=token, _external=True)
     sender = current_app.config['MAIL_USERNAME']
-    current_app.logger.error(f'DEBUG sender={sender}')
     msg = Message('Verify your Agora account', sender=sender, recipients=[email])
     msg.body = f'Hi! Click the link below to verify your email address:\n\n{link}\n\nThis link expires in 1 hour.'
     mail.send(msg)
@@ -28,7 +35,6 @@ def send_secondary_verification_email(user_email):
     token = s.dumps(user_email.id, salt='secondary-email-verify')
     link = url_for('auth.verify_secondary_token', token=token, _external=True)
     sender = current_app.config['MAIL_USERNAME']
-    current_app.logger.error(f'DEBUG sender={sender}')
     msg = Message('Verify your secondary email address', sender=sender, recipients=[user_email.email])
     msg.body = f'Hi! Click the link below to verify your secondary email address:\n\n{link}\n\nThis link expires in 1 hour.'
     mail.send(msg)
@@ -180,20 +186,16 @@ def add_email():
         return redirect(url_for('main.settings'))
         
     # Create the new secondary email
-    is_auto_verified = email.split('@')[0].lower() in ['admin', 'it']
-    new_email = UserEmail(user_id=current_user.id, email=email, is_verified=is_auto_verified)
+    new_email = UserEmail(user_id=current_user.id, email=email, is_verified=False)
     db.session.add(new_email)
     db.session.commit()
-    
-    if is_auto_verified:
-        flash(f'Added and auto-verified administrator email: {email}', 'success')
-    else:
-        try:
-            send_secondary_verification_email(new_email)
-            flash(f'Added {email} to your account. A verification link has been sent. Please check your inbox.', 'success')
-        except Exception as e:
-            current_app.logger.error(f'Mail error: {e}')
-            flash(f'Added {email} to your account, but failed to send verification email: {e}', 'error')
+
+    try:
+        send_secondary_verification_email(new_email)
+        flash(f'Added {email} to your account. A verification link has been sent. Please check your inbox.', 'success')
+    except Exception as e:
+        current_app.logger.error(f'Mail error: {e}')
+        flash(f'Added {email} to your account, but failed to send verification email: {e}', 'error')
     return redirect(url_for('main.settings'))
 
 
@@ -217,6 +219,12 @@ def verify_email(email_id):
     return redirect(url_for('main.settings'))
 
 
+def _redirect_after_secondary_verify():
+    if current_user.is_authenticated:
+        return redirect(url_for('main.settings'))
+    return redirect(url_for('auth.page'))
+
+
 @auth_bp.route('/verify-secondary/<token>')
 def verify_secondary_token(token):
     s = URLSafeTimedSerializer(current_app.config['SECRET_KEY'])
@@ -224,29 +232,21 @@ def verify_secondary_token(token):
         email_id = s.loads(token, salt='secondary-email-verify', max_age=3600)
     except SignatureExpired:
         flash('Verification link has expired. Please request a new link from Settings.', 'error')
-        if current_user.is_authenticated:
-            return redirect(url_for('main.settings'))
-        return redirect(url_for('auth.page'))
+        return _redirect_after_secondary_verify()
     except BadSignature:
         flash('Invalid verification link.', 'error')
-        if current_user.is_authenticated:
-            return redirect(url_for('main.settings'))
-        return redirect(url_for('auth.page'))
+        return _redirect_after_secondary_verify()
 
     user_email = UserEmail.query.get(email_id)
     if not user_email:
         flash('Email record not found.', 'error')
-        if current_user.is_authenticated:
-            return redirect(url_for('main.settings'))
-        return redirect(url_for('auth.page'))
+        return _redirect_after_secondary_verify()
 
     user_email.is_verified = True
     db.session.commit()
-    
+
     flash(f'Secondary email {user_email.email} has been verified successfully!', 'success')
-    if current_user.is_authenticated:
-        return redirect(url_for('main.settings'))
-    return redirect(url_for('auth.page'))
+    return _redirect_after_secondary_verify()
 
 
 @auth_bp.route('/forgot-password', methods=['GET', 'POST'])
