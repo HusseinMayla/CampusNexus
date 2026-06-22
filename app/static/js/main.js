@@ -5,7 +5,9 @@ const saved = localStorage.getItem('theme') || 'dark';
 document.documentElement.setAttribute('data-theme', saved);
 
 window.updateNavActiveStates = function () {
-    document.querySelectorAll('.base-nav-item').forEach(link => {
+    const navItems = document.querySelectorAll('.base-nav-item');
+    for (let i = 0; i < navItems.length; i++) {
+        const link = navItems[i];
         if (link.href) {
             const linkUrl = new URL(link.href);
             const currentUrl = new URL(window.location.href);
@@ -21,13 +23,18 @@ window.updateNavActiveStates = function () {
                 link.classList.remove('active');
             }
         }
-    });
+    }
 };
 window.updateNavActiveStates();
 
 toggle.addEventListener('click', () => {
     const current = document.documentElement.getAttribute('data-theme');
-    const next = current === 'dark' ? 'light' : 'dark';
+    let next = '';
+    if (current === 'dark') {
+        next = 'light';
+    } else {
+        next = 'dark';
+    }
     document.documentElement.setAttribute('data-theme', next);
     localStorage.setItem('theme', next);
 });
@@ -47,10 +54,14 @@ if (document.body.dataset.authenticated === 'true') {
     setInterval(async () => {
         try {
             const res = await fetch('/api/notifications/unread-count');
-            if (!res.ok) return;
+            if (!res.ok) {
+                return;
+            }
             const data = await res.json();
             const notifBtn = document.querySelector('.base-notification-btn');
-            if (!notifBtn) return;
+            if (!notifBtn) {
+                return;
+            }
             let badge = notifBtn.querySelector('.notification-badge');
             if (data.count > 0) {
                 if (!badge) {

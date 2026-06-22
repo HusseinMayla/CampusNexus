@@ -206,7 +206,10 @@ def room(campus_id, room_id):
     db.session.commit()
 
     msgs = StudyRoomMessage.query.filter_by(room_id=room_id).order_by(StudyRoomMessage.sent_at.asc()).all()
-    last_id = msgs[-1].id if msgs else 0
+    if msgs:
+        last_id = msgs[-1].id
+    else:
+        last_id = 0
 
     return render_template('study/room.html', campus=campus, room=sr,
                            messages=msgs, last_id=last_id, active_page='study')

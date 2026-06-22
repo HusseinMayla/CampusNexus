@@ -34,9 +34,13 @@ def index():
     if current_user.is_authenticated:
         # Get campuses joined or created by the user
         joined_memberships = CampusMember.query.filter_by(user_id=current_user.id).all()
-        joined_campus_ids = [m.campus_id for m in joined_memberships]
+        joined_campus_ids = []
+        for m in joined_memberships:
+            joined_campus_ids.append(m.campus_id)
         created_campuses = Campus.query.filter_by(creator_id=current_user.id).all()
-        created_campus_ids = [c.id for c in created_campuses]
+        created_campus_ids = []
+        for c in created_campuses:
+            created_campus_ids.append(c.id)
         
         all_campus_ids = []
         for campus_id in joined_campus_ids + created_campus_ids:
@@ -532,7 +536,9 @@ def campus_resources(campus_id):
         posts.append(('resource', r, r.uploaded_at))
     for r in requests:
         posts.append(('request', r, r.created_at))
-    posts.sort(key=lambda x: x[2], reverse=True)
+    def get_post_time(post):
+        return post[2]
+    posts.sort(key=get_post_time, reverse=True)
     return render_template('main/campus_resources.html', campus=campus, posts=posts, active_page='resources')
 
 
@@ -556,12 +562,17 @@ def resource_request_create(campus_id):
     if not course_code:
         return jsonify({'error': 'Course code is required.'}), 400
 
+    if chapters:
+        chapters_str = ','.join(chapters)
+    else:
+        chapters_str = None
+
     rr = ResourceRequest(
         campus_id=campus_id,
         poster_id=current_user.id,
         email=email,
         course_code=course_code,
-        chapters=','.join(chapters) if chapters else None
+        chapters=chapters_str
     )
     db.session.add(rr)
     db.session.commit()
@@ -614,13 +625,18 @@ def resource_create(campus_id):
     os.makedirs(upload_dir, exist_ok=True)
     file.save(os.path.join(upload_dir, stored_name))
 
+    if chapters:
+        chapters_val = chapters
+    else:
+        chapters_val = None
+
     resource = Resource(
         title=original_filename,
         file_url=f"uploads/resources/{stored_name}",
         campus_id=campus_id,
         uploader_id=current_user.id,
         course_code=course_code,
-        chapters=chapters if chapters else None,
+        chapters=chapters_val,
         file_type=ext,
         original_filename=original_filename
     )

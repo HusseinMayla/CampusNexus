@@ -28,14 +28,28 @@ function fmtTime(d) {
 function appendMsg(body, sender, mine, id, consecutive) {
     const time = fmtTime(new Date());
     const row = document.createElement('div');
-    row.className = 'msg-row ' + (mine ? 'msg-row-mine' : 'msg-row-other') +
-                    (consecutive ? ' msg-consecutive' : '');
+    let rowClass = 'msg-row ';
+    if (mine) {
+        rowClass = rowClass + 'msg-row-mine';
+    } else {
+        rowClass = rowClass + 'msg-row-other';
+    }
+    if (consecutive) {
+        rowClass = rowClass + ' msg-consecutive';
+    }
+    row.className = rowClass;
 
     let avatarHtml = '';
     if (consecutive) {
         avatarHtml = '<div class="msg-avatar-spacer"></div>';
     } else {
-        avatarHtml = '<div class="msg-avatar ' + (mine ? 'msg-avatar-mine' : 'msg-avatar-other') + '">' + esc(sender[0].toUpperCase()) + '</div>';
+        let avatarClass = '';
+        if (mine) {
+            avatarClass = 'msg-avatar-mine';
+        } else {
+            avatarClass = 'msg-avatar-other';
+        }
+        avatarHtml = '<div class="msg-avatar ' + avatarClass + '">' + esc(sender[0].toUpperCase()) + '</div>';
     }
 
     let senderHtml = '';
@@ -43,10 +57,16 @@ function appendMsg(body, sender, mine, id, consecutive) {
         senderHtml = '<div class="msg-sender">' + esc(sender) + '</div>';
     }
 
+    let msgClass = '';
+    if (mine) {
+        msgClass = 'msg-mine';
+    } else {
+        msgClass = 'msg-other';
+    }
     row.innerHTML = `${avatarHtml}
         <div class="msg-col">
             ${senderHtml}
-            <div class="msg ${mine ? 'msg-mine' : 'msg-other'}">
+            <div class="msg ${msgClass}">
                 ${esc(body)}<span class="msg-time">${time}</span>
             </div>
         </div>`;
@@ -63,7 +83,9 @@ function appendMsg(body, sender, mine, id, consecutive) {
 async function sendMsg() {
     const inp = document.getElementById('msgInput');
     const body = inp.value.trim();
-    if (!body) return;
+    if (!body) {
+        return;
+    }
     inp.value = '';
     const consecutive = lastMine === true;
     const res = await fetch(`/campus/${CAMPUS_ID}/study-rooms/${ROOM_ID}/send`, {
@@ -86,7 +108,9 @@ async function poll() {
                 const consecutive = !lastMine && lastSender === m.sender;
                 appendMsg(m.body, m.sender, false, m.id, consecutive);
             }
-            if (m.id > lastId) lastId = m.id;
+            if (m.id > lastId) {
+                lastId = m.id;
+            }
         }
     } catch {}
 }
