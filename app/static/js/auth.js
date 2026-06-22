@@ -1,14 +1,16 @@
 /* ── Open correct tab on load ───────────────────────────────── */
 const _tab = new URLSearchParams(window.location.search).get('tab');
-if (_tab === 'signup') switchTab('signup');
+if (_tab === 'signup') {
+  switchTab('signup');
+}
 
 /* ── Tab switching ─────────────────────────────────────────── */
 function switchTab(tab) {
-  const loginForm  = document.getElementById('formLogin');
+  const loginForm = document.getElementById('formLogin');
   const signupForm = document.getElementById('formSignup');
-  const tabLogin   = document.getElementById('tabLogin');
-  const tabSignup  = document.getElementById('tabSignup');
-  const indicator  = document.getElementById('tabIndicator');
+  const tabLogin = document.getElementById('tabLogin');
+  const tabSignup = document.getElementById('tabSignup');
+  const indicator = document.getElementById('tabIndicator');
 
   if (tab === 'login') {
     loginForm.classList.add('active');
@@ -29,18 +31,18 @@ function switchTab(tab) {
 
 /* ── Password visibility toggle ────────────────────────────── */
 function togglePassword(inputId, btn) {
-  const input  = document.getElementById(inputId);
+  const input = document.getElementById(inputId);
   const closed = btn.querySelector('.eye-closed');
-  const open   = btn.querySelector('.eye-open');
+  const open = btn.querySelector('.eye-open');
 
   if (input.type === 'password') {
     input.type = 'text';
     closed.style.display = 'none';
-    open.style.display   = 'block';
+    open.style.display = 'block';
   } else {
     input.type = 'password';
     closed.style.display = 'block';
-    open.style.display   = 'none';
+    open.style.display = 'none';
   }
 }
 
@@ -59,10 +61,14 @@ function setValid(inputEl, errEl) {
 }
 
 function clearErrors() {
-  document.querySelectorAll('input').forEach(i => {
-    i.classList.remove('error', 'valid');
-  });
-  document.querySelectorAll('.field-error').forEach(e => e.textContent = '');
+  const inputs = document.querySelectorAll('input');
+  for (let i = 0; i < inputs.length; i++) {
+    inputs[i].classList.remove('error', 'valid');
+  }
+  const errorEls = document.querySelectorAll('.field-error');
+  for (let i = 0; i < errorEls.length; i++) {
+    errorEls[i].textContent = '';
+  }
 }
 
 const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -70,33 +76,42 @@ const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 /* ── Password strength ──────────────────────────────────────── */
 document.getElementById('signupPassword').addEventListener('input', function () {
-  const val      = this.value;
-  const bar      = document.getElementById('strengthBar');
-  const fill     = document.getElementById('strengthFill');
-  const lbl      = document.getElementById('strengthLabel');
+  const val = this.value;
+  const bar = document.getElementById('strengthBar');
+  const fill = document.getElementById('strengthFill');
+  const lbl = document.getElementById('strengthLabel');
 
-  if (!val) { bar.classList.remove('visible'); return; }
+  if (!val) {
+    bar.classList.remove('visible');
+    return;
+  }
   bar.classList.add('visible');
 
   let score = 0;
-  if (val.length >= 8)  score++;
-  if (val.length >= 12) score++;
-  if (/[A-Z]/.test(val) && /[a-z]/.test(val)) score++;
-  if (/[0-9]/.test(val))  score++;
-  if (/[^A-Za-z0-9]/.test(val)) score++;
+  if (val.length >= 8) { score++; }
+  if (val.length >= 12) { score++; }
+  if (/[A-Z]/.test(val) && /[a-z]/.test(val)) { score++; }
+  if (/[0-9]/.test(val)) { score++; }
+  if (/[^A-Za-z0-9]/.test(val)) { score++; }
 
-  const levels = [
-    { pct: '20%', color: '#d4614a', text: 'Weak'   },
-    { pct: '40%', color: '#d4614a', text: 'Weak'   },
-    { pct: '60%', color: '#c8a030', text: 'Fair'   },
-    { pct: '80%', color: '#7aab58', text: 'Good'   },
-    { pct: '100%',color: '#5a9e6a', text: 'Strong' },
-  ];
-  const l = levels[Math.min(score, 4)];
-  fill.style.width      = l.pct;
-  fill.style.background = l.color;
-  lbl.textContent       = l.text;
-  lbl.style.color       = l.color;
+  let pct = '';
+  let color = '';
+  let strengthText = '';
+  if (score === 0) {
+    pct = '20%'; color = '#d4614a'; strengthText = 'Weak';
+  } else if (score === 1) {
+    pct = '40%'; color = '#d4614a'; strengthText = 'Weak';
+  } else if (score === 2) {
+    pct = '60%'; color = '#c8a030'; strengthText = 'Fair';
+  } else if (score === 3) {
+    pct = '80%'; color = '#7aab58'; strengthText = 'Good';
+  } else {
+    pct = '100%'; color = '#5a9e6a'; strengthText = 'Strong';
+  }
+  fill.style.width = pct;
+  fill.style.background = color;
+  lbl.textContent = strengthText;
+  lbl.style.color = color;
 });
 
 
@@ -146,13 +161,13 @@ function validateName(inputEl, errEl) {
 
 /* ── Login form submission ─────────────────────────────────── */
 document.getElementById('formLogin').addEventListener('submit', function (e) {
-  const email    = document.getElementById('loginEmail');
+  const email = document.getElementById('loginEmail');
   const password = document.getElementById('loginPassword');
   const emailErr = document.getElementById('loginEmailErr');
-  const passErr  = document.getElementById('loginPasswordErr');
+  const passErr = document.getElementById('loginPasswordErr');
 
   const emailOk = validateEmail(email, emailErr);
-  const passOk  = validatePassword(password, passErr);
+  const passOk = validatePassword(password, passErr);
 
   if (!emailOk || !passOk) {
     e.preventDefault();
@@ -163,16 +178,16 @@ document.getElementById('formLogin').addEventListener('submit', function (e) {
 
 /* ── Signup form submission ────────────────────────────────── */
 document.getElementById('formSignup').addEventListener('submit', function (e) {
-  const name     = document.getElementById('signupName');
-  const email    = document.getElementById('signupEmail');
+  const name = document.getElementById('signupName');
+  const email = document.getElementById('signupEmail');
   const password = document.getElementById('signupPassword');
-  const nameErr  = document.getElementById('signupNameErr');
+  const nameErr = document.getElementById('signupNameErr');
   const emailErr = document.getElementById('signupEmailErr');
-  const passErr  = document.getElementById('signupPasswordErr');
+  const passErr = document.getElementById('signupPasswordErr');
 
-  const nameOk  = validateName(name, nameErr);
+  const nameOk = validateName(name, nameErr);
   const emailOk = validateEmail(email, emailErr);
-  const passOk  = validatePassword(password, passErr);
+  const passOk = validatePassword(password, passErr);
 
   if (!nameOk || !emailOk || !passOk) {
     e.preventDefault();
@@ -182,14 +197,15 @@ document.getElementById('formSignup').addEventListener('submit', function (e) {
 
 
 /* ── Tab + eye button wiring ────────────────────────────────── */
-document.getElementById('tabLogin').addEventListener('click',  () => switchTab('login'));
+document.getElementById('tabLogin').addEventListener('click', () => switchTab('login'));
 document.getElementById('tabSignup').addEventListener('click', () => switchTab('signup'));
 document.getElementById('switchToSignup').addEventListener('click', () => switchTab('signup'));
-document.getElementById('switchToLogin').addEventListener('click',  () => switchTab('login'));
+document.getElementById('switchToLogin').addEventListener('click', () => switchTab('login'));
 
-document.querySelectorAll('.eye-btn').forEach(btn => {
-  btn.addEventListener('click', () => togglePassword(btn.dataset.target, btn));
-});
+const eyeBtns = document.querySelectorAll('.eye-btn');
+for (let i = 0; i < eyeBtns.length; i++) {
+  eyeBtns[i].addEventListener('click', () => togglePassword(eyeBtns[i].dataset.target, eyeBtns[i]));
+}
 
 /* ── Blur-time validation (validate as user leaves each field) ─ */
 document.getElementById('loginEmail').addEventListener('blur', function () {

@@ -14,20 +14,20 @@ def _member_or_403(campus_id):
     return campus
 
 
-def _cleanup_expired(campus_id):
+def delete_old_rooms(campus_id):
     cutoff = datetime.utcnow() - timedelta(hours=2)
-    expired = StudyRoom.query.filter(
+    old_rooms = StudyRoom.query.filter(
         StudyRoom.campus_id == campus_id,
         StudyRoom.session_time < cutoff
     ).all()
-    for r in expired:
+    for r in old_rooms:
         db.session.delete(r)
-    if expired:
+    if old_rooms:
         db.session.commit()
 
 
 def _visible_rooms(campus_id, user_id):
-    _cleanup_expired(campus_id)
+    delete_old_rooms(campus_id)
     cutoff = datetime.utcnow() - timedelta(hours=2)
     rooms = StudyRoom.query.filter(
         StudyRoom.campus_id == campus_id,
@@ -35,8 +35,12 @@ def _visible_rooms(campus_id, user_id):
     ).order_by(StudyRoom.session_time.asc()).all()
     result = []
     for room in rooms:
-        is_member = any(m.user_id == user_id for m in room.members)
-        if is_member or room.member_count < room.max_members:
+        is_member = False
+        for m in room.members:
+            if m.user_id == user_id:
+                is_member = True
+                break
+        if is_member or room.member_count() < room.max_members:
             result.append(room)
     return result
 
@@ -47,8 +51,10 @@ def _visible_rooms(campus_id, user_id):
 @login_required
 def browse(campus_id):
     campus = _member_or_403(campus_id)
-    rooms  = _visible_rooms(campus_id, current_user.id)
-    joined_ids = {m.room_id for m in StudyRoomMember.query.filter_by(user_id=current_user.id).all()}
+    rooms = _visible_rooms(campus_id, current_user.id)
+    joined_ids = []
+    for m in StudyRoomMember.query.filter_by(user_id=current_user.id).all():
+        joined_ids.append(m.room_id)
     return render_template('study/browse.html', campus=campus, rooms=rooms,
                            joined_ids=joined_ids, active_page='study')
 
@@ -59,14 +65,14 @@ def browse(campus_id):
 @login_required
 def create(campus_id):
     campus = _member_or_403(campus_id)
-    data   = request.json or {}
+    data = request.json or {}
 
-    title        = data.get('title', '').strip()
-    location     = data.get('location', '').strip()
+    title = data.get('title', '').strip()
+    location = data.get('location', '').strip()
     session_time = data.get('session_time', '').strip()
-    max_members  = data.get('max_members')
+    max_members = data.get('max_members')
 
-    if not all([title, location, session_time, max_members]):
+    if not title or not location or not session_time or not max_members:
         return jsonify({'error': 'All fields are required'}), 400
 
     try:
@@ -84,25 +90,26 @@ def create(campus_id):
         max_members = int(max_members)
     except (TypeError, ValueError):
         return jsonify({'error': 'Invalid max members'}), 400
-    if not 2 <= max_members <= 20:
+    if max_members < 2 or max_members > 20:
         return jsonify({'error': 'Max members must be between 2 and 20'}), 400
 
     # Block if already a member of an active study room in this campus
     cutoff = datetime.utcnow() - timedelta(hours=2)
-    existing = (StudyRoomMember.query
-                .join(StudyRoom, StudyRoom.id == StudyRoomMember.room_id)
-                .filter(StudyRoomMember.user_id == current_user.id,
-                        StudyRoom.campus_id == campus_id,
-                        StudyRoom.session_time >= cutoff)
-                .first())
-    if existing:
+    already_in_room = False
+    my_memberships = StudyRoomMember.query.filter_by(user_id=current_user.id).all()
+    for m in my_memberships:
+        other_room = StudyRoom.query.get(m.room_id)
+        if other_room and other_room.campus_id == campus_id and other_room.session_time >= cutoff:
+            already_in_room = True
+            break
+    if already_in_room:
         return jsonify({'error': 'You are already in an active study room'}), 400
 
     room = StudyRoom(campus_id=campus_id, owner_id=current_user.id,
                      title=title, location=location,
                      session_time=session_dt, max_members=max_members)
     db.session.add(room)
-    db.session.flush()
+    db.session.commit()
     db.session.add(StudyRoomMember(room_id=room.id, user_id=current_user.id))
     db.session.commit()
 
@@ -118,9 +125,9 @@ def join(campus_id, room_id):
     _member_or_403(campus_id)
     room = StudyRoom.query.filter_by(id=room_id, campus_id=campus_id).first_or_404()
 
-    if room.is_expired:
+    if room.is_expired():
         return jsonify({'error': 'This session has ended'}), 400
-    if room.member_count >= room.max_members:
+    if room.member_count() >= room.max_members:
         return jsonify({'error': 'Room is full'}), 400
     if StudyRoomMember.query.filter_by(user_id=current_user.id, room_id=room_id).first():
         return jsonify({'ok': True, 'redirect': url_for('study.room',
@@ -128,16 +135,14 @@ def join(campus_id, room_id):
 
     # Block if user is already in a room with overlapping time
     new_start = room.session_time
-    new_end   = new_start + timedelta(hours=2)
-    conflict  = (StudyRoomMember.query
-                 .join(StudyRoom, StudyRoom.id == StudyRoomMember.room_id)
-                 .filter(StudyRoomMember.user_id == current_user.id,
-                         StudyRoom.id != room_id,
-                         StudyRoom.session_time > new_start - timedelta(hours=2),
-                         StudyRoom.session_time < new_end)
-                 .first())
-    if conflict:
-        return jsonify({'error': 'You already have a study room at that time'}), 400
+    new_end = new_start + timedelta(hours=2)
+    my_memberships = StudyRoomMember.query.filter_by(user_id=current_user.id).all()
+    for m in my_memberships:
+        if m.room_id == room_id:
+            continue
+        other = StudyRoom.query.get(m.room_id)
+        if other and other.session_time > new_start - timedelta(hours=2) and other.session_time < new_end:
+            return jsonify({'error': 'You already have a study room at that time'}), 400
 
     db.session.add(StudyRoomMember(room_id=room_id, user_id=current_user.id))
 
@@ -162,14 +167,13 @@ def join(campus_id, room_id):
 def leave(campus_id, room_id):
     srm = StudyRoomMember.query.filter_by(user_id=current_user.id, room_id=room_id).first_or_404()
     db.session.delete(srm)
-    db.session.flush()
+    db.session.commit()
 
     # Delete room if no members left
     room = StudyRoom.query.get(room_id)
-    if room and room.member_count == 0:
+    if room and room.member_count() == 0:
         db.session.delete(room)
-
-    db.session.commit()
+        db.session.commit()
     return jsonify({'ok': True})
 
 
@@ -192,7 +196,7 @@ def delete(campus_id, room_id):
 @login_required
 def room(campus_id, room_id):
     campus = _member_or_403(campus_id)
-    _cleanup_expired(campus_id)
+    delete_old_rooms(campus_id)
     sr = StudyRoom.query.filter_by(id=room_id, campus_id=campus_id).first_or_404()
     srm = StudyRoomMember.query.filter_by(user_id=current_user.id, room_id=room_id).first()
     if not srm:
@@ -238,9 +242,12 @@ def poll_messages(campus_id, room_id):
     if msgs:
         srm.last_read_at = datetime.utcnow()
         db.session.commit()
-    return jsonify([{
-        'id': m.id,
-        'body': m.body,
-        'sender': m.sender.name,
-        'mine': m.sender_id == current_user.id
-    } for m in msgs])
+    result = []
+    for m in msgs:
+        result.append({
+            'id': m.id,
+            'body': m.body,
+            'sender': m.sender.name,
+            'mine': m.sender_id == current_user.id
+        })
+    return jsonify(result)

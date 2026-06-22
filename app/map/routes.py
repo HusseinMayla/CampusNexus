@@ -17,9 +17,9 @@ def _is_admin(campus):
 @map_bp.route('/campus/<int:campus_id>/map')
 @login_required
 def campus_map(campus_id):
-    campus   = Campus.query.get_or_404(campus_id)
+    campus = Campus.query.get_or_404(campus_id)
     is_admin = _is_admin(campus)
-    view     = request.args.get('view')
+    view = request.args.get('view')
     active_page = 'events' if view == 'events' else 'map'
     return render_template('main/campus_map.html', campus=campus, is_admin=is_admin, active_page=active_page)
 
@@ -159,9 +159,9 @@ def map_data(campus_id):
 @map_bp.route('/api/pin/add', methods=['POST'])
 @login_required
 def add_pin():
-    data      = request.get_json()
+    data = request.get_json()
     campus_id = data.get('campus_id')
-    campus    = Campus.query.get(campus_id)
+    campus = Campus.query.get(campus_id)
 
     if not campus:
         return jsonify({'error': 'Campus not found'}), 404
@@ -174,10 +174,10 @@ def add_pin():
         return jsonify({'error': 'Unauthorized. You must join this campus to add items.'}), 403
 
     pin_type = data.get('type')
-    name     = data.get('name', '').strip()
-    desc     = data.get('description', '').strip()
-    lat      = data.get('lat')
-    lng      = data.get('lng')
+    name = data.get('name', '').strip()
+    desc = data.get('description', '').strip()
+    lat = data.get('lat')
+    lng = data.get('lng')
 
     if not name:
         return jsonify({'error': 'Name is required.'}), 400
@@ -234,12 +234,9 @@ def add_pin():
         if not date_str or not end_date_str:
             return jsonify({'error': 'Event start and end times are required.'}), 400
         
-        def parse_iso_datetime(dt_str):
-            return datetime.fromisoformat(dt_str.rstrip('Z').replace('T', ' '))
-
         try:
-            event_date = parse_iso_datetime(date_str)
-            event_end_date = parse_iso_datetime(end_date_str)
+            event_date = datetime.fromisoformat(date_str.rstrip('Z').replace('T', ' '))
+            event_end_date = datetime.fromisoformat(end_date_str.rstrip('Z').replace('T', ' '))
         except ValueError as val_err:
             return jsonify({'error': f'Invalid date format: {str(val_err)}'}), 400
 
@@ -293,12 +290,14 @@ def add_pin():
 @map_bp.route('/api/pin/delete/<pin_type>/<int:pin_id>', methods=['DELETE'])
 @login_required
 def delete_pin(pin_type, pin_id):
-    model_map = {'club': Club, 'office': Office, 'event': Event}
-    Model = model_map.get(pin_type)
-    if not Model:
+    if pin_type == 'club':
+        obj = Club.query.get_or_404(pin_id)
+    elif pin_type == 'office':
+        obj = Office.query.get_or_404(pin_id)
+    elif pin_type == 'event':
+        obj = Event.query.get_or_404(pin_id)
+    else:
         return jsonify({'error': 'Unknown type'}), 400
-
-    obj = Model.query.get_or_404(pin_id)
 
     campus_id = obj.campus_id
 
@@ -306,13 +305,13 @@ def delete_pin(pin_type, pin_id):
     if not campus:
         return jsonify({'error': 'Campus not found'}), 404
 
-    is_authorized = _is_admin(campus)
-    
-    if pin_type == 'event':
-        # Creator of event can also delete it
-        is_authorized = is_authorized or (obj.creator_id == current_user.id)
+    allowed = False
+    if _is_admin(campus):
+        allowed = True
+    if pin_type == 'event' and obj.creator_id == current_user.id:
+        allowed = True
 
-    if not is_authorized:
+    if not allowed:
         return jsonify({'error': 'Unauthorized'}), 403
 
     db.session.delete(obj)
@@ -325,7 +324,7 @@ def delete_pin(pin_type, pin_id):
 @map_bp.route('/api/campus/set-center', methods=['POST'])
 @login_required
 def set_center():
-    data   = request.get_json()
+    data = request.get_json()
     campus = Campus.query.get(data.get('campus_id'))
     if not campus or campus.creator_id != current_user.id:
         return jsonify({'error': 'Unauthorized'}), 403

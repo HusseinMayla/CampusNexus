@@ -15,7 +15,7 @@
         <div class="sr-header-tags">
             <span class="sr-tag">📍 {{ room.location }}</span>
             <span class="sr-tag">🕐 {{ room.session_time.strftime('%b %d, %I:%M %p') }}</span>
-            <span class="sr-tag">👥 {{ room.member_count }}/{{ room.max_members }}</span>
+            <span class="sr-tag">👥 {{ room.member_count() }}/{{ room.max_members }}</span>
         </div>
     </div>
     <div class="chat-header-actions">

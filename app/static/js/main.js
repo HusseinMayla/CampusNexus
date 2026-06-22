@@ -1,18 +1,22 @@
-const toggle    = document.getElementById('themeToggle');
+const toggle = document.getElementById('themeToggle');
 const hamburger = document.getElementById('hamburger');
-const sidebar   = document.querySelector('.base-sidebar');
-const saved     = localStorage.getItem('theme') || 'dark';
+const sidebar = document.querySelector('.base-sidebar');
+const saved = localStorage.getItem('theme') || 'dark';
 document.documentElement.setAttribute('data-theme', saved);
 
 window.updateNavActiveStates = function () {
     document.querySelectorAll('.base-nav-item').forEach(link => {
         if (link.href) {
-            const linkUrl    = new URL(link.href);
+            const linkUrl = new URL(link.href);
             const currentUrl = new URL(window.location.href);
             if (linkUrl.pathname === currentUrl.pathname) {
-                const linkView    = linkUrl.searchParams.get('view');
+                const linkView = linkUrl.searchParams.get('view');
                 const currentView = currentUrl.searchParams.get('view');
-                link.classList.toggle('active', linkView === currentView);
+                if (linkView === currentView) {
+                    link.classList.add('active');
+                } else {
+                    link.classList.remove('active');
+                }
             } else {
                 link.classList.remove('active');
             }
@@ -23,7 +27,7 @@ window.updateNavActiveStates();
 
 toggle.addEventListener('click', () => {
     const current = document.documentElement.getAttribute('data-theme');
-    const next    = current === 'dark' ? 'light' : 'dark';
+    const next = current === 'dark' ? 'light' : 'dark';
     document.documentElement.setAttribute('data-theme', next);
     localStorage.setItem('theme', next);
 });
@@ -44,7 +48,7 @@ if (document.body.dataset.authenticated === 'true') {
         try {
             const res = await fetch('/api/notifications/unread-count');
             if (!res.ok) return;
-            const data    = await res.json();
+            const data = await res.json();
             const notifBtn = document.querySelector('.base-notification-btn');
             if (!notifBtn) return;
             let badge = notifBtn.querySelector('.notification-badge');

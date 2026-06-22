@@ -17,8 +17,8 @@ def _is_member(campus):
             CampusMember.query.filter_by(user_id=current_user.id, campus_id=campus.id).first() is not None)
 
 
-ALLOWED_EXTENSIONS   = {'png', 'jpg', 'jpeg', 'gif'}
-RESOURCE_EXTENSIONS  = {'pdf', 'pptx', 'ppt', 'docx', 'doc', 'xlsx'}
+ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
+RESOURCE_EXTENSIONS = {'pdf', 'pptx', 'ppt', 'docx', 'doc', 'xlsx'}
 
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
@@ -38,7 +38,10 @@ def index():
         created_campuses = Campus.query.filter_by(creator_id=current_user.id).all()
         created_campus_ids = [c.id for c in created_campuses]
         
-        all_campus_ids = list(set(joined_campus_ids + created_campus_ids))
+        all_campus_ids = []
+        for campus_id in joined_campus_ids + created_campus_ids:
+            if campus_id not in all_campus_ids:
+                all_campus_ids.append(campus_id)
         joined_campuses_count = len(all_campus_ids)
         
         if all_campus_ids:
@@ -57,8 +60,12 @@ def index():
             for e in events:
                 part_count = EventParticipation.query.filter_by(event_id=e.id, is_interested=True).count()
                 user_part = EventParticipation.query.filter_by(event_id=e.id, user_id=current_user.id).first()
-                is_interested = user_part.is_interested if user_part else False
-                want_notification = user_part.want_notification if user_part else False
+                is_interested = False
+                if user_part:
+                    is_interested = user_part.is_interested
+                want_notification = False
+                if user_part:
+                    want_notification = user_part.want_notification
                 is_ended = e.end_date < now
                 
                 todays_events.append({
@@ -80,11 +87,19 @@ def index():
 @main_bp.route('/dashboard')
 @login_required
 def dashboard():
-    created  = Campus.query.filter_by(creator_id=current_user.id).all()
+    created = Campus.query.filter_by(creator_id=current_user.id).all()
     memberships = CampusMember.query.filter_by(user_id=current_user.id).all()
-    joined   = [m.campus for m in memberships]
-    campuses = created + [c for c in joined if c not in created]
-    return render_template('main/dashboard.html', campuses=campuses, created_ids={c.id for c in created})
+    joined = []
+    for m in memberships:
+        joined.append(m.campus)
+    campuses = list(created)
+    for c in joined:
+        if c not in created:
+            campuses.append(c)
+    created_ids = set()
+    for c in created:
+        created_ids.add(c.id)
+    return render_template('main/dashboard.html', campuses=campuses, created_ids=created_ids)
 
 @main_bp.route('/create-campus', methods=['GET', 'POST'])
 @login_required
@@ -134,12 +149,27 @@ def create_campus():
             map_file.save(os.path.join(upload_folder, filename))
             map_filename = f"uploads/{filename}"
 
+        if domain:
+            campus_domain = domain
+        else:
+            campus_domain = None
+
+        if banner_filename:
+            campus_banner = url_for('static', filename=banner_filename)
+        else:
+            campus_banner = None
+
+        if map_filename:
+            campus_map = url_for('static', filename=map_filename)
+        else:
+            campus_map = None
+
         new_campus = Campus(
             name=name,
             description=description,
-            domain=domain if domain else None,
-            banner_image=url_for('static', filename=banner_filename) if banner_filename else None,
-            map_image=url_for('static', filename=map_filename) if map_filename else None,
+            domain=campus_domain,
+            banner_image=campus_banner,
+            map_image=campus_map,
             creator_id=current_user.id
         )
         db.session.add(new_campus)
@@ -168,16 +198,25 @@ def join_campus():
      
     # Fetch joined ids for current user
     joined_memberships = CampusMember.query.filter_by(user_id=current_user.id).all()
-    joined_roles = {m.campus_id: m.role for m in joined_memberships}
+    joined_roles = {}
+    for m in joined_memberships:
+        joined_roles[m.campus_id] = m.role
     
     campus_list = []
     for campus, count in campuses_with_counts:
         role = joined_roles.get(campus.id)
+        if role:
+            display_role = role
+        elif campus.creator_id == current_user.id:
+            display_role = 'owner'
+        else:
+            display_role = None
+
         campus_list.append({
             'campus': campus,
             'member_count': count,
             'is_joined': campus.id in joined_roles or campus.creator_id == current_user.id,
-            'role': role or ('owner' if campus.creator_id == current_user.id else None)
+            'role': display_role
         })
 
     return render_template('main/join_campus.html', campuses=campus_list)
@@ -487,9 +526,12 @@ def campus_resources(campus_id):
         flash('You must join this campus to view its resources.', 'error')
         return redirect(url_for('main.join_campus'))
     resources = Resource.query.filter_by(campus_id=campus.id).all()
-    requests  = ResourceRequest.query.filter_by(campus_id=campus.id).all()
-    posts = [('resource', r, r.uploaded_at) for r in resources] + \
-            [('request',  r, r.created_at)  for r in requests]
+    requests = ResourceRequest.query.filter_by(campus_id=campus.id).all()
+    posts = []
+    for r in resources:
+        posts.append(('resource', r, r.uploaded_at))
+    for r in requests:
+        posts.append(('request', r, r.created_at))
     posts.sort(key=lambda x: x[2], reverse=True)
     return render_template('main/campus_resources.html', campus=campus, posts=posts, active_page='resources')
 
@@ -501,10 +543,13 @@ def resource_request_create(campus_id):
     if not _is_member(campus):
         return jsonify({'error': 'Unauthorized'}), 403
 
-    data        = request.get_json()
-    email       = data.get('email', '').strip()
+    data = request.get_json()
+    email = data.get('email', '').strip()
     course_code = data.get('course_code', '').strip().upper()
-    chapters    = [c.strip() for c in data.get('chapters', []) if c.strip()]
+    chapters = []
+    for c in data.get('chapters', []):
+        if c.strip():
+            chapters.append(c.strip())
 
     if not re.match(r'^[\w.+\-]+@[\w\-]+(\.[a-zA-Z]{2,}){1,3}$', email):
         return jsonify({'error': 'Invalid email address.'}), 400
@@ -522,11 +567,11 @@ def resource_request_create(campus_id):
     db.session.commit()
 
     return jsonify({
-        'id':          rr.id,
-        'email':       rr.email,
+        'id': rr.id,
+        'email': rr.email,
         'course_code': rr.course_code,
-        'chapters':    rr.chapters.split(',') if rr.chapters else [],
-        'poster_id':   rr.poster_id,
+        'chapters': rr.chapters.split(',') if rr.chapters else [],
+        'poster_id': rr.poster_id,
         'poster_name': current_user.name,
     }), 201
 
@@ -550,8 +595,8 @@ def resource_create(campus_id):
         return jsonify({'error': 'Unauthorized'}), 403
 
     course_code = request.form.get('course_code', '').strip().upper()
-    chapters    = request.form.get('chapters', '').strip()
-    file        = request.files.get('file')
+    chapters = request.form.get('chapters', '').strip()
+    file = request.files.get('file')
 
     if not course_code:
         return jsonify({'error': 'Course code is required.'}), 400
@@ -561,8 +606,8 @@ def resource_create(campus_id):
         return jsonify({'error': 'File type not allowed. Use PDF, PPTX, DOCX, DOC, PPT, or XLSX.'}), 400
 
     original_filename = file.filename
-    ext         = original_filename.rsplit('.', 1)[1].lower()
-    safe        = secure_filename(original_filename)
+    ext = original_filename.rsplit('.', 1)[1].lower()
+    safe = secure_filename(original_filename)
     stored_name = f"{uuid.uuid4().hex}_{safe}"
 
     upload_dir = os.path.join(current_app.static_folder, 'uploads', 'resources')
@@ -583,13 +628,13 @@ def resource_create(campus_id):
     db.session.commit()
 
     return jsonify({
-        'id':                resource.id,
-        'course_code':       resource.course_code,
-        'chapters':          resource.chapters or '',
-        'file_type':         resource.file_type,
+        'id': resource.id,
+        'course_code': resource.course_code,
+        'chapters': resource.chapters or '',
+        'file_type': resource.file_type,
         'original_filename': resource.original_filename,
-        'uploader_id':       resource.uploader_id,
-        'uploader_name':     current_user.name,
+        'uploader_id': resource.uploader_id,
+        'uploader_name': current_user.name,
     }), 201
 
 
@@ -615,7 +660,7 @@ def resource_download(campus_id, resource_id):
     if not resource.file_url:
         flash('File not found.', 'error')
         return redirect(url_for('main.campus_resources', campus_id=campus_id))
-    directory   = os.path.join(current_app.static_folder, 'uploads', 'resources')
+    directory = os.path.join(current_app.static_folder, 'uploads', 'resources')
     stored_name = resource.file_url.split('/')[-1]
     return send_from_directory(directory, stored_name, as_attachment=True,
                                download_name=resource.original_filename or stored_name)
@@ -639,12 +684,15 @@ def market_post_create(campus_id):
     if not _is_member(campus):
         return jsonify({'error': 'Unauthorized'}), 403
 
-    data      = request.get_json()
+    data = request.get_json()
     full_name = data.get('full_name', '').strip()
-    email     = data.get('email', '').strip()
-    role      = data.get('role', '').strip()
-    courses   = [c.strip() for c in data.get('courses', []) if c.strip()]
-    method    = data.get('method', '').strip()
+    email = data.get('email', '').strip()
+    role = data.get('role', '').strip()
+    courses = []
+    for c in data.get('courses', []):
+        if c.strip():
+            courses.append(c.strip())
+    method = data.get('method', '').strip()
 
     if len(full_name) < 2:
         return jsonify({'error': 'Name must be at least 2 characters.'}), 400
@@ -670,13 +718,13 @@ def market_post_create(campus_id):
     db.session.commit()
 
     return jsonify({
-        'id':          post.id,
-        'full_name':   post.full_name,
-        'email':       post.email,
-        'role':        post.role,
-        'courses':     post.courses.split(','),
-        'method':      post.method,
-        'poster_id':   post.poster_id,
+        'id': post.id,
+        'full_name': post.full_name,
+        'email': post.email,
+        'role': post.role,
+        'courses': post.courses.split(','),
+        'method': post.method,
+        'poster_id': post.poster_id,
         'poster_name': current_user.name
     }), 201
 
@@ -709,7 +757,9 @@ def _campus_member_or_403(campus_id):
 def chat_browse(campus_id):
     campus, member = _campus_member_or_403(campus_id)
     rooms = ChatRoom.query.filter_by(campus_id=campus_id).all()
-    joined_ids = {cm.room_id for cm in ChatMember.query.filter_by(user_id=current_user.id).all()}
+    joined_ids = []
+    for cm in ChatMember.query.filter_by(user_id=current_user.id).all():
+        joined_ids.append(cm.room_id)
     return render_template('main/chat_browse.html', campus=campus, rooms=rooms,
                            joined_ids=joined_ids, member=member, active_page='chat')
 
@@ -725,7 +775,7 @@ def chat_create(campus_id):
         return jsonify({'error': 'A room with that name already exists'}), 400
     room = ChatRoom(campus_id=campus_id, name=name)
     db.session.add(room)
-    db.session.flush()
+    db.session.commit()
     db.session.add(ChatMember(user_id=current_user.id, room_id=room.id))
     db.session.commit()
     return jsonify({'id': room.id, 'name': room.name}), 201
@@ -772,7 +822,7 @@ def chat_leave(campus_id, room_id):
 def chat_room(campus_id, room_id):
     campus, member = _campus_member_or_403(campus_id)
     room = ChatRoom.query.filter_by(id=room_id, campus_id=campus_id).first_or_404()
-    cm   = ChatMember.query.filter_by(user_id=current_user.id, room_id=room_id).first()
+    cm = ChatMember.query.filter_by(user_id=current_user.id, room_id=room_id).first()
     if not cm:
         return redirect(url_for('main.chat_browse', campus_id=campus_id))
     cm.last_read_at = datetime.utcnow()
@@ -805,19 +855,22 @@ def chat_poll(campus_id, room_id):
     if not cm:
         return jsonify({'error': 'Not a member'}), 403
     after = request.args.get('after', 0, type=int)
-    msgs  = ChatMessage.query.filter(
+    msgs = ChatMessage.query.filter(
         ChatMessage.room_id == room_id,
         ChatMessage.id > after
     ).order_by(ChatMessage.sent_at.asc()).all()
     if msgs:
         cm.last_read_at = datetime.utcnow()
         db.session.commit()
-    return jsonify([{
-        'id':   m.id,
-        'body': m.body,
-        'sender': m.sender.name,
-        'mine': m.sender_id == current_user.id
-    } for m in msgs])
+    result = []
+    for m in msgs:
+        result.append({
+            'id': m.id,
+            'body': m.body,
+            'sender': m.sender.name,
+            'mine': m.sender_id == current_user.id
+        })
+    return jsonify(result)
 
 
 # ── Hook: Event Start Notifications ───────────────────────────────────────────
@@ -826,13 +879,15 @@ def chat_poll(campus_id, room_id):
 def check_event_notifications():
     if current_user.is_authenticated:
         now = datetime.utcnow()
-        due_participations = (db.session.query(EventParticipation)
-                              .join(Event)
-                              .filter(EventParticipation.user_id == current_user.id,
-                                      EventParticipation.want_notification == True,
-                                      EventParticipation.notification_sent == False,
-                                      Event.date <= now)
-                              .all())
+        all_participations = EventParticipation.query.filter_by(
+            user_id=current_user.id,
+            want_notification=True,
+            notification_sent=False
+        ).all()
+        due_participations = []
+        for p in all_participations:
+            if p.event.date <= now:
+                due_participations.append(p)
 
         if due_participations:
             for p in due_participations:

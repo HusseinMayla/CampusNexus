@@ -1,9 +1,9 @@
-const msgList  = document.getElementById('msgList');
+const msgList = document.getElementById('msgList');
 const CAMPUS_ID = parseInt(msgList.dataset.campusId);
-const ROOM_ID   = parseInt(msgList.dataset.roomId);
-let lastId      = parseInt(msgList.dataset.lastId) || 0;
-let lastSender  = msgList.dataset.lastSender || null;
-let lastMine    = msgList.dataset.lastMine === 'true';
+const ROOM_ID = parseInt(msgList.dataset.roomId);
+let lastId = parseInt(msgList.dataset.lastId) || 0;
+let lastSender = msgList.dataset.lastSender || null;
+let lastMine = msgList.dataset.lastMine === 'true';
 
 msgList.scrollTop = msgList.scrollHeight;
 
@@ -12,24 +12,33 @@ function esc(s) {
 }
 
 function fmtTime(d) {
-    let h = d.getHours(), m = d.getMinutes(), ampm = h >= 12 ? 'PM' : 'AM';
-    h = h % 12 || 12;
+    let h = d.getHours();
+    let m = d.getMinutes();
+    let ampm = h >= 12 ? 'PM' : 'AM';
+    h = h % 12;
+    if (h === 0) {
+        h = 12;
+    }
     return h + ':' + String(m).padStart(2, '0') + ' ' + ampm;
 }
 
 function appendMsg(body, sender, mine, id, consecutive) {
     const time = fmtTime(new Date());
-    const row  = document.createElement('div');
+    const row = document.createElement('div');
     row.className = 'msg-row ' + (mine ? 'msg-row-mine' : 'msg-row-other') +
                     (consecutive ? ' msg-consecutive' : '');
 
-    const avatarHtml = consecutive
-        ? `<div class="msg-avatar-spacer"></div>`
-        : `<div class="msg-avatar ${mine ? 'msg-avatar-mine' : 'msg-avatar-other'}">${esc(sender[0].toUpperCase())}</div>`;
+    let avatarHtml = '';
+    if (consecutive) {
+        avatarHtml = '<div class="msg-avatar-spacer"></div>';
+    } else {
+        avatarHtml = '<div class="msg-avatar ' + (mine ? 'msg-avatar-mine' : 'msg-avatar-other') + '">' + esc(sender[0].toUpperCase()) + '</div>';
+    }
 
-    const senderHtml = (!consecutive && !mine)
-        ? `<div class="msg-sender">${esc(sender)}</div>`
-        : '';
+    let senderHtml = '';
+    if (!consecutive && !mine) {
+        senderHtml = '<div class="msg-sender">' + esc(sender) + '</div>';
+    }
 
     row.innerHTML = `${avatarHtml}
         <div class="msg-col">
@@ -42,20 +51,20 @@ function appendMsg(body, sender, mine, id, consecutive) {
     msgList.appendChild(row);
     msgList.scrollTop = msgList.scrollHeight;
     lastSender = sender;
-    lastMine   = mine;
+    lastMine = mine;
     if (id) lastId = id;
 }
 
 async function sendMsg() {
-    const inp  = document.getElementById('msgInput');
+    const inp = document.getElementById('msgInput');
     const body = inp.value.trim();
     if (!body) return;
     inp.value = '';
     const consecutive = lastMine === true;
-    const res  = await fetch(`/campus/${CAMPUS_ID}/chat/${ROOM_ID}/send`, {
+    const res = await fetch(`/campus/${CAMPUS_ID}/chat/${ROOM_ID}/send`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ body })
+        body: JSON.stringify({ body: body })
     });
     const data = await res.json();
     if (data.id) appendMsg(data.body, data.sender, true, data.id, consecutive);
@@ -63,7 +72,7 @@ async function sendMsg() {
 
 async function poll() {
     try {
-        const res  = await fetch(`/campus/${CAMPUS_ID}/chat/${ROOM_ID}/poll?after=${lastId}`);
+        const res = await fetch(`/campus/${CAMPUS_ID}/chat/${ROOM_ID}/poll?after=${lastId}`);
         const msgs = await res.json();
         for (const m of msgs) {
             if (!m.mine) {
@@ -108,6 +117,9 @@ if (triggerDeleteBtn) {
 }
 
 document.getElementById('msgInput').addEventListener('keydown', e => {
-    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMsg(); }
+    if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        sendMsg();
+    }
 });
 document.getElementById('sendBtn').addEventListener('click', sendMsg);

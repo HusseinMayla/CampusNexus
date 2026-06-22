@@ -1,7 +1,7 @@
-const postFeed  = document.getElementById('postFeed');
+const postFeed = document.getElementById('postFeed');
 const CAMPUS_ID = parseInt(postFeed.dataset.campusId);
 const USER_INIT = postFeed.dataset.userInitial;
-const EMAIL_RE  = /^[\w.+\-]+@[\w\-]+(\.[a-zA-Z]{2,}){1,3}$/;
+const EMAIL_RE = /^[\w.+\-]+@[\w\-]+(\.[a-zA-Z]{2,}){1,3}$/;
 
 let selRole = null, selMethod = null, courses = [];
 
@@ -20,31 +20,44 @@ function closeModal() {
     resetForm();
 }
 function resetForm() {
-    document.getElementById('f-name').value  = '';
+    document.getElementById('f-name').value = '';
     document.getElementById('f-email').value = '';
     selRole = selMethod = null;
     courses = [];
-    document.querySelectorAll('.choice-btn').forEach(b => b.classList.remove('sel'));
-    document.getElementById('courseWrap').querySelectorAll('.ctag').forEach(t => t.remove());
+    const allChoiceBtns = document.querySelectorAll('.choice-btn');
+    for (let i = 0; i < allChoiceBtns.length; i++) {
+        allChoiceBtns[i].classList.remove('sel');
+    }
+    const existingTags = document.getElementById('courseWrap').querySelectorAll('.ctag');
+    for (let i = 0; i < existingTags.length; i++) {
+        existingTags[i].remove();
+    }
     document.getElementById('courseInput').value = '';
-    ['name', 'email', 'role', 'courses', 'method', 'general'].forEach(k => {
-        document.getElementById('err-' + k).textContent = '';
-    });
+    document.getElementById('err-name').textContent = '';
+    document.getElementById('err-email').textContent = '';
+    document.getElementById('err-role').textContent = '';
+    document.getElementById('err-courses').textContent = '';
+    document.getElementById('err-method').textContent = '';
+    document.getElementById('err-general').textContent = '';
     document.getElementById('submitBtn').disabled = true;
 }
 
 /* ── Choice buttons (event delegation per group) ───────────── */
-document.querySelectorAll('.choice-group').forEach(group => {
-    group.addEventListener('click', e => {
+const choiceGroups = document.querySelectorAll('.choice-group');
+for (let i = 0; i < choiceGroups.length; i++) {
+    choiceGroups[i].addEventListener('click', e => {
         const btn = e.target.closest('.choice-btn');
         if (!btn) return;
-        group.querySelectorAll('.choice-btn').forEach(b => b.classList.remove('sel'));
+        const groupBtns = choiceGroups[i].querySelectorAll('.choice-btn');
+        for (let j = 0; j < groupBtns.length; j++) {
+            groupBtns[j].classList.remove('sel');
+        }
         btn.classList.add('sel');
-        if (group.dataset.group === 'role')   selRole   = btn.dataset.val;
-        if (group.dataset.group === 'method') selMethod = btn.dataset.val;
+        if (choiceGroups[i].dataset.group === 'role') { selRole = btn.dataset.val; }
+        if (choiceGroups[i].dataset.group === 'method') { selMethod = btn.dataset.val; }
         validate();
     });
-});
+}
 
 /* ── Course tags ────────────────────────────────────────────── */
 function courseKey(e) {
@@ -71,18 +84,26 @@ function addCourse(val) {
 }
 function removeCourse(idx) {
     courses.splice(idx, 1);
-    document.getElementById('courseWrap').querySelectorAll('.ctag').forEach(t => t.remove());
-    const copy = [...courses];
+    const oldTags = document.getElementById('courseWrap').querySelectorAll('.ctag');
+    for (let i = 0; i < oldTags.length; i++) {
+        oldTags[i].remove();
+    }
+    const copy = [];
+    for (let i = 0; i < courses.length; i++) {
+        copy.push(courses[i]);
+    }
     courses = [];
-    copy.forEach(v => addCourse(v));
+    for (let i = 0; i < copy.length; i++) {
+        addCourse(copy[i]);
+    }
     document.getElementById('courseInput').focus();
     validate();
 }
 
 /* ── Validation ─────────────────────────────────────────────── */
 function validate() {
-    let ok   = true;
-    const name  = document.getElementById('f-name').value.trim();
+    let ok = true;
+    const name = document.getElementById('f-name').value.trim();
     const email = document.getElementById('f-email').value.trim();
 
     if (name.length > 0 && name.length < 2) {
@@ -112,13 +133,13 @@ async function submitPost() {
     const btn = document.getElementById('submitBtn');
     btn.disabled = true;
     try {
-        const res  = await fetch(`/campus/${CAMPUS_ID}/market/post`, {
+        const res = await fetch(`/campus/${CAMPUS_ID}/market/post`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
                 full_name: document.getElementById('f-name').value.trim(),
-                email:     document.getElementById('f-email').value.trim(),
-                role: selRole, courses, method: selMethod
+                email: document.getElementById('f-email').value.trim(),
+                role: selRole, courses: courses, method: selMethod
             })
         });
         const data = await res.json();
@@ -139,12 +160,20 @@ async function submitPost() {
 /* ── Card builder ───────────────────────────────────────────── */
 function prependCard(post) {
     const card = document.createElement('div');
-    card.className    = 'post-card';
+    card.className = 'post-card';
     card.dataset.role = post.role;
-    card.dataset.id   = post.id;
-    const roleCls    = post.role === 'tutor' ? 'tag-tutor' : 'tag-student';
-    const courseTags = post.courses.map(c => `<span class="tag tag-course">${esc(c)}</span>`).join('');
-    const initial    = esc(post.poster_name.charAt(0).toUpperCase());
+    card.dataset.id = post.id;
+    let roleCls = '';
+    if (post.role === 'tutor') {
+        roleCls = 'tag-tutor';
+    } else {
+        roleCls = 'tag-student';
+    }
+    let courseTags = '';
+    for (let i = 0; i < post.courses.length; i++) {
+        courseTags += '<span class="tag tag-course">' + esc(post.courses[i]) + '</span>';
+    }
+    const initial = esc(post.poster_name.charAt(0).toUpperCase());
     card.innerHTML = `
         <button class="post-delete-btn" data-post-id="${post.id}" title="Delete post">✕</button>
         <div class="post-header">
@@ -175,10 +204,20 @@ function ensureComposeBar() {
 
 /* ── Filter ─────────────────────────────────────────────────── */
 function applyFilter() {
-    const f = document.querySelector('.filter-btn.active')?.dataset.filter || 'all';
-    document.querySelectorAll('.post-card').forEach(c => {
-        c.style.display = (f === 'all' || c.dataset.role === f) ? '' : 'none';
-    });
+    let f = 'all';
+    const activeBtn = document.querySelector('.filter-btn.active');
+    if (activeBtn) {
+        f = activeBtn.dataset.filter;
+    }
+    const allCards = document.querySelectorAll('.post-card');
+    for (let i = 0; i < allCards.length; i++) {
+        const c = allCards[i];
+        if (f === 'all' || c.dataset.role === f) {
+            c.style.display = '';
+        } else {
+            c.style.display = 'none';
+        }
+    }
 }
 
 /* ── Confirm delete ─────────────────────────────────────────── */
@@ -194,11 +233,19 @@ async function doDelete(id) {
     try {
         const res = await fetch(`/campus/${CAMPUS_ID}/market/post/${id}`, { method: 'DELETE' });
         if (res.ok) {
-            document.querySelector(`.post-card[data-id="${id}"]`)?.remove();
+            const card = document.querySelector(`.post-card[data-id="${id}"]`);
+            if (card) {
+                card.remove();
+            }
             if (!document.querySelector('.post-card')) {
                 const empty = document.getElementById('emptyState');
-                if (empty) empty.style.display = '';
-                document.querySelector('.compose-bar')?.remove();
+                if (empty) {
+                    empty.style.display = '';
+                }
+                const bar = document.querySelector('.compose-bar');
+                if (bar) {
+                    bar.remove();
+                }
             }
         }
     } catch { alert('Failed to delete. Try again.'); }
@@ -206,21 +253,33 @@ async function doDelete(id) {
 
 /* ── Event wiring ───────────────────────────────────────────── */
 document.getElementById('btnOpenModal').addEventListener('click', openModal);
-document.getElementById('btnEmptyModal')?.addEventListener('click', openModal);
-document.querySelector('.compose-bar')?.addEventListener('click', openModal);
+const btnEmptyModal = document.getElementById('btnEmptyModal');
+if (btnEmptyModal) {
+    btnEmptyModal.addEventListener('click', openModal);
+}
+const composeBar = document.querySelector('.compose-bar');
+if (composeBar) {
+    composeBar.addEventListener('click', openModal);
+}
 
 document.getElementById('modalCloseBtn').addEventListener('click', closeModal);
 document.getElementById('modalOverlay').addEventListener('click', e => {
-    if (e.target === document.getElementById('modalOverlay')) closeModal();
+    if (e.target === document.getElementById('modalOverlay')) {
+        closeModal();
+    }
 });
 
 document.getElementById('f-name').addEventListener('input', validate);
 document.getElementById('f-name').addEventListener('keydown', e => {
-    if (e.key === 'Enter') document.getElementById('submitBtn').click();
+    if (e.key === 'Enter') {
+        document.getElementById('submitBtn').click();
+    }
 });
 document.getElementById('f-email').addEventListener('input', validate);
 document.getElementById('f-email').addEventListener('keydown', e => {
-    if (e.key === 'Enter') document.getElementById('submitBtn').click();
+    if (e.key === 'Enter') {
+        document.getElementById('submitBtn').click();
+    }
 });
 
 document.getElementById('courseWrap').addEventListener('click', () => document.getElementById('courseInput').focus());
@@ -231,13 +290,16 @@ document.getElementById('submitBtn').addEventListener('click', submitPost);
 
 document.getElementById('confirmNo').addEventListener('click', closeConfirm);
 
-document.querySelectorAll('.filter-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-        document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
+const filterBtns = document.querySelectorAll('.filter-btn');
+for (let i = 0; i < filterBtns.length; i++) {
+    filterBtns[i].addEventListener('click', () => {
+        for (let j = 0; j < filterBtns.length; j++) {
+            filterBtns[j].classList.remove('active');
+        }
+        filterBtns[i].classList.add('active');
         applyFilter();
     });
-});
+}
 
 // Delete — event delegation covers initial + dynamically added cards
 postFeed.addEventListener('click', e => {

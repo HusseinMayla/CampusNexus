@@ -1,8 +1,8 @@
-const resFeed    = document.getElementById('resFeed');
-const CAMPUS_ID  = parseInt(resFeed.dataset.campusId);
-const USER_INIT  = resFeed.dataset.userInitial;
+const resFeed = document.getElementById('resFeed');
+const CAMPUS_ID = parseInt(resFeed.dataset.campusId);
+const USER_INIT = resFeed.dataset.userInitial;
 const ALLOWED_EXT = ['pdf', 'pptx', 'ppt', 'docx', 'doc', 'xlsx'];
-const EMAIL_RE    = /^[\w.+\-]+@[\w\-]+(\.[a-zA-Z]{2,}){1,3}$/;
+const EMAIL_RE = /^[\w.+\-]+@[\w\-]+(\.[a-zA-Z]{2,}){1,3}$/;
 
 function esc(s) {
     return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
@@ -26,13 +26,16 @@ function resetShare() {
     document.getElementById('fileNameDisplay').classList.add('res-hidden');
     document.getElementById('fileDropLabel').classList.remove('res-hidden');
     document.getElementById('fileDrop').classList.remove('has-file');
-    ['share-code', 'share-file', 'share-general'].forEach(k => {
-        document.getElementById('err-' + k).textContent = '';
-    });
+    document.getElementById('err-share-code').textContent = '';
+    document.getElementById('err-share-file').textContent = '';
+    document.getElementById('err-share-general').textContent = '';
     document.getElementById('shareSubmitBtn').disabled = true;
     document.getElementById('shareSubmitBtn').textContent = 'Upload';
     shareChapters = [];
-    document.getElementById('shareChapterWrap').querySelectorAll('.chtag').forEach(t => t.remove());
+    const shareTags = document.getElementById('shareChapterWrap').querySelectorAll('.chtag');
+    for (let i = 0; i < shareTags.length; i++) {
+        shareTags[i].remove();
+    }
     document.getElementById('shareChapterInput').value = '';
 }
 
@@ -52,7 +55,13 @@ function shareChapterKey(e) {
 }
 
 function removeShareChapter(tagEl, val) {
-    shareChapters = shareChapters.filter(c => c !== val);
+    const newList = [];
+    for (let i = 0; i < shareChapters.length; i++) {
+        if (shareChapters[i] !== val) {
+            newList.push(shareChapters[i]);
+        }
+    }
+    shareChapters = newList;
     tagEl.remove();
 }
 
@@ -76,7 +85,8 @@ function onFileChange(input) {
 
 function validateShare() {
     const ok = document.getElementById('f-code').value.trim().length > 0 &&
-               !!document.getElementById('f-file').files[0];
+               document.getElementById('f-file').files[0] !== undefined &&
+               document.getElementById('f-file').files[0] !== null;
     document.getElementById('shareSubmitBtn').disabled = !ok;
     return ok;
 }
@@ -91,7 +101,7 @@ async function submitUpload() {
     fd.append('chapters', shareChapters.join(','));
     fd.append('file', document.getElementById('f-file').files[0]);
     try {
-        const res  = await fetch(`/campus/${CAMPUS_ID}/resources/upload`, { method: 'POST', body: fd });
+        const res = await fetch(`/campus/${CAMPUS_ID}/resources/upload`, { method: 'POST', body: fd });
         const data = await res.json();
         if (!res.ok) {
             document.getElementById('err-share-general').textContent = data.error || 'Something went wrong.';
@@ -123,13 +133,17 @@ function closeRequestModal() {
 
 function resetRequest() {
     document.getElementById('r-email').value = '';
-    document.getElementById('r-code').value  = '';
+    document.getElementById('r-code').value = '';
     chapters = [];
-    document.getElementById('chapterWrap').querySelectorAll('.chtag').forEach(t => t.remove());
+    const chapterTags = document.getElementById('chapterWrap').querySelectorAll('.chtag');
+    for (let i = 0; i < chapterTags.length; i++) {
+        chapterTags[i].remove();
+    }
     document.getElementById('chapterInput').value = '';
-    ['req-email', 'req-code', 'req-chapters', 'req-general'].forEach(k => {
-        document.getElementById('err-' + k).textContent = '';
-    });
+    document.getElementById('err-req-email').textContent = '';
+    document.getElementById('err-req-code').textContent = '';
+    document.getElementById('err-req-chapters').textContent = '';
+    document.getElementById('err-req-general').textContent = '';
     document.getElementById('requestSubmitBtn').disabled = true;
 }
 
@@ -158,16 +172,21 @@ function removeChapter(idx) {
     chapters.splice(idx, 1);
     const wrap = document.getElementById('chapterWrap');
     wrap.querySelectorAll('.chtag').forEach(t => t.remove());
-    const copy = [...chapters];
+    const copy = [];
+    for (let i = 0; i < chapters.length; i++) {
+        copy.push(chapters[i]);
+    }
     chapters = [];
-    copy.forEach(v => addChapter(v));
+    for (let i = 0; i < copy.length; i++) {
+        addChapter(copy[i]);
+    }
     document.getElementById('chapterInput').focus();
 }
 
 function validateRequest() {
     const email = document.getElementById('r-email').value.trim();
-    const code  = document.getElementById('r-code').value.trim();
-    const ok    = EMAIL_RE.test(email) && code.length > 0;
+    const code = document.getElementById('r-code').value.trim();
+    const ok = EMAIL_RE.test(email) && code.length > 0;
     document.getElementById('requestSubmitBtn').disabled = !ok;
     return ok;
 }
@@ -177,13 +196,13 @@ async function submitRequest() {
     const btn = document.getElementById('requestSubmitBtn');
     btn.disabled = true;
     try {
-        const res  = await fetch(`/campus/${CAMPUS_ID}/resources/request`, {
+        const res = await fetch(`/campus/${CAMPUS_ID}/resources/request`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-                email:       document.getElementById('r-email').value.trim(),
+                email: document.getElementById('r-email').value.trim(),
                 course_code: document.getElementById('r-code').value.trim().toUpperCase(),
-                chapters
+                chapters: chapters
             })
         });
         const data = await res.json();
@@ -226,13 +245,20 @@ function ftType(ext) {
 function prependResourceCard(r) {
     const card = document.createElement('div');
     card.className = 'post-card';
-    card.dataset.id   = r.id;
+    card.dataset.id = r.id;
     card.dataset.type = 'resource';
     const initial = esc(r.uploader_name.charAt(0).toUpperCase());
-    const dlUrl   = `/campus/${CAMPUS_ID}/resources/${r.id}/download`;
-    const chTags  = r.chapters
-        ? r.chapters.split(',').filter(c => c.trim()).map(c => `<span class="tag tag-chapter">${esc(c.trim())}</span>`).join('')
-        : '';
+    const dlUrl = `/campus/${CAMPUS_ID}/resources/${r.id}/download`;
+    let chTags = '';
+    if (r.chapters) {
+        const parts = r.chapters.split(',');
+        for (let i = 0; i < parts.length; i++) {
+            const c = parts[i].trim();
+            if (c) {
+                chTags += '<span class="tag tag-chapter">' + esc(c) + '</span>';
+            }
+        }
+    }
     card.innerHTML = `
         <button class="post-delete-btn" data-post-id="${r.id}" data-post-type="resource" title="Delete">✕</button>
         <div class="post-header">
@@ -259,10 +285,13 @@ function prependResourceCard(r) {
 function prependRequestCard(r) {
     const card = document.createElement('div');
     card.className = 'post-card';
-    card.dataset.id   = r.id;
+    card.dataset.id = r.id;
     card.dataset.type = 'request';
-    const initial     = esc(r.poster_name.charAt(0).toUpperCase());
-    const chapterTags = r.chapters.map(c => `<span class="tag tag-chapter">${esc(c)}</span>`).join('');
+    const initial = esc(r.poster_name.charAt(0).toUpperCase());
+    let chapterTags = '';
+    for (let i = 0; i < r.chapters.length; i++) {
+        chapterTags += '<span class="tag tag-chapter">' + esc(r.chapters[i]) + '</span>';
+    }
     card.innerHTML = `
         <button class="post-delete-btn" data-post-id="${r.id}" data-post-type="request" title="Delete">✕</button>
         <div class="post-header">
@@ -291,7 +320,9 @@ function ensureComposeBar() {
 
 function hideEmpty() {
     const empty = document.getElementById('emptyState');
-    if (empty) empty.style.display = 'none';
+    if (empty) {
+        empty.style.display = 'none';
+    }
 }
 
 /* ── Confirm delete ────────────────────────────────────────── */
@@ -305,17 +336,28 @@ function closeConfirm() {
 
 async function doDelete(id, type) {
     closeConfirm();
-    const url = type === 'request'
-        ? `/campus/${CAMPUS_ID}/resources/request/${id}`
-        : `/campus/${CAMPUS_ID}/resources/${id}`;
+    let url = '';
+    if (type === 'request') {
+        url = `/campus/${CAMPUS_ID}/resources/request/${id}`;
+    } else {
+        url = `/campus/${CAMPUS_ID}/resources/${id}`;
+    }
     try {
         const res = await fetch(url, { method: 'DELETE' });
         if (res.ok) {
-            document.querySelector(`.post-card[data-id="${id}"][data-type="${type}"]`)?.remove();
+            const card = document.querySelector(`.post-card[data-id="${id}"][data-type="${type}"]`);
+            if (card) {
+                card.remove();
+            }
             if (!document.querySelector('.post-card')) {
                 const empty = document.getElementById('emptyState');
-                if (empty) empty.style.display = '';
-                document.querySelector('.compose-bar')?.remove();
+                if (empty) {
+                    empty.style.display = '';
+                }
+                const composeBar = document.querySelector('.compose-bar');
+                if (composeBar) {
+                    composeBar.remove();
+                }
             }
         }
     } catch { alert('Failed to delete. Try again.'); }
@@ -325,9 +367,18 @@ async function doDelete(id, type) {
 // Header / empty-state buttons
 document.getElementById('btnOpenShare').addEventListener('click', openShareModal);
 document.getElementById('btnOpenRequest').addEventListener('click', openRequestModal);
-document.getElementById('btnEmptyShare')?.addEventListener('click', openShareModal);
-document.getElementById('btnEmptyRequest')?.addEventListener('click', openRequestModal);
-document.querySelector('.compose-bar')?.addEventListener('click', openShareModal);
+const btnEmptyShare = document.getElementById('btnEmptyShare');
+if (btnEmptyShare) {
+    btnEmptyShare.addEventListener('click', openShareModal);
+}
+const btnEmptyRequest = document.getElementById('btnEmptyRequest');
+if (btnEmptyRequest) {
+    btnEmptyRequest.addEventListener('click', openRequestModal);
+}
+const composeBar = document.querySelector('.compose-bar');
+if (composeBar) {
+    composeBar.addEventListener('click', openShareModal);
+}
 
 // Share modal
 document.getElementById('shareCloseBtn').addEventListener('click', closeShareModal);
@@ -336,7 +387,9 @@ document.getElementById('shareModal').addEventListener('click', e => {
 });
 document.getElementById('f-code').addEventListener('input', validateShare);
 document.getElementById('f-code').addEventListener('keydown', e => {
-    if (e.key === 'Enter') document.getElementById('shareSubmitBtn').click();
+    if (e.key === 'Enter') {
+        document.getElementById('shareSubmitBtn').click();
+    }
 });
 document.getElementById('fileDrop').addEventListener('click', () => document.getElementById('f-file').click());
 document.getElementById('f-file').addEventListener('change', e => onFileChange(e.target));
@@ -350,9 +403,17 @@ document.getElementById('requestModal').addEventListener('click', e => {
     if (e.target === document.getElementById('requestModal')) closeRequestModal();
 });
 document.getElementById('r-email').addEventListener('input', validateRequest);
-document.getElementById('r-email').addEventListener('keydown', e => { if (e.key === 'Enter') submitRequest(); });
+document.getElementById('r-email').addEventListener('keydown', e => {
+    if (e.key === 'Enter') {
+        submitRequest();
+    }
+});
 document.getElementById('r-code').addEventListener('input', validateRequest);
-document.getElementById('r-code').addEventListener('keydown', e => { if (e.key === 'Enter') submitRequest(); });
+document.getElementById('r-code').addEventListener('keydown', e => {
+    if (e.key === 'Enter') {
+        submitRequest();
+    }
+});
 document.getElementById('chapterWrap').addEventListener('click', () => document.getElementById('chapterInput').focus());
 document.getElementById('chapterInput').addEventListener('keydown', chapterKey);
 document.getElementById('requestSubmitBtn').addEventListener('click', submitRequest);
