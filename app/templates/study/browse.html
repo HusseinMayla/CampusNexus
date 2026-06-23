@@ -19,7 +19,7 @@
     {% for room in rooms %}
     <div class="base-card sb-card">
         <h3 class="base-card-title">{{ room.title }}</h3>
-        <p class="sb-room-time">{{ room.session_time.strftime('%b %d, %I:%M %p') }}</p>
+        <p class="sb-room-time"><span class="local-time" data-utc="{{ room.session_time.isoformat() }}Z" data-format="date-time">{{ room.session_time.strftime('%b %d, %I:%M %p') }}</span></p>
         <p class="sb-room-loc">📍 {{ room.location }}</p>
         <p class="sb-room-count">{{ room.member_count() }}/{{ room.max_members }} members</p>
         {% if room.id in joined_ids %}

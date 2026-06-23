@@ -14,7 +14,7 @@
         </h2>
         <div class="sr-header-tags">
             <span class="sr-tag">📍 {{ room.location }}</span>
-            <span class="sr-tag">🕐 {{ room.session_time.strftime('%b %d, %I:%M %p') }}</span>
+            <span class="sr-tag">🕐 <span class="local-time" data-utc="{{ room.session_time.isoformat() }}Z" data-format="date-time">{{ room.session_time.strftime('%b %d, %I:%M %p') }}</span></span>
             <span class="sr-tag">👥 {{ room.member_count() }}/{{ room.max_members }}</span>
         </div>
     </div>
@@ -62,7 +62,7 @@
             {% endif %}
             <div class="msg {% if mine %}msg-mine{% else %}msg-other{% endif %}">
                 {{ msg.body }}
-                <span class="msg-time">{{ msg.sent_at.strftime('%I:%M %p') }}</span>
+                <span class="msg-time local-time" data-utc="{{ msg.sent_at.isoformat() }}Z" data-format="time-only">{{ msg.sent_at.strftime('%I:%M %p') }}</span>
             </div>
         </div>
     </div>

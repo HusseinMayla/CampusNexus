@@ -785,16 +785,15 @@ document.addEventListener("DOMContentLoaded", () => {
       return;
     }
 
-    // Compute local ISO end date
+    // Compute UTC end date
     const endDate = new Date(startDate.getTime() + durationMinutes * 60000);
-    const endDateVal = new Date(endDate.getTime() - endDate.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
     
     const payload = {
       type: "event",
       name: title,
       description: desc,
-      date: dateVal,
-      end_date: endDateVal,
+      date: startDate.toISOString(),
+      end_date: endDate.toISOString(),
       lat: lat,
       lng: lng,
       campus_id: CAMPUS_ID

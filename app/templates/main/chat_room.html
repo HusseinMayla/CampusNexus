@@ -54,7 +54,7 @@
             {% endif %}
             <div class="msg {% if mine %}msg-mine{% else %}msg-other{% endif %}">
                 {{ msg.body }}
-                <span class="msg-time">{{ msg.sent_at.strftime('%I:%M %p') }}</span>
+                <span class="msg-time local-time" data-utc="{{ msg.sent_at.isoformat() }}Z" data-format="time-only">{{ msg.sent_at.strftime('%I:%M %p') }}</span>
             </div>
         </div>
     </div>

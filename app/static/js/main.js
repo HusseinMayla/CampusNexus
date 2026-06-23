@@ -78,3 +78,43 @@ if (document.body.dataset.authenticated === 'true') {
         }
     }, 15000);
 }
+
+// Global local timezone formatter
+window.formatLocalTimes = function() {
+    document.querySelectorAll(".local-time").forEach(el => {
+        const utcStr = el.getAttribute("data-utc");
+        if (!utcStr) return;
+        const date = new Date(utcStr);
+        if (isNaN(date.getTime())) return;
+        
+        const format = el.getAttribute("data-format");
+        let formatted = "";
+        
+        const timeOptions = { hour: '2-digit', minute: '2-digit', hour12: true };
+        const dateOptions = { month: 'short', day: 'numeric' };
+        
+        if (format === "time-only") {
+            formatted = date.toLocaleTimeString([], timeOptions);
+        } else if (format === "full-date-time") {
+            const yyyy = date.getFullYear();
+            const mm = String(date.getMonth() + 1).padStart(2, '0');
+            const dd = String(date.getDate()).padStart(2, '0');
+            const hh = String(date.getHours()).padStart(2, '0');
+            const min = String(date.getMinutes()).padStart(2, '0');
+            formatted = `${yyyy}-${mm}-${dd} ${hh}:${min}`;
+        } else if (format === "date-time") {
+            const datePart = date.toLocaleDateString([], dateOptions);
+            const timePart = date.toLocaleTimeString([], timeOptions);
+            formatted = `${datePart}, ${timePart}`;
+        } else {
+            formatted = date.toLocaleString();
+        }
+        
+        el.textContent = formatted;
+        el.classList.remove("local-time"); // Avoid reprocessing if called again
+    });
+};
+
+document.addEventListener("DOMContentLoaded", () => {
+    window.formatLocalTimes();
+});

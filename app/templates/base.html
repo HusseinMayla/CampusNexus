@@ -102,7 +102,7 @@
                            class="base-nav-item chat-room-link"
                            title="{{ sr.title }}&#10;📍 {{ sr.location }}&#10;👥 {{ sr.member_count }}/{{ sr.max_members }}">
                             {% if sr.has_unread %}<span class="chat-dot"></span>{% endif %}
-                            {{ sr.title }} - {{ sr.session_time.strftime('%I:%M %p') }}
+                            {{ sr.title }} - <span class="local-time" data-utc="{{ sr.session_time.isoformat() }}Z" data-format="time-only">{{ sr.session_time.strftime('%I:%M %p') }}</span>
                         </a>
                         {% endif %}
                     {% endfor %}
@@ -155,7 +155,7 @@
                            class="base-nav-item chat-room-link"
                            title="{{ sr.title }}&#10;📍 {{ sr.location }}&#10;👥 {{ sr.member_count }}/{{ sr.max_members }}">
                             {% if sr.has_unread %}<span class="chat-dot"></span>{% endif %}
-                            {{ sr.title }} - {{ sr.session_time.strftime('%I:%M %p') }}
+                            {{ sr.title }} - <span class="local-time" data-utc="{{ sr.session_time.isoformat() }}Z" data-format="time-only">{{ sr.session_time.strftime('%I:%M %p') }}</span>
                         </a>
                         {% endif %}
                     {% endfor %}

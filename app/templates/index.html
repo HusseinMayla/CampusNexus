@@ -67,7 +67,7 @@
         <div class="base-card-grid">
             {% for item in todays_events %}
                 {% set event = item.event %}
-                <div class="base-card event-interactive-card {% if item.is_ended %}ended{% endif %}" data-event-id="{{ event.id }}" data-end-date="{{ event.end_date.isoformat() }}">
+                <div class="base-card event-interactive-card {% if item.is_ended %}ended{% endif %} today-event-card" data-event-id="{{ event.id }}" data-start-date="{{ event.date.isoformat() }}Z" data-end-date="{{ event.end_date.isoformat() }}Z">
                     <div class="event-card-accent"></div>
                     <div class="event-card-body">
                         <div>
@@ -89,7 +89,10 @@
                             <div class="event-card-metadata">
                                 <div class="event-meta-time">
                                     <span>🕒</span>
-                                    <span>{{ event.date.strftime('%I:%M %p') }} - {{ event.end_date.strftime('%I:%M %p') }}</span>
+                                    <span>
+                                        <span class="local-time" data-utc="{{ event.date.isoformat() }}Z" data-format="time-only">{{ event.date.strftime('%I:%M %p') }}</span> - 
+                                        <span class="local-time" data-utc="{{ event.end_date.isoformat() }}Z" data-format="time-only">{{ event.end_date.strftime('%I:%M %p') }}</span>
+                                    </span>
                                 </div>
                                 <div class="event-meta-host">
                                     <span>👤</span>
@@ -159,6 +162,46 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     };
 
+    const filterTodayEvents = () => {
+        const today = new Date();
+        const todayYear = today.getFullYear();
+        const todayMonth = today.getMonth();
+        const todayDate = today.getDate();
+
+        let visibleCount = 0;
+        document.querySelectorAll(".today-event-card").forEach(card => {
+            const startDateStr = card.dataset.startDate;
+            if (!startDateStr) return;
+            const startDate = new Date(startDateStr);
+            if (
+                startDate.getFullYear() === todayYear &&
+                startDate.getMonth() === todayMonth &&
+                startDate.getDate() === todayDate
+            ) {
+                card.style.display = ""; // Show
+                visibleCount++;
+            } else {
+                card.style.display = "none"; // Hide
+            }
+        });
+
+        if (visibleCount === 0) {
+            const grid = document.querySelector(".base-card-grid");
+            if (grid) {
+                grid.innerHTML = `
+                    <div class="base-card welcome-card" style="grid-column: 1 / -1; text-align: center; padding: 2.5rem 1.5rem;">
+                        <h2 class="welcome-title" style="margin-bottom: 0.5rem; font-size: 1.5rem; font-weight: 600; color: var(--text-color);">No Events Scheduled Today</h2>
+                        <p class="welcome-text" style="color: var(--muted-color); font-size: 0.95rem;">Explore the map to see all upcoming events and schedule new ones!</p>
+                        <div class="welcome-card-actions" style="margin-top: 1.5rem; display: flex; justify-content: center; gap: 0.75rem;">
+                            <a href="${window.location.origin}/dashboard" class="base-button btn-small">Go to Dashboard</a>
+                        </div>
+                    </div>
+                `;
+            }
+        }
+    };
+
+    filterTodayEvents();
     checkEndedEvents();
 
     // Action toggle handlers

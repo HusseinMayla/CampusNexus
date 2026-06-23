@@ -2,7 +2,18 @@ from flask import Blueprint, render_template, request, jsonify, redirect, url_fo
 from flask_login import login_required, current_user
 from app.extensions import db
 from app.models import Campus, Club, Office, Event, CampusMember, EventParticipation, EventCreationLog
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
+
+def parse_utc(dt_str):
+    if not dt_str:
+        return None
+    # Convert 'Z' to '+00:00' for compatible ISO parsing
+    if dt_str.endswith('Z'):
+        dt_str = dt_str[:-1] + '+00:00'
+    dt = datetime.fromisoformat(dt_str)
+    if dt.tzinfo is not None:
+        dt = dt.astimezone(timezone.utc).replace(tzinfo=None)
+    return dt
 
 map_bp = Blueprint('map', __name__)
 
@@ -130,7 +141,7 @@ def map_data(campus_id):
             })
 
     # Fetch events directly for this campus (excluding those ended for more than 1 hour)
-    one_hour_ago = datetime.now() - timedelta(hours=1)
+    one_hour_ago = datetime.utcnow() - timedelta(hours=1)
     for e in Event.query.filter(Event.campus_id == campus_id, Event.end_date >= one_hour_ago).all():
         if e.lat is not None and e.lng is not None:
             part_count = EventParticipation.query.filter_by(event_id=e.id, is_interested=True).count()
@@ -142,8 +153,8 @@ def map_data(campus_id):
                 'id': e.id, 'type': 'event',
                 'name': e.title, 'description': e.description or '',
                 'lat': e.lat, 'lng': e.lng,
-                'date': e.date.isoformat(),
-                'end_date': e.end_date.isoformat() if e.end_date else None,
+                'date': e.date.isoformat() + 'Z',
+                'end_date': (e.end_date.isoformat() + 'Z') if e.end_date else None,
                 'creator_name': e.creator.name if e.creator else 'Anonymous',
                 'is_creator': (e.creator_id == current_user.id),
                 'participation_count': part_count,
@@ -205,14 +216,14 @@ def add_pin():
 
     elif pin_type == 'event':
         if not is_admin:
-            four_days_ago = datetime.now() - timedelta(days=4)
+            four_days_ago = datetime.utcnow() - timedelta(days=4)
             recent_event = EventCreationLog.query.filter(
                 EventCreationLog.user_id == current_user.id,
                 EventCreationLog.created_at >= four_days_ago
             ).order_by(EventCreationLog.created_at.desc()).first()
 
             if recent_event:
-                time_passed = datetime.now() - recent_event.created_at
+                time_passed = datetime.utcnow() - recent_event.created_at
                 time_remaining = timedelta(days=4) - time_passed
                 
                 days = time_remaining.days
@@ -235,13 +246,13 @@ def add_pin():
             return jsonify({'error': 'Event start and end times are required.'}), 400
         
         try:
-            event_date = datetime.fromisoformat(date_str.rstrip('Z').replace('T', ' '))
-            event_end_date = datetime.fromisoformat(end_date_str.rstrip('Z').replace('T', ' '))
-        except ValueError as val_err:
+            event_date = parse_utc(date_str)
+            event_end_date = parse_utc(end_date_str)
+        except (ValueError, TypeError) as val_err:
             return jsonify({'error': f'Invalid date format: {str(val_err)}'}), 400
 
         # Validate start date is not in the past (allowing 5 minutes clock-drift buffer)
-        now_naive = datetime.now()
+        now_naive = datetime.utcnow()
         if event_date < now_naive:
             time_diff = now_naive - event_date
             if time_diff.total_seconds() > 300: # Greater than 5 minutes
@@ -259,13 +270,13 @@ def add_pin():
             end_date=event_end_date,
             lat=lat,
             lng=lng,
-            created_at=datetime.now()
+            created_at=datetime.utcnow()
         )
         db.session.add(obj)
         
         # Log event creation for students
         if not is_admin:
-            log = EventCreationLog(user_id=current_user.id, created_at=datetime.now())
+            log = EventCreationLog(user_id=current_user.id, created_at=datetime.utcnow())
             db.session.add(log)
 
         db.session.commit()
@@ -276,8 +287,8 @@ def add_pin():
             'description': desc,
             'lat': lat,
             'lng': lng,
-            'date': event_date.isoformat(),
-            'end_date': event_end_date.isoformat(),
+            'date': event_date.isoformat() + 'Z',
+            'end_date': event_end_date.isoformat() + 'Z',
             'creator_name': current_user.name,
             'is_creator': True
         })
@@ -361,7 +372,7 @@ def toggle_event_interest(event_id):
         if participation.want_notification:
             participation.is_interested = True
             # If the event has already started or ended, mark as already notified to prevent retroactive start alerts
-            if event.date <= datetime.now():
+            if event.date <= datetime.utcnow():
                 participation.notification_sent = True
             else:
                 participation.notification_sent = False

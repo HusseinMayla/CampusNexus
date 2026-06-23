@@ -82,7 +82,7 @@ def create_app(config_class=Config):
 
         # -- Ingest Study Room Sidebar data --
         # Hide study rooms whose sessions occurred more than 2 hours ago
-        cutoff = datetime.now() - timedelta(hours=2)
+        cutoff = datetime.utcnow() - timedelta(hours=2)
         study_items = []
         for srm in StudyRoomMember.query.filter_by(user_id=current_user.id).all():
             room = srm.room

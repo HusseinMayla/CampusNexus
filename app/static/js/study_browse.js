@@ -26,7 +26,7 @@ async function createRoom() {
     const res = await fetch(`/campus/${CAMPUS_ID}/study-rooms/create`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ title: title, location: location, session_time: time, max_members: parseInt(max) })
+        body: JSON.stringify({ title: title, location: location, session_time: new Date(time).toISOString(), max_members: parseInt(max) })
     });
     const data = await res.json();
     if (res.ok) {
