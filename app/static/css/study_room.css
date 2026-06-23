@@ -1,5 +1,7 @@
 /* Study Room — study-specific styles; shared message styles come from chat_room.css */
-.chat-messages { height: 58vh; }
+.chat-messages {
+    height: 58vh;
+}
 
 .sr-header {
     display: flex;
@@ -9,9 +11,16 @@
     gap: 12px;
     flex-wrap: wrap;
 }
-.sr-header-left h2 { margin-bottom: 6px; }
 
-.sr-header-tags { display: flex; flex-wrap: wrap; gap: 6px; }
+.sr-header-left h2 {
+    margin-bottom: 6px;
+}
+
+.sr-header-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
 
 .sr-tag {
     font-size: 0.78rem;
@@ -21,6 +30,7 @@
     border: 1px solid var(--base-border-color);
     color: var(--base-text-muted);
 }
+
 .sr-tag-course {
     background: rgba(200, 169, 110, 0.12);
     border-color: rgba(200, 169, 110, 0.4);

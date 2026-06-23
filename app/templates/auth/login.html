@@ -59,10 +59,13 @@
             <div class="tab-indicator" id="tabIndicator"></div>
           </div>
 
-          {% with messages = get_flashed_messages(with_categories=true) %} {% if
-          messages %} {% for category, message in messages %}
+          {% with messages = get_flashed_messages(with_categories=true) %}
+          {% if messages %}
+          {% for category, message in messages %}
           <div class="flash flash-{{ category }}">{{ message }}</div>
-          {% endfor %} {% endif %} {% endwith %}
+          {% endfor %}
+          {% endif %}
+          {% endwith %}
 
           <form
             id="formLogin"

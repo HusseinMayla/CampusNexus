@@ -8,7 +8,9 @@ let selRole = null, selMethod = null, courses = [];
 function esc(s) {
     return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }
-function cap(s) { return s.charAt(0).toUpperCase() + s.slice(1); }
+function cap(s) {
+    return s.charAt(0).toUpperCase() + s.slice(1);
+}
 
 /* ── Modal ─────────────────────────────────────────────────── */
 function openModal() {
@@ -53,8 +55,12 @@ for (let i = 0; i < choiceGroups.length; i++) {
             groupBtns[j].classList.remove('sel');
         }
         btn.classList.add('sel');
-        if (choiceGroups[i].dataset.group === 'role') { selRole = btn.dataset.val; }
-        if (choiceGroups[i].dataset.group === 'method') { selMethod = btn.dataset.val; }
+        if (choiceGroups[i].dataset.group === 'role') {
+            selRole = btn.dataset.val;
+        }
+        if (choiceGroups[i].dataset.group === 'method') {
+            selMethod = btn.dataset.val;
+        }
         validate();
     });
 }
@@ -190,7 +196,9 @@ function prependCard(post) {
     postFeed.prepend(card);
     applyFilter();
     const empty = document.getElementById('emptyState');
-    if (empty) empty.style.display = 'none';
+    if (empty) {
+        empty.style.display = 'none';
+    }
 }
 
 function ensureComposeBar() {
@@ -248,7 +256,9 @@ async function doDelete(id) {
                 }
             }
         }
-    } catch { alert('Failed to delete. Try again.'); }
+    } catch {
+        alert('Failed to delete. Try again.');
+    }
 }
 
 /* ── Event wiring ───────────────────────────────────────────── */

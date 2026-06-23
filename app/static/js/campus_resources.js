@@ -44,7 +44,10 @@ function shareChapterKey(e) {
     e.preventDefault();
     const inp = document.getElementById('shareChapterInput');
     const val = inp.value.trim();
-    if (!val || shareChapters.includes(val)) { inp.value = ''; return; }
+    if (!val || shareChapters.includes(val)) {
+        inp.value = '';
+        return;
+    }
     shareChapters.push(val);
     const tag = document.createElement('span');
     tag.className = 'chtag';
@@ -222,23 +225,47 @@ async function submitRequest() {
 
 /* ── Card builders ─────────────────────────────────────────── */
 function ftBg(ext) {
-    if (ext === 'pdf')  return 'ft-bg-pdf';
-    if (ext === 'pptx' || ext === 'ppt') return 'ft-bg-pptx';
-    if (ext === 'docx' || ext === 'doc') return 'ft-bg-docx';
-    if (ext === 'xlsx') return 'ft-bg-xlsx';
+    if (ext === 'pdf') {
+        return 'ft-bg-pdf';
+    }
+    if (ext === 'pptx' || ext === 'ppt') {
+        return 'ft-bg-pptx';
+    }
+    if (ext === 'docx' || ext === 'doc') {
+        return 'ft-bg-docx';
+    }
+    if (ext === 'xlsx') {
+        return 'ft-bg-xlsx';
+    }
     return 'ft-bg-pdf';
 }
+
 function ftLabel(ext) {
-    if (ext === 'pptx' || ext === 'ppt') return 'PPT';
-    if (ext === 'docx' || ext === 'doc') return 'DOC';
-    if (ext === 'xlsx') return 'XLS';
+    if (ext === 'pptx' || ext === 'ppt') {
+        return 'PPT';
+    }
+    if (ext === 'docx' || ext === 'doc') {
+        return 'DOC';
+    }
+    if (ext === 'xlsx') {
+        return 'XLS';
+    }
     return (ext || 'FILE').toUpperCase();
 }
+
 function ftType(ext) {
-    if (ext === 'pdf')  return 'PDF Document';
-    if (ext === 'pptx' || ext === 'ppt') return 'PowerPoint';
-    if (ext === 'docx' || ext === 'doc') return 'Word Document';
-    if (ext === 'xlsx') return 'Excel Spreadsheet';
+    if (ext === 'pdf') {
+        return 'PDF Document';
+    }
+    if (ext === 'pptx' || ext === 'ppt') {
+        return 'PowerPoint';
+    }
+    if (ext === 'docx' || ext === 'doc') {
+        return 'Word Document';
+    }
+    if (ext === 'xlsx') {
+        return 'Excel Spreadsheet';
+    }
     return 'File';
 }
 
@@ -360,7 +387,9 @@ async function doDelete(id, type) {
                 }
             }
         }
-    } catch { alert('Failed to delete. Try again.'); }
+    } catch {
+        alert('Failed to delete. Try again.');
+    }
 }
 
 /* ── Event wiring ──────────────────────────────────────────── */

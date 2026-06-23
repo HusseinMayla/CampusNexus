@@ -3,232 +3,63 @@
 {% block title %}Home - Agora{% endblock %}
 
 {% block extra_css %}
-<style>
-    /* Premium Welcome Card Styling */
-    .premium-welcome-card {
-        padding: 48px 32px;
-        text-align: center;
-        background: linear-gradient(135deg, var(--base-card-bg) 0%, rgba(20, 35, 60, 0.4) 100%);
-        border: 1px solid var(--base-border-color);
-        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
-        backdrop-filter: blur(12px);
-        -webkit-backdrop-filter: blur(12px);
-        border-radius: 16px;
-        transition: transform 0.3s ease, box-shadow 0.3s ease;
-    }
-    
-    .premium-welcome-card:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 12px 40px rgba(0, 0, 0, 0.3);
-    }
-    
-    /* Interactive Event Cards */
-    .event-interactive-card {
-        display: flex;
-        flex-direction: column;
-        background: linear-gradient(165deg, var(--base-card-bg) 0%, rgba(10, 22, 40, 0.6) 100%) !important;
-        border: 1px solid var(--base-border-color) !important;
-        border-top: none !important;
-        border-radius: 12px;
-        overflow: hidden;
-        transition: all 0.35s cubic-bezier(0.25, 0.8, 0.25, 1) !important;
-    }
-    
-    .event-interactive-card:hover {
-        transform: translateY(-6px) !important;
-        box-shadow: 0 16px 36px rgba(0, 0, 0, 0.4) !important;
-        border-color: rgba(200, 169, 110, 0.35) !important;
-    }
-    
-    /* Ended Events Visual styles */
-    .event-interactive-card.ended {
-        opacity: 0.6 !important;
-        border-color: rgba(255, 255, 255, 0.08) !important;
-    }
-    
-    .event-interactive-card.ended:hover {
-        transform: none !important;
-        box-shadow: none !important;
-        border-color: rgba(255, 255, 255, 0.08) !important;
-    }
-    
-    .ended-status-badge {
-        font-family: var(--font-display);
-        background-color: rgba(244, 63, 94, 0.1);
-        color: #f43f5e;
-        border: 1px solid rgba(244, 63, 94, 0.25);
-        font-size: 0.72rem;
-        font-weight: 600;
-        letter-spacing: 0.05em;
-        text-transform: uppercase;
-        padding: 2px 8px;
-        border-radius: 4px;
-    }
-    
-    /* Sleek Badges */
-    .campus-badge {
-        font-family: var(--font-display);
-        background-color: var(--base-hover-bg);
-        color: var(--base-tan);
-        font-size: 0.78rem;
-        font-weight: 600;
-        letter-spacing: 0.05em;
-        text-transform: uppercase;
-        padding: 4px 10px;
-        border-radius: 20px;
-        border: 1px solid var(--base-border-color);
-    }
-    
-    .interest-badge-pill {
-        font-size: 0.8rem;
-        color: var(--base-text-muted);
-        background: rgba(255, 255, 255, 0.03);
-        padding: 3px 8px;
-        border-radius: 6px;
-        border: 1px solid rgba(255, 255, 255, 0.05);
-        transition: all 0.25s ease;
-    }
-    
-    .interest-badge-pill.has-interest {
-        color: var(--base-tan-light);
-        background: rgba(200, 169, 110, 0.08);
-        border-color: rgba(200, 169, 110, 0.2);
-    }
-    
-    /* Interactive Actions Bar */
-    .event-card-actions {
-        display: flex;
-        gap: 8px;
-        width: 100%;
-    }
-    
-    .action-toggle-btn {
-        flex: 1;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        gap: 6px;
-        padding: 8px 12px;
-        background: rgba(255, 255, 255, 0.03);
-        border: 1px solid rgba(255, 255, 255, 0.08);
-        border-radius: 8px;
-        color: var(--base-text-muted);
-        font-family: var(--font-body);
-        font-size: 0.88rem;
-        font-weight: 600;
-        cursor: pointer;
-        transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-    }
-    
-    .action-toggle-btn:hover {
-        background: var(--base-hover-bg);
-        color: var(--base-text-color);
-        border-color: rgba(200, 169, 110, 0.25);
-    }
-    
-    /* Active Star State */
-    .action-toggle-btn.btn-interest.active {
-        background: rgba(200, 169, 110, 0.15);
-        color: var(--base-tan-light);
-        border-color: var(--base-tan);
-        box-shadow: 0 0 12px rgba(200, 169, 110, 0.15);
-    }
-    
-    /* Active Notify Bell State */
-    .action-toggle-btn.btn-notify.active {
-        background: rgba(244, 63, 94, 0.12);
-        color: #f43f5e;
-        border-color: rgba(244, 63, 94, 0.45);
-        box-shadow: 0 0 12px rgba(244, 63, 94, 0.15);
-    }
-    
-    .action-map-btn {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        gap: 4px;
-        padding: 8px 12px;
-        background: transparent;
-        border: 1px solid var(--base-border-color);
-        border-radius: 8px;
-        color: var(--base-tan-light);
-        font-family: var(--font-body);
-        font-size: 0.88rem;
-        font-weight: 600;
-        text-decoration: none;
-        cursor: pointer;
-        transition: all 0.25s ease;
-    }
-    
-    .action-map-btn:hover {
-        background: var(--base-hover-bg);
-        border-color: var(--base-tan);
-        color: var(--base-tan);
-    }
-    
-    @keyframes float {
-        0% { transform: translateY(0px); }
-        50% { transform: translateY(-8px); }
-        100% { transform: translateY(0px); }
-    }
-</style>
+<link rel="stylesheet" href="{{ url_for('static', filename='css/index.css') }}">
 {% endblock %}
 
 {% block content %}
-<div style="text-align: center; padding: 48px 0;">
-    <h1 style="font-size: 2.5rem; margin-bottom: 16px;">Welcome to Agora 🎓</h1>
-    <p style="font-size: 1.125rem; color: var(--base-text-muted); max-width: 600px; margin: 0 auto 32px;">
+<div class="index-hero">
+    <h1>Welcome to Agora 🎓</h1>
+    <p class="index-hero-text">
         The all-in-one platform to manage your campus life, discover events, and connect with your community.
     </p>
-    
-    <div style="display: flex; gap: 16px; justify-content: center;">
+    <div class="index-hero-actions">
         <a href="{{ url_for('main.dashboard') }}" class="base-button">Go to Dashboard</a>
         <a href="{{ url_for('main.create_campus') }}" class="base-button-secondary">Create Campus</a>
     </div>
 </div>
 
-<div style="margin-top: 64px;">
-    <h2 style="margin-bottom: 24px; display: flex; align-items: center; gap: 10px;">
+<div class="index-events-section">
+    <h2>
         <span>📅</span> Today's Events
     </h2>
-    
+
     {% if not current_user.is_authenticated %}
         <!-- Premium Guest Welcome Card -->
         <div class="base-card premium-welcome-card">
-            <div style="font-size: 3rem; margin-bottom: 16px; animation: float 3s ease-in-out infinite;">🎓</div>
-            <h3 style="margin-bottom: 12px; font-family: var(--font-display);">Join the Agora Community</h3>
-            <p style="color: var(--base-text-muted); max-width: 600px; margin: 0 auto 24px; line-height: 1.6;">
+            <div class="welcome-card-icon welcome-card-icon-float">🎓</div>
+            <h3 class="welcome-card-title">Join the Agora Community</h3>
+            <p class="welcome-card-text">
                 Sign in to customize your campus experience, explore scheduled events for today, participate in active groups, and stay updated with your campus activities!
             </p>
-            <div style="display: flex; gap: 12px; justify-content: center;">
-                <a href="{{ url_for('auth.login') }}" class="base-button" style="padding: 8px 20px;">Log In</a>
-                <a href="{{ url_for('auth.register') }}" class="base-button-secondary" style="padding: 8px 20px;">Register</a>
+            <div class="welcome-card-actions">
+                <a href="{{ url_for('auth.login') }}" class="base-button btn-small">Log In</a>
+                <a href="{{ url_for('auth.register') }}" class="base-button-secondary btn-small">Register</a>
             </div>
         </div>
     {% elif joined_campuses_count == 0 %}
         <!-- Joined no campuses state -->
-        <div class="base-card premium-welcome-card" style="border-top-color: var(--base-primary-color);">
-            <div style="font-size: 3rem; margin-bottom: 16px;">🏫</div>
-            <h3 style="margin-bottom: 12px; font-family: var(--font-display);">You haven't joined any campuses yet</h3>
-            <p style="color: var(--base-text-muted); max-width: 600px; margin: 0 auto 24px; line-height: 1.6;">
+        <div class="base-card premium-welcome-card welcome-card-primary">
+            <div class="welcome-card-icon">🏫</div>
+            <h3 class="welcome-card-title">You haven't joined any campuses yet</h3>
+            <p class="welcome-card-text">
                 Agora matches your email domains or lets you explore all campuses. Join or create a campus to view your schedule and see today's events here!
             </p>
-            <div style="display: flex; gap: 12px; justify-content: center;">
-                <a href="{{ url_for('main.join_campus') }}" class="base-button" style="padding: 8px 20px;">Join Campus</a>
-                <a href="{{ url_for('main.create_campus') }}" class="base-button-secondary" style="padding: 8px 20px;">Create Campus</a>
+            <div class="welcome-card-actions">
+                <a href="{{ url_for('main.join_campus') }}" class="base-button btn-small">Join Campus</a>
+                <a href="{{ url_for('main.create_campus') }}" class="base-button-secondary btn-small">Create Campus</a>
             </div>
         </div>
     {% elif not todays_events %}
         <!-- Empty schedule state -->
-        <div class="base-card premium-welcome-card" style="border-top-color: var(--base-border-color);">
-            <div style="font-size: 3rem; margin-bottom: 16px;">✨</div>
-            <h3 style="margin-bottom: 12px; font-family: var(--font-display);">A Quiet Day Ahead</h3>
-            <p style="color: var(--base-text-muted); max-width: 600px; margin: 0 auto 24px; line-height: 1.6;">
+        <div class="base-card premium-welcome-card welcome-card-muted">
+            <div class="welcome-card-icon">✨</div>
+            <h3 class="welcome-card-title">A Quiet Day Ahead</h3>
+            <p class="welcome-card-text">
                 No events are scheduled for today in the campuses you've joined. Why not explore your campuses, see upcoming events, or host a new study group or event?
             </p>
-            <div style="display: flex; gap: 12px; justify-content: center;">
-                <a href="{{ url_for('main.dashboard') }}" class="base-button" style="padding: 8px 20px;">Go to Dashboard</a>
-                <a href="{{ url_for('main.join_campus') }}" class="base-button-secondary" style="padding: 8px 20px;">Explore Other Campuses</a>
+            <div class="welcome-card-actions">
+                <a href="{{ url_for('main.dashboard') }}" class="base-button btn-small">Go to Dashboard</a>
+                <a href="{{ url_for('main.join_campus') }}" class="base-button-secondary btn-small">Explore Other Campuses</a>
             </div>
         </div>
     {% else %}
@@ -237,14 +68,11 @@
             {% for item in todays_events %}
                 {% set event = item.event %}
                 <div class="base-card event-interactive-card {% if item.is_ended %}ended{% endif %}" data-event-id="{{ event.id }}" data-end-date="{{ event.end_date.isoformat() }}">
-                    <!-- Card Top Accent -->
-                    <div style="height: 4px; background: linear-gradient(90deg, var(--base-primary-color), var(--base-tan-light));"></div>
-                    
-                    <div style="padding: 24px; display: flex; flex-direction: column; height: 100%; justify-content: space-between;">
+                    <div class="event-card-accent"></div>
+                    <div class="event-card-body">
                         <div>
-                            <!-- Campus Badge and Popularity counter -->
-                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 8px;">
-                                <div style="display: flex; align-items: center; gap: 8px;">
+                            <div class="event-card-meta-row">
+                                <div class="event-card-badge-group">
                                     <span class="campus-badge" title="Campus">{{ event.campus.name }}</span>
                                     {% if item.is_ended %}
                                         <span class="ended-status-badge">Ended</span>
@@ -254,38 +82,26 @@
                                     👥 {{ item.participation_count }} interested
                                 </span>
                             </div>
-                            
-                            <!-- Title -->
-                            <h3 class="event-title-text" style="margin-bottom: 12px; font-family: var(--font-display); line-height: 1.3;">
-                                {{ event.title }}
-                            </h3>
-                            
-                            <!-- Description -->
-                            <p class="event-description-text" style="color: var(--base-text-muted); margin-bottom: 20px; line-height: 1.5; font-size: 0.95rem;">
-                                {{ event.description or "No description provided." }}
-                            </p>
+                            <h3 class="event-title-text">{{ event.title }}</h3>
+                            <p class="event-description-text">{{ event.description or "No description provided." }}</p>
                         </div>
-                        
                         <div>
-                            <!-- Metadata: Time & Host -->
-                            <div style="display: flex; flex-direction: column; gap: 8px; margin-bottom: 20px; font-size: 0.9rem; border-top: 1px solid var(--base-border-color); padding-top: 16px;">
-                                <div style="display: flex; align-items: center; gap: 8px; color: var(--base-tan-dim);">
+                            <div class="event-card-metadata">
+                                <div class="event-meta-time">
                                     <span>🕒</span>
                                     <span>{{ event.date.strftime('%I:%M %p') }} - {{ event.end_date.strftime('%I:%M %p') }}</span>
                                 </div>
-                                <div style="display: flex; align-items: center; gap: 8px; color: var(--base-text-muted);">
+                                <div class="event-meta-host">
                                     <span>👤</span>
-                                    <span>Host: <strong style="color: var(--base-text-color);">{{ event.creator.name }}</strong></span>
+                                    <span>Host: <strong class="event-host-name">{{ event.creator.name }}</strong></span>
                                 </div>
                             </div>
-                            
-                            <!-- Actions Bar -->
                             <div class="event-card-actions">
-                                <button class="action-toggle-btn btn-interest {% if item.is_interested %}active{% endif %}" data-action="interested" data-event-id="{{ event.id }}" {% if item.is_ended %}disabled style="opacity: 0.5; cursor: not-allowed;"{% endif %}>
+                                <button class="action-toggle-btn btn-interest {% if item.is_interested %}active{% endif %}" data-action="interested" data-event-id="{{ event.id }}" {% if item.is_ended %}disabled{% endif %}>
                                     <span class="btn-icon">{% if item.is_interested %}★{% else %}☆{% endif %}</span>
                                     <span class="btn-text">Interested</span>
                                 </button>
-                                <button class="action-toggle-btn btn-notify {% if item.want_notification %}active{% endif %}" data-action="notify" data-event-id="{{ event.id }}" {% if item.is_ended %}disabled style="opacity: 0.5; cursor: not-allowed;"{% endif %}>
+                                <button class="action-toggle-btn btn-notify {% if item.want_notification %}active{% endif %}" data-action="notify" data-event-id="{{ event.id }}" {% if item.is_ended %}disabled{% endif %}>
                                     <span class="btn-icon">{% if item.want_notification %}🔔{% else %}🔕{% endif %}</span>
                                     <span class="btn-text">Notify Me</span>
                                 </button>
@@ -305,23 +121,23 @@
 {% block extra_js %}
 <script>
 document.addEventListener("DOMContentLoaded", () => {
-    // 1. Core local time check to resolve server-to-client timezone mismatch
+    // Check local time to resolve server-to-client timezone mismatch
     const checkEndedEvents = () => {
         const cards = document.querySelectorAll(".event-interactive-card");
         const now = new Date();
-        
-        cards.forEach(card => {
+
+        for (let i = 0; i < cards.length; i++) {
+            const card = cards[i];
             const endDateStr = card.dataset.endDate;
-            if (!endDateStr) return;
-            
-            // Parse ISO naive datetime as local browser time
+            if (!endDateStr) {
+                continue;
+            }
+
             const endDate = new Date(endDateStr);
-            
+
             if (now > endDate) {
-                // Apply ended state
                 card.classList.add("ended");
-                
-                // Add ended badge if not already present
+
                 const badgeContainer = card.querySelector(".badge-container");
                 if (badgeContainer && !badgeContainer.querySelector(".ended-status-badge")) {
                     const endedBadge = document.createElement("span");
@@ -329,61 +145,57 @@ document.addEventListener("DOMContentLoaded", () => {
                     endedBadge.textContent = "Ended";
                     badgeContainer.appendChild(endedBadge);
                 }
-                
-                // Disable button triggers and styles
+
                 const interestBtn = card.querySelector(".btn-interest");
                 const notifyBtn = card.querySelector(".btn-notify");
-                
+
                 if (interestBtn) {
                     interestBtn.disabled = true;
-                    interestBtn.style.opacity = "0.5";
-                    interestBtn.style.cursor = "not-allowed";
                 }
                 if (notifyBtn) {
                     notifyBtn.disabled = true;
-                    notifyBtn.style.opacity = "0.5";
-                    notifyBtn.style.cursor = "not-allowed";
                 }
             }
-        });
+        }
     };
-    
-    // Execute on page load
+
     checkEndedEvents();
 
-    // 2. Action toggle handlers
+    // Action toggle handlers
     const toggleBtns = document.querySelectorAll(".action-toggle-btn");
-    
-    toggleBtns.forEach(btn => {
+
+    for (let i = 0; i < toggleBtns.length; i++) {
+        const btn = toggleBtns[i];
         btn.addEventListener("click", async (e) => {
             e.preventDefault();
-            
-            // Do not fire if disabled
-            if (btn.disabled) return;
-            
+
+            if (btn.disabled) {
+                return;
+            }
+
             const eventId = btn.dataset.eventId;
-            const action = btn.dataset.action; // 'interested' or 'notify'
-            
-            // Subtle loading state
+            const action = btn.dataset.action;
+
             btn.style.opacity = "0.7";
-            
+
             try {
                 const res = await fetch(`/api/event/${eventId}/interest`, {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({ action: action })
                 });
-                
-                if (!res.ok) throw new Error("Failed to update status");
-                
+
+                if (!res.ok) {
+                    throw new Error("Failed to update status");
+                }
+
                 const data = await res.json();
-                
+
                 const card = btn.closest(".event-interactive-card");
                 const interestBtn = card.querySelector(".btn-interest");
                 const notifyBtn = card.querySelector(".btn-notify");
                 const popularityBadge = card.querySelector(`#popularity-${eventId}`);
-                
-                // Update interest button
+
                 if (data.is_interested) {
                     interestBtn.classList.add("active");
                     interestBtn.querySelector(".btn-icon").textContent = "★";
@@ -391,8 +203,7 @@ document.addEventListener("DOMContentLoaded", () => {
                     interestBtn.classList.remove("active");
                     interestBtn.querySelector(".btn-icon").textContent = "☆";
                 }
-                
-                // Update notify button
+
                 if (data.want_notification) {
                     notifyBtn.classList.add("active");
                     notifyBtn.querySelector(".btn-icon").textContent = "🔔";
@@ -400,8 +211,7 @@ document.addEventListener("DOMContentLoaded", () => {
                     notifyBtn.classList.remove("active");
                     notifyBtn.querySelector(".btn-icon").textContent = "🔕";
                 }
-                
-                // Update popularity badge
+
                 if (popularityBadge) {
                     popularityBadge.textContent = `👥 ${data.participation_count} interested`;
                     if (data.participation_count > 0) {
@@ -410,7 +220,7 @@ document.addEventListener("DOMContentLoaded", () => {
                         popularityBadge.classList.remove("has-interest");
                     }
                 }
-                
+
             } catch (err) {
                 console.error(err);
                 alert("Could not update participation status. Please try again.");
@@ -418,7 +228,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 btn.style.opacity = "";
             }
         });
-    });
+    }
 });
 </script>
 {% endblock %}

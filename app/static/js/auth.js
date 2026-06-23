@@ -88,25 +88,45 @@ document.getElementById('signupPassword').addEventListener('input', function () 
   bar.classList.add('visible');
 
   let score = 0;
-  if (val.length >= 8) { score++; }
-  if (val.length >= 12) { score++; }
-  if (/[A-Z]/.test(val) && /[a-z]/.test(val)) { score++; }
-  if (/[0-9]/.test(val)) { score++; }
-  if (/[^A-Za-z0-9]/.test(val)) { score++; }
+  if (val.length >= 8) {
+    score++;
+  }
+  if (val.length >= 12) {
+    score++;
+  }
+  if (/[A-Z]/.test(val) && /[a-z]/.test(val)) {
+    score++;
+  }
+  if (/[0-9]/.test(val)) {
+    score++;
+  }
+  if (/[^A-Za-z0-9]/.test(val)) {
+    score++;
+  }
 
   let pct = '';
   let color = '';
   let strengthText = '';
   if (score === 0) {
-    pct = '20%'; color = '#d4614a'; strengthText = 'Weak';
+    pct = '20%';
+    color = '#d4614a';
+    strengthText = 'Weak';
   } else if (score === 1) {
-    pct = '40%'; color = '#d4614a'; strengthText = 'Weak';
+    pct = '40%';
+    color = '#d4614a';
+    strengthText = 'Weak';
   } else if (score === 2) {
-    pct = '60%'; color = '#c8a030'; strengthText = 'Fair';
+    pct = '60%';
+    color = '#c8a030';
+    strengthText = 'Fair';
   } else if (score === 3) {
-    pct = '80%'; color = '#7aab58'; strengthText = 'Good';
+    pct = '80%';
+    color = '#7aab58';
+    strengthText = 'Good';
   } else {
-    pct = '100%'; color = '#5a9e6a'; strengthText = 'Strong';
+    pct = '100%';
+    color = '#5a9e6a';
+    strengthText = 'Strong';
   }
   fill.style.width = pct;
   fill.style.background = color;

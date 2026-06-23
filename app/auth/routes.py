@@ -369,10 +369,7 @@ def delete_account():
     # 1. Campus Ownership Safety Check
     owned_campuses = Campus.query.filter_by(creator_id=current_user.id).all()
     if owned_campuses:
-        campus_names_list = []
-        for c in owned_campuses:
-            campus_names_list.append(f'"{c.name}"')
-        campus_names = ', '.join(campus_names_list)
+        campus_names = ', '.join(f'"{c.name}"' for c in owned_campuses)
         flash(f"Cannot delete account. You are the owner of the following campus(es): {campus_names}. You must delete them first.", "error")
         return redirect(url_for('main.settings'))
 

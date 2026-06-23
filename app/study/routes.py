@@ -35,11 +35,7 @@ def _visible_rooms(campus_id, user_id):
     ).order_by(StudyRoom.session_time.asc()).all()
     result = []
     for room in rooms:
-        is_member = False
-        for m in room.members:
-            if m.user_id == user_id:
-                is_member = True
-                break
+        is_member = any(m.user_id == user_id for m in room.members)
         if is_member or room.member_count() < room.max_members:
             result.append(room)
     return result

@@ -104,9 +104,7 @@ def create_app(config_class=Config):
                 'max_members': room.max_members,
                 'has_unread': has_unread,
             })
-        def get_session_time(item):
-            return item['session_time']
-        study_items.sort(key=get_session_time)
+        study_items.sort(key=lambda item: item['session_time'])
 
         # -- Unread Notification Badge Count --
         unread_notifications_count = Notification.query.filter_by(user_id=current_user.id, is_read=False).count()

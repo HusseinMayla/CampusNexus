@@ -18,12 +18,25 @@
     </div>
 </div>
 
+{% if messages %}
+    {% set last_id = messages[-1].id %}
+    {% set last_sender = messages[-1].sender.name %}
+    {% if messages[-1].sender_id == current_user.id %}
+        {% set last_mine = 'true' %}
+    {% else %}
+        {% set last_mine = 'false' %}
+    {% endif %}
+{% else %}
+    {% set last_id = 0 %}
+    {% set last_sender = '' %}
+    {% set last_mine = 'false' %}
+{% endif %}
 <div class="chat-messages" id="msgList"
      data-campus-id="{{ campus.id }}"
      data-room-id="{{ room.id }}"
-     data-last-id="{{ messages[-1].id if messages else 0 }}"
-     data-last-sender="{{ messages[-1].sender.name | e if messages else '' }}"
-     data-last-mine="{{ 'true' if messages and messages[-1].sender_id == current_user.id else 'false' }}">
+     data-last-id="{{ last_id }}"
+     data-last-sender="{{ last_sender }}"
+     data-last-mine="{{ last_mine }}">
     {% for msg in messages %}
     {% set mine = msg.sender_id == current_user.id %}
     {% set prev_same = loop.previtem is defined and loop.previtem.sender_id == msg.sender_id %}

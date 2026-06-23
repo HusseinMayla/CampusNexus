@@ -32,20 +32,9 @@ def index():
     todays_events = []
     joined_campuses_count = 0
     if current_user.is_authenticated:
-        # Get campuses joined or created by the user
-        joined_memberships = CampusMember.query.filter_by(user_id=current_user.id).all()
-        joined_campus_ids = []
-        for m in joined_memberships:
-            joined_campus_ids.append(m.campus_id)
-        created_campuses = Campus.query.filter_by(creator_id=current_user.id).all()
-        created_campus_ids = []
-        for c in created_campuses:
-            created_campus_ids.append(c.id)
-        
-        all_campus_ids = []
-        for campus_id in joined_campus_ids + created_campus_ids:
-            if campus_id not in all_campus_ids:
-                all_campus_ids.append(campus_id)
+        joined_campus_ids = [m.campus_id for m in CampusMember.query.filter_by(user_id=current_user.id).all()]
+        created_campus_ids = [c.id for c in Campus.query.filter_by(creator_id=current_user.id).all()]
+        all_campus_ids = list(set(joined_campus_ids + created_campus_ids))
         joined_campuses_count = len(all_campus_ids)
         
         if all_campus_ids:
@@ -536,9 +525,7 @@ def campus_resources(campus_id):
         posts.append(('resource', r, r.uploaded_at))
     for r in requests:
         posts.append(('request', r, r.created_at))
-    def get_post_time(post):
-        return post[2]
-    posts.sort(key=get_post_time, reverse=True)
+    posts.sort(key=lambda post: post[2], reverse=True)
     return render_template('main/campus_resources.html', campus=campus, posts=posts, active_page='resources')
 
 
