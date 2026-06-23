@@ -15,7 +15,7 @@ def _member_or_403(campus_id):
 
 
 def delete_old_rooms(campus_id):
-    cutoff = datetime.utcnow() - timedelta(hours=2)
+    cutoff = datetime.now() - timedelta(hours=2)
     old_rooms = StudyRoom.query.filter(
         StudyRoom.campus_id == campus_id,
         StudyRoom.session_time < cutoff
@@ -28,7 +28,7 @@ def delete_old_rooms(campus_id):
 
 def _visible_rooms(campus_id, user_id):
     delete_old_rooms(campus_id)
-    cutoff = datetime.utcnow() - timedelta(hours=2)
+    cutoff = datetime.now() - timedelta(hours=2)
     rooms = StudyRoom.query.filter(
         StudyRoom.campus_id == campus_id,
         StudyRoom.session_time >= cutoff
@@ -76,7 +76,7 @@ def create(campus_id):
     except ValueError:
         return jsonify({'error': 'Invalid session time'}), 400
 
-    now = datetime.utcnow()
+    now = datetime.now()
     if session_dt <= now:
         return jsonify({'error': 'Session time must be in the future'}), 400
     if session_dt > now + timedelta(weeks=1):
@@ -90,7 +90,7 @@ def create(campus_id):
         return jsonify({'error': 'Max members must be between 2 and 20'}), 400
 
     # Block if already a member of an active study room in this campus
-    cutoff = datetime.utcnow() - timedelta(hours=2)
+    cutoff = datetime.now() - timedelta(hours=2)
     already_in_room = False
     my_memberships = StudyRoomMember.query.filter_by(user_id=current_user.id).all()
     for m in my_memberships:
@@ -198,7 +198,7 @@ def room(campus_id, room_id):
     if not srm:
         return redirect(url_for('study.browse', campus_id=campus_id))
 
-    srm.last_read_at = datetime.utcnow()
+    srm.last_read_at = datetime.now()
     db.session.commit()
 
     msgs = StudyRoomMessage.query.filter_by(room_id=room_id).order_by(StudyRoomMessage.sent_at.asc()).all()
@@ -222,7 +222,7 @@ def send_message(campus_id, room_id):
         return jsonify({'error': 'Invalid message'}), 400
     msg = StudyRoomMessage(room_id=room_id, sender_id=current_user.id, body=body)
     db.session.add(msg)
-    srm.last_read_at = datetime.utcnow()
+    srm.last_read_at = datetime.now()
     db.session.commit()
     return jsonify({'id': msg.id, 'body': msg.body, 'sender': current_user.name})
 
@@ -239,7 +239,7 @@ def poll_messages(campus_id, room_id):
         StudyRoomMessage.id > after
     ).order_by(StudyRoomMessage.sent_at.asc()).all()
     if msgs:
-        srm.last_read_at = datetime.utcnow()
+        srm.last_read_at = datetime.now()
         db.session.commit()
     result = []
     for m in msgs:

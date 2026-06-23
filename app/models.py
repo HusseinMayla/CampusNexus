@@ -37,7 +37,7 @@ class Campus(db.Model):
     description = db.Column(db.Text)
     banner_image = db.Column(db.String(255))
     map_image = db.Column(db.String(255))
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=datetime.now)
     creator_id = db.Column(db.Integer, db.ForeignKey('user.id'))
     center_lat = db.Column(db.Float)
     center_lng = db.Column(db.Float)
@@ -55,7 +55,7 @@ class CampusMember(db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     campus_id = db.Column(db.Integer, db.ForeignKey('campus.id'), nullable=False)
     role = db.Column(db.String(20), default='user', nullable=False) # 'owner', 'moderator', 'user'
-    joined_at = db.Column(db.DateTime, default=datetime.utcnow)
+    joined_at = db.Column(db.DateTime, default=datetime.now)
     __table_args__ = (db.UniqueConstraint('user_id', 'campus_id'),)
 
     user = db.relationship('User', backref=db.backref('campus_memberships', lazy=True, cascade='all, delete-orphan'))
@@ -92,7 +92,7 @@ class Event(db.Model):
     end_date = db.Column(db.DateTime, nullable=False)
     lat = db.Column(db.Float, nullable=False)
     lng = db.Column(db.Float, nullable=False)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=datetime.now)
 
     campus = db.relationship('Campus', backref=db.backref('events', lazy=True, cascade='all, delete-orphan'))
     creator = db.relationship('User', backref=db.backref('created_events', lazy=True, cascade='all, delete-orphan'))
@@ -105,7 +105,7 @@ class UserEmail(db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     email = db.Column(db.String(120), unique=True, index=True, nullable=False)
     is_verified = db.Column(db.Boolean, default=False)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=datetime.now)
 
     user = db.relationship('User', backref=db.backref('secondary_emails', lazy=True, cascade='all, delete-orphan'))
 
@@ -118,7 +118,7 @@ class Notification(db.Model):
     title = db.Column(db.String(128), nullable=False)
     message = db.Column(db.Text, nullable=False)
     is_read = db.Column(db.Boolean, default=False, nullable=False)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.now, nullable=False)
     link = db.Column(db.String(255), nullable=True)
 
     user = db.relationship('User', backref=db.backref('notifications', lazy=True, cascade='all, delete-orphan'))
@@ -131,7 +131,7 @@ class Resource(db.Model):
     title = db.Column(db.String(128), nullable=False)
     description = db.Column(db.Text)
     file_url = db.Column(db.String(255))
-    uploaded_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    uploaded_at = db.Column(db.DateTime, default=datetime.now, nullable=False)
     campus_id = db.Column(db.Integer, db.ForeignKey('campus.id'), nullable=False)
     uploader_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     course_code = db.Column(db.String(32), nullable=True)
@@ -155,7 +155,7 @@ class TutorPost(db.Model):
     role = db.Column(db.String(16), nullable=False)
     courses = db.Column(db.String(512), nullable=False)
     method = db.Column(db.String(32), nullable=False)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.now, nullable=False)
 
     poster = db.relationship('User', backref=db.backref('tutor_posts', lazy=True, cascade='all, delete-orphan'))
     campus = db.relationship('Campus', backref=db.backref('tutor_posts', lazy=True, cascade='all, delete-orphan'))
@@ -169,7 +169,7 @@ class ResourceRequest(db.Model):
     email = db.Column(db.String(128), nullable=False)
     course_code = db.Column(db.String(32), nullable=False)
     chapters = db.Column(db.String(512), nullable=True)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.now, nullable=False)
 
     poster = db.relationship('User', backref=db.backref('resource_requests', lazy=True, cascade='all, delete-orphan'))
     campus = db.relationship('Campus', backref=db.backref('resource_requests', lazy=True, cascade='all, delete-orphan'))
@@ -180,7 +180,7 @@ class ChatRoom(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     campus_id = db.Column(db.Integer, db.ForeignKey('campus.id'), nullable=False)
     name = db.Column(db.String(128), nullable=False)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=datetime.now)
 
     campus = db.relationship('Campus', backref=db.backref('chat_rooms', lazy=True, cascade='all, delete-orphan'))
     messages = db.relationship('ChatMessage', backref='room', lazy=True, cascade='all, delete-orphan')
@@ -193,7 +193,7 @@ class ChatMember(db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     room_id = db.Column(db.Integer, db.ForeignKey('chat_room.id'), nullable=False)
     last_read_at = db.Column(db.DateTime, nullable=True)
-    joined_at = db.Column(db.DateTime, default=datetime.utcnow)
+    joined_at = db.Column(db.DateTime, default=datetime.now)
     __table_args__ = (db.UniqueConstraint('user_id', 'room_id'),)
 
     user = db.relationship('User', backref=db.backref('chat_memberships', lazy=True, cascade='all, delete-orphan'))
@@ -205,7 +205,7 @@ class ChatMessage(db.Model):
     room_id = db.Column(db.Integer, db.ForeignKey('chat_room.id'), nullable=False)
     sender_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     body = db.Column(db.Text, nullable=False)
-    sent_at = db.Column(db.DateTime, default=datetime.utcnow)
+    sent_at = db.Column(db.DateTime, default=datetime.now)
 
     sender = db.relationship('User', backref=db.backref('chat_messages', lazy=True, cascade='all, delete-orphan'))
 
@@ -219,7 +219,7 @@ class StudyRoom(db.Model):
     location = db.Column(db.String(128), nullable=False)
     session_time = db.Column(db.DateTime, nullable=False)
     max_members = db.Column(db.Integer, nullable=False)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=datetime.now)
 
     campus = db.relationship('Campus', backref=db.backref('study_rooms', lazy=True, cascade='all, delete-orphan'))
     owner = db.relationship('User', backref=db.backref('owned_study_rooms', lazy=True, cascade='all, delete-orphan'))
@@ -227,7 +227,7 @@ class StudyRoom(db.Model):
     messages = db.relationship('StudyRoomMessage', backref='room', lazy=True, cascade='all, delete-orphan')
 
     def is_expired(self):
-        return datetime.utcnow() > self.session_time + timedelta(hours=2)
+        return datetime.now() > self.session_time + timedelta(hours=2)
 
     def member_count(self):
         return len(self.members)
@@ -239,7 +239,7 @@ class StudyRoomMember(db.Model):
     room_id = db.Column(db.Integer, db.ForeignKey('study_room.id'), nullable=False)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     last_read_at = db.Column(db.DateTime, nullable=True)
-    joined_at = db.Column(db.DateTime, default=datetime.utcnow)
+    joined_at = db.Column(db.DateTime, default=datetime.now)
     __table_args__ = (db.UniqueConstraint('room_id', 'user_id'),)
 
     user = db.relationship('User', backref=db.backref('study_room_memberships', lazy=True, cascade='all, delete-orphan'))
@@ -251,7 +251,7 @@ class StudyRoomMessage(db.Model):
     room_id = db.Column(db.Integer, db.ForeignKey('study_room.id'), nullable=False)
     sender_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     body = db.Column(db.Text, nullable=False)
-    sent_at = db.Column(db.DateTime, default=datetime.utcnow)
+    sent_at = db.Column(db.DateTime, default=datetime.now)
 
     sender = db.relationship('User', backref=db.backref('study_room_messages', lazy=True, cascade='all, delete-orphan'))
 
@@ -275,6 +275,6 @@ class EventCreationLog(db.Model):
     __tablename__ = 'event_creation_log'
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.now, nullable=False)
 
     user = db.relationship('User', backref=db.backref('event_creation_logs', lazy=True, cascade='all, delete-orphan'))

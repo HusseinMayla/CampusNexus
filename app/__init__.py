@@ -46,9 +46,7 @@ def create_app(config_class=Config):
     app.register_blueprint(study_bp)
 
     # --- GLOBAL CONTEXT PROCESSOR ---
-    # This function automatically injects variables into ALL HTML templates rendering,
-    # so we don't have to manually pass this data (like sidebar notifications) in every single route.
-    @app.context_processor
+    # This function fetches data for: study rooms, chat rooms, notifications which are route independent.
     def inject_global_data():
         # List of endpoints/paths to skip sidebar queries on (performance optimization for AJAX requests)
         skip_paths = ('/send', '/poll', '/join', '/leave', '/create', '/delete', '/add', '/courses/remove')
@@ -84,7 +82,7 @@ def create_app(config_class=Config):
 
         # -- Ingest Study Room Sidebar data --
         # Hide study rooms whose sessions occurred more than 2 hours ago
-        cutoff = datetime.utcnow() - timedelta(hours=2)
+        cutoff = datetime.now() - timedelta(hours=2)
         study_items = []
         for srm in StudyRoomMember.query.filter_by(user_id=current_user.id).all():
             room = srm.room
@@ -115,20 +113,9 @@ def create_app(config_class=Config):
             'unread_notifications_count': unread_notifications_count
         }
 
-    # --- ERROR HANDLER ---
-    # Catches any server-side exceptions (500 errors) and logs their stack trace for debugging
-    @app.errorhandler(500)
-    def internal_error(error):
-        import traceback
-        app.logger.error(traceback.format_exc())
-        return "<h1>Something went wrong.</h1><p>Please try again later.</p>", 500
 
-    # --- DATABASE INITIALIZATION ---
-    # Automatically creates all database tables if they do not already exist on startup
+    # register app for the db since it is in a diff folder
     with app.app_context():
-        try:
-            db.create_all()
-        except Exception as e:
-            app.logger.error(f"Database creation failed: {e}")
+        db.create_all()  # create database
 
     return app

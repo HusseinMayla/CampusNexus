@@ -254,7 +254,7 @@ def seed_database():
         # 5. Seed Events & Participations
         # -------------------------------------------------------------
         print("Seeding Events and User Participations...")
-        now = datetime.utcnow()
+        now = datetime.now()
         
         events = []
         for i, c in enumerate(campuses):

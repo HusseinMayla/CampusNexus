@@ -38,7 +38,7 @@ def index():
         joined_campuses_count = len(all_campus_ids)
         
         if all_campus_ids:
-            now = datetime.utcnow()
+            now = datetime.now()
             # Define today as standard UTC calendar day of today
             today_start = datetime(now.year, now.month, now.day, 0, 0, 0)
             today_end = datetime(now.year, now.month, now.day, 23, 59, 59)
@@ -828,7 +828,7 @@ def chat_room(campus_id, room_id):
     cm = ChatMember.query.filter_by(user_id=current_user.id, room_id=room_id).first()
     if not cm:
         return redirect(url_for('main.chat_browse', campus_id=campus_id))
-    cm.last_read_at = datetime.utcnow()
+    cm.last_read_at = datetime.now()
     db.session.commit()
     msgs = ChatMessage.query.filter_by(room_id=room_id).order_by(ChatMessage.sent_at.asc()).all()
     return render_template('main/chat_room.html', campus=campus, room=room,
@@ -846,7 +846,7 @@ def chat_send(campus_id, room_id):
         return jsonify({'error': 'Invalid message'}), 400
     msg = ChatMessage(room_id=room_id, sender_id=current_user.id, body=body)
     db.session.add(msg)
-    cm.last_read_at = datetime.utcnow()
+    cm.last_read_at = datetime.now()
     db.session.commit()
     return jsonify({'id': msg.id, 'body': msg.body, 'sender': current_user.name})
 
@@ -863,7 +863,7 @@ def chat_poll(campus_id, room_id):
         ChatMessage.id > after
     ).order_by(ChatMessage.sent_at.asc()).all()
     if msgs:
-        cm.last_read_at = datetime.utcnow()
+        cm.last_read_at = datetime.now()
         db.session.commit()
     result = []
     for m in msgs:
@@ -881,7 +881,7 @@ def chat_poll(campus_id, room_id):
 @main_bp.before_app_request
 def check_event_notifications():
     if current_user.is_authenticated:
-        now = datetime.utcnow()
+        now = datetime.now()
         all_participations = EventParticipation.query.filter_by(
             user_id=current_user.id,
             want_notification=True,

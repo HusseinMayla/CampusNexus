@@ -130,7 +130,7 @@ def map_data(campus_id):
             })
 
     # Fetch events directly for this campus (excluding those ended for more than 1 hour)
-    one_hour_ago = datetime.utcnow() - timedelta(hours=1)
+    one_hour_ago = datetime.now() - timedelta(hours=1)
     for e in Event.query.filter(Event.campus_id == campus_id, Event.end_date >= one_hour_ago).all():
         if e.lat is not None and e.lng is not None:
             part_count = EventParticipation.query.filter_by(event_id=e.id, is_interested=True).count()
@@ -205,14 +205,14 @@ def add_pin():
 
     elif pin_type == 'event':
         if not is_admin:
-            four_days_ago = datetime.utcnow() - timedelta(days=4)
+            four_days_ago = datetime.now() - timedelta(days=4)
             recent_event = EventCreationLog.query.filter(
                 EventCreationLog.user_id == current_user.id,
                 EventCreationLog.created_at >= four_days_ago
             ).order_by(EventCreationLog.created_at.desc()).first()
 
             if recent_event:
-                time_passed = datetime.utcnow() - recent_event.created_at
+                time_passed = datetime.now() - recent_event.created_at
                 time_remaining = timedelta(days=4) - time_passed
                 
                 days = time_remaining.days
@@ -241,7 +241,7 @@ def add_pin():
             return jsonify({'error': f'Invalid date format: {str(val_err)}'}), 400
 
         # Validate start date is not in the past (allowing 5 minutes clock-drift buffer)
-        now_naive = datetime.utcnow()
+        now_naive = datetime.now()
         if event_date < now_naive:
             time_diff = now_naive - event_date
             if time_diff.total_seconds() > 300: # Greater than 5 minutes
@@ -259,13 +259,13 @@ def add_pin():
             end_date=event_end_date,
             lat=lat,
             lng=lng,
-            created_at=datetime.utcnow()
+            created_at=datetime.now()
         )
         db.session.add(obj)
         
         # Log event creation for students
         if not is_admin:
-            log = EventCreationLog(user_id=current_user.id, created_at=datetime.utcnow())
+            log = EventCreationLog(user_id=current_user.id, created_at=datetime.now())
             db.session.add(log)
 
         db.session.commit()
@@ -361,7 +361,7 @@ def toggle_event_interest(event_id):
         if participation.want_notification:
             participation.is_interested = True
             # If the event has already started or ended, mark as already notified to prevent retroactive start alerts
-            if event.date <= datetime.utcnow():
+            if event.date <= datetime.now():
                 participation.notification_sent = True
             else:
                 participation.notification_sent = False
