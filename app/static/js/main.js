@@ -90,7 +90,7 @@ window.formatLocalTimes = function() {
         const format = el.getAttribute("data-format");
         let formatted = "";
         
-        const timeOptions = { hour: '2-digit', minute: '2-digit', hour12: true };
+        const timeOptions = { hour: 'numeric', minute: '2-digit', hour12: true };
         const dateOptions = { month: 'short', day: 'numeric' };
         
         if (format === "time-only") {
@@ -106,6 +106,28 @@ window.formatLocalTimes = function() {
             const datePart = date.toLocaleDateString([], dateOptions);
             const timePart = date.toLocaleTimeString([], timeOptions);
             formatted = `${datePart}, ${timePart}`;
+        } else if (format === "event-duration") {
+            const endUtcStr = el.getAttribute("data-end-utc");
+            if (endUtcStr) {
+                const endDate = new Date(endUtcStr);
+                if (!isNaN(endDate.getTime())) {
+                    const startOptions = { month: 'short', day: 'numeric' };
+                    const startDateStr = date.toLocaleDateString([], startOptions);
+                    const startTimeStr = date.toLocaleTimeString([], timeOptions);
+                    const endTimeStr = endDate.toLocaleTimeString([], timeOptions);
+                    
+                    if (date.toDateString() === endDate.toDateString()) {
+                        formatted = `${startDateStr}, ${startTimeStr} - ${endTimeStr}`;
+                    } else {
+                        const endDateStr = endDate.toLocaleDateString([], startOptions);
+                        formatted = `${startDateStr}, ${startTimeStr} - ${endDateStr}, ${endTimeStr}`;
+                    }
+                } else {
+                    formatted = el.textContent;
+                }
+            } else {
+                formatted = el.textContent;
+            }
         } else {
             formatted = date.toLocaleString();
         }

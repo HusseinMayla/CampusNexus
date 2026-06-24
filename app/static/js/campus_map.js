@@ -4,13 +4,13 @@
 
 let _mapConfirmAction = null;
 function showMapConfirm(msg, action) {
-  const overlay = document.getElementById('mapConfirmOverlay');
-  document.getElementById('mapConfirmMsg').textContent = msg;
+  const overlay = document.getElementById("mapConfirmOverlay");
+  document.getElementById("mapConfirmMsg").textContent = msg;
   _mapConfirmAction = action;
-  overlay.style.display = 'flex';
+  overlay.style.display = "flex";
 }
 function closeMapConfirm() {
-  document.getElementById('mapConfirmOverlay').style.display = 'none';
+  document.getElementById("mapConfirmOverlay").style.display = "none";
   _mapConfirmAction = null;
 }
 function doMapConfirm() {
@@ -28,29 +28,31 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // ── Selectors ────────────────────────────────────────────────
   const blueprintCard = document.getElementById("blueprintCard");
-  const blueprintCanvasWrapper = document.getElementById("blueprintCanvasWrapper");
+  const blueprintCanvasWrapper = document.getElementById(
+    "blueprintCanvasWrapper",
+  );
   const blueprintImage = document.getElementById("blueprintImage");
   const pinsContainer = document.getElementById("pinsContainer");
   const blueprintBlurOverlay = document.getElementById("blueprintBlurOverlay");
   const placementGoldCaption = document.getElementById("placementGoldCaption");
-  
+
   const eventsSidebar = document.getElementById("eventsSidebar");
   const eventsListContainer = document.getElementById("eventsListContainer");
-  
+
   // Buttons
   const btnToggleEvents = document.getElementById("btnToggleEvents");
   const btnCloseSidebar = document.getElementById("btnCloseSidebar");
   const btnAddEvent = document.getElementById("btnAddEvent");
   const btnSidebarAddEvent = document.getElementById("btnSidebarAddEvent");
   const btnAddPin = document.getElementById("btnAddPin");
-  
+
   // Modals & Forms
   const eventModalOverlay = document.getElementById("eventModalOverlay");
   const eventCreationForm = document.getElementById("eventCreationForm");
   const btnCloseEventModal = document.getElementById("btnCloseEventModal");
   const btnCancelEventModal = document.getElementById("btnCancelEventModal");
   const eventFormError = document.getElementById("eventFormError");
-  
+
   const pinModalOverlay = document.getElementById("pinModalOverlay");
   const pinCreationForm = document.getElementById("pinCreationForm");
   const btnClosePinModal = document.getElementById("btnClosePinModal");
@@ -59,9 +61,13 @@ document.addEventListener("DOMContentLoaded", () => {
 
   const btnColumnAddClub = document.getElementById("btnColumnAddClub");
   const btnColumnAddOffice = document.getElementById("btnColumnAddOffice");
-  const btnSelectLocationOnMap = document.getElementById("btnSelectLocationOnMap");
+  const btnSelectLocationOnMap = document.getElementById(
+    "btnSelectLocationOnMap",
+  );
   const btnClearPinLocation = document.getElementById("btnClearPinLocation");
-  const pinLocationStatusText = document.getElementById("pinLocationStatusText");
+  const pinLocationStatusText = document.getElementById(
+    "pinLocationStatusText",
+  );
   const pinYInput = document.getElementById("pinY");
   const pinXInput = document.getElementById("pinX");
 
@@ -80,15 +86,17 @@ document.addEventListener("DOMContentLoaded", () => {
     if (selectedRadio) {
       type = selectedRadio.value;
     }
-    
+
     if (y && x) {
       pinLocationStatusText.textContent = `📍 Selected: ${parseFloat(x).toFixed(1)}%, ${parseFloat(y).toFixed(1)}%`;
       if (btnClearPinLocation) btnClearPinLocation.classList.remove("hidden");
     } else {
       if (type === "club") {
-        pinLocationStatusText.textContent = "⚪ No location selected (Optional)";
+        pinLocationStatusText.textContent =
+          "⚪ No location selected (Optional)";
       } else {
-        pinLocationStatusText.textContent = "⚪ No location selected (Required)";
+        pinLocationStatusText.textContent =
+          "⚪ No location selected (Required)";
       }
       if (btnClearPinLocation) btnClearPinLocation.classList.add("hidden");
     }
@@ -97,7 +105,7 @@ document.addEventListener("DOMContentLoaded", () => {
   // ── Init ─────────────────────────────────────────────────────
   function init() {
     // 1. Hook up click listeners to existing DOM pins
-    document.querySelectorAll(".blueprint-pin").forEach(pinEl => {
+    document.querySelectorAll(".blueprint-pin").forEach((pinEl) => {
       pinEl.addEventListener("click", (e) => {
         e.stopPropagation();
         showPopoverFromEl(pinEl);
@@ -105,29 +113,33 @@ document.addEventListener("DOMContentLoaded", () => {
     });
 
     // 2. Hook up hover & toggle listeners to existing sidebar cards
-    document.querySelectorAll(".event-sidebar-card").forEach(card => {
+    document.querySelectorAll(".event-sidebar-card").forEach((card) => {
       const eventId = card.dataset.id;
-      
+
       card.addEventListener("mouseenter", () => {
         highlightPin("event", eventId);
       });
       card.addEventListener("mouseleave", () => {
         unhighlightPin("event", eventId);
       });
-      
+
       // Click summary row toggles accordion expand & flies popover on map
       const summaryRow = card.querySelector(".card-summary-row");
       summaryRow.addEventListener("click", () => {
         const wasExpanded = card.classList.contains("expanded");
-        
+
         // Collapse all others
-        document.querySelectorAll(".event-sidebar-card").forEach(c => c.classList.remove("expanded"));
-        
+        document
+          .querySelectorAll(".event-sidebar-card")
+          .forEach((c) => c.classList.remove("expanded"));
+
         if (!wasExpanded) {
           card.classList.add("expanded");
-          
+
           // Open map popover
-          const pinEl = document.querySelector(`.blueprint-pin[data-type="event"][data-id="${eventId}"]`);
+          const pinEl = document.querySelector(
+            `.blueprint-pin[data-type="event"][data-id="${eventId}"]`,
+          );
           if (pinEl) {
             showPopoverFromEl(pinEl);
             pinEl.classList.add("pulsing-appeal");
@@ -138,7 +150,7 @@ document.addEventListener("DOMContentLoaded", () => {
         }
       });
     });
-    
+
     // Check URL parameters for starting state
     const params = new URLSearchParams(window.location.search);
     if (params.get("view") === "events") {
@@ -152,13 +164,13 @@ document.addEventListener("DOMContentLoaded", () => {
   // ── Custom Popover / Tooltip Logic ────────────────────────────
   function showPopoverFromEl(pinEl) {
     closePopover();
-    
+
     const popover = pinEl.querySelector(".pin-popover");
     if (!popover) return;
-    
+
     // Elevate clicked pin's z-index so popover stays on top
     pinEl.style.zIndex = "600";
-    
+
     popover.classList.add("visible");
     activePinEl = pinEl;
   }
@@ -176,18 +188,23 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // Highlight marker mapping
   function highlightPin(type, id) {
-    const pinEl = document.querySelector(`.blueprint-pin[data-type="${type}"][data-id="${id}"]`);
+    const pinEl = document.querySelector(
+      `.blueprint-pin[data-type="${type}"][data-id="${id}"]`,
+    );
     if (pinEl) {
       if (pinEl.classList.contains("filtered-out")) {
         pinEl.classList.add("hover-reveal");
       }
-      pinEl.style.transform = "translate(-50%, -50%) rotate(-45deg) scale(1.35)";
+      pinEl.style.transform =
+        "translate(-50%, -50%) rotate(-45deg) scale(1.35)";
       pinEl.style.zIndex = "500";
     }
   }
 
   function unhighlightPin(type, id) {
-    const pinEl = document.querySelector(`.blueprint-pin[data-type="${type}"][data-id="${id}"]`);
+    const pinEl = document.querySelector(
+      `.blueprint-pin[data-type="${type}"][data-id="${id}"]`,
+    );
     if (pinEl) {
       pinEl.classList.remove("hover-reveal");
       pinEl.style.transform = "";
@@ -211,7 +228,7 @@ document.addEventListener("DOMContentLoaded", () => {
   function enterPlacementMode(type) {
     closePopover();
     placementMode = type;
-    
+
     // Enter visual selection mode: center card, show gold caption & full-viewport overlay
     blueprintCard.classList.add("active-placement");
     blueprintCanvasWrapper.classList.add("choosing-location");
@@ -222,41 +239,45 @@ document.addEventListener("DOMContentLoaded", () => {
     // Dynamic caption text based on placement type
     if (placementGoldCaption) {
       if (type === "event") {
-        placementGoldCaption.textContent = "Choose the event location by clicking on the blueprint map below...";
+        placementGoldCaption.textContent =
+          "Choose the event location by clicking on the blueprint map below...";
       } else if (type === "pin") {
-        const selectedRadio = document.querySelector('input[name="type"]:checked');
+        const selectedRadio = document.querySelector(
+          'input[name="type"]:checked',
+        );
         let subType = "location";
         if (selectedRadio) {
           subType = selectedRadio.value;
         }
         placementGoldCaption.textContent = `Choose the ${subType} location by clicking on the blueprint map below...`;
       } else {
-        placementGoldCaption.textContent = "Choose the location by clicking on the blueprint map below...";
+        placementGoldCaption.textContent =
+          "Choose the location by clicking on the blueprint map below...";
       }
     }
-    
+
     // Hide all existing pins while creating a new one to declutter map
     const pinsEls = document.querySelectorAll(".blueprint-pin");
-    pinsEls.forEach(p => p.style.display = "none");
-    
+    pinsEls.forEach((p) => (p.style.display = "none"));
+
     // Reset temp marker
     removeTempMarker();
   }
 
   function exitPlacementMode() {
     placementMode = "none";
-    
+
     // Exit visual selection: restore card position, hide gold caption & full-viewport overlay
     blueprintCard.classList.remove("active-placement");
     blueprintCanvasWrapper.classList.remove("choosing-location");
     blueprintBlurOverlay.classList.add("hidden");
     placementGoldCaption.classList.add("hidden");
     document.body.classList.remove("active-placement-mode");
-    
+
     // Clear inline display style set during placement mode
     const pinsEls = document.querySelectorAll(".blueprint-pin");
-    pinsEls.forEach(p => p.style.display = "");
-    
+    pinsEls.forEach((p) => (p.style.display = ""));
+
     // Restore all pins visibility based on filter
     updatePinVisibility();
     removeTempMarker();
@@ -271,7 +292,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   function updatePinVisibility() {
     const pinsEls = document.querySelectorAll(".blueprint-pin");
-    pinsEls.forEach(pinEl => {
+    pinsEls.forEach((pinEl) => {
       if (activeFilter === "all" || pinEl.dataset.type === activeFilter) {
         pinEl.classList.remove("filtered-out");
       } else {
@@ -296,22 +317,24 @@ document.addEventListener("DOMContentLoaded", () => {
   // Helper to dynamically set min allowed local date-time (now)
   function enforceMinDateLimit() {
     if (!eventDateInput) return;
-    const nowLocal = new Date(Date.now() - new Date().getTimezoneOffset() * 60000);
+    const nowLocal = new Date(
+      Date.now() - new Date().getTimezoneOffset() * 60000,
+    );
     eventDateInput.min = nowLocal.toISOString().slice(0, 16);
   }
 
   // Blueprint Map click location capture
   blueprintCanvasWrapper.addEventListener("click", (e) => {
     if (placementMode === "none") return;
-    
+
     // Prevent event bubbling
     e.stopPropagation();
-    
+
     // Capture accurate percentage positions based on image dimensions
     const rect = blueprintImage.getBoundingClientRect();
     const xPercent = ((e.clientX - rect.left) / rect.width) * 100;
     const yPercent = ((e.clientY - rect.top) / rect.height) * 100;
-    
+
     // Place temp pulsing marker on map immediately (preview state)
     removeTempMarker();
     tempMarker = document.createElement("div");
@@ -319,7 +342,7 @@ document.addEventListener("DOMContentLoaded", () => {
     tempMarker.style.left = `${xPercent}%`;
     tempMarker.style.top = `${yPercent}%`;
     pinsContainer.appendChild(tempMarker);
-    
+
     // Display Modal popup with a slight visual expansion delay
     setTimeout(() => {
       if (placementMode === "event") {
@@ -340,7 +363,9 @@ document.addEventListener("DOMContentLoaded", () => {
   document.addEventListener("click", (e) => {
     if (placementMode !== "none") {
       // If clicked outside the blueprint wrapper and modal dialogs, cancel selection
-      const isModalClick = eventModalOverlay.contains(e.target) || (pinModalOverlay && pinModalOverlay.contains(e.target));
+      const isModalClick =
+        eventModalOverlay.contains(e.target) ||
+        (pinModalOverlay && pinModalOverlay.contains(e.target));
       if (!blueprintCanvasWrapper.contains(e.target) && !isModalClick) {
         exitPlacementMode();
       }
@@ -362,12 +387,12 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   // ── Forms Submissions (AJAX POST) ─────────────────────────────
-  
+
   // Submit Create Event
   eventCreationForm.addEventListener("submit", (e) => {
     eventFormError.classList.add("hidden");
     eventFormError.textContent = "";
-    
+
     const title = document.getElementById("eventTitle").value.trim();
     const dateVal = eventDateInput.value; // start date string
     const yVal = document.getElementById("eventY").value;
@@ -383,7 +408,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
     if (!title || !dateVal || isNaN(x) || isNaN(y)) {
       e.preventDefault();
-      eventFormError.textContent = "Please select a location on the map and fill in all fields.";
+      eventFormError.textContent =
+        "Please select a location on the map and fill in all fields.";
       eventFormError.classList.remove("hidden");
       return;
     }
@@ -415,7 +441,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     // Compute UTC end date
     const endDate = new Date(startDate.getTime() + durationMinutes * 60000);
-    
+
     // Set hidden fields for standard POST submission in UTC format
     document.getElementById("eventDateUTC").value = startDate.toISOString();
     document.getElementById("eventEndDateUTC").value = endDate.toISOString();
@@ -426,14 +452,14 @@ document.addEventListener("DOMContentLoaded", () => {
     pinCreationForm.addEventListener("submit", (e) => {
       pinFormError.classList.add("hidden");
       pinFormError.textContent = "";
-      
+
       const typeEl = document.querySelector('input[name="type"]:checked');
       let type = "club";
       if (typeEl) {
         type = typeEl.value;
       }
       const name = document.getElementById("pinName").value.trim();
-      
+
       const yVal = document.getElementById("pinY").value;
       const xVal = document.getElementById("pinX").value;
       let y = null;
@@ -444,15 +470,18 @@ document.addEventListener("DOMContentLoaded", () => {
       if (xVal !== "") {
         x = parseFloat(xVal);
       }
-      
+
       if (!name) {
         e.preventDefault();
         pinFormError.textContent = "Name is required.";
         pinFormError.classList.remove("hidden");
         return;
       }
-      
-      if (type !== "club" && (y === null || x === null || isNaN(y) || isNaN(x))) {
+
+      if (
+        type !== "club" &&
+        (y === null || x === null || isNaN(y) || isNaN(x))
+      ) {
         e.preventDefault();
         pinFormError.textContent = "Location is required on map for offices.";
         pinFormError.classList.remove("hidden");
@@ -463,8 +492,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // Radio button toggles in admin modal updates title label nicely
   const pinRadios = document.querySelectorAll('input[name="type"]');
-  pinRadios.forEach(radio => {
-    radio.addEventListener("change", function() {
+  pinRadios.forEach((radio) => {
+    radio.addEventListener("change", function () {
       const label = document.getElementById("pinNameLabel");
       const nameInput = document.getElementById("pinName");
       if (this.value === "club") {
@@ -479,10 +508,20 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   // Cancel modals
-  btnCancelEventModal.addEventListener("click", () => closeModal(eventModalOverlay));
-  btnCloseEventModal.addEventListener("click", () => closeModal(eventModalOverlay));
-  if (btnCancelPinModal) btnCancelPinModal.addEventListener("click", () => closeModal(pinModalOverlay));
-  if (btnClosePinModal) btnClosePinModal.addEventListener("click", () => closeModal(pinModalOverlay));
+  btnCancelEventModal.addEventListener("click", () =>
+    closeModal(eventModalOverlay),
+  );
+  btnCloseEventModal.addEventListener("click", () =>
+    closeModal(eventModalOverlay),
+  );
+  if (btnCancelPinModal)
+    btnCancelPinModal.addEventListener("click", () =>
+      closeModal(pinModalOverlay),
+    );
+  if (btnClosePinModal)
+    btnClosePinModal.addEventListener("click", () =>
+      closeModal(pinModalOverlay),
+    );
 
   if (btnSelectLocationOnMap) {
     btnSelectLocationOnMap.addEventListener("click", (e) => {
@@ -493,8 +532,7 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   if (btnClearPinLocation) {
-    btnClearPinLocation.addEventListener("click", (e) => {
-      e.stopPropagation();
+    btnClearPinLocation.addEventListener("click", () => {
       if (pinYInput) pinYInput.value = "";
       if (pinXInput) pinXInput.value = "";
       removeTempMarker();
@@ -503,12 +541,13 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   if (btnColumnAddClub) {
-    btnColumnAddClub.addEventListener("click", (e) => {
-      e.stopPropagation();
+    btnColumnAddClub.addEventListener("click", () => {
       if (pinYInput) pinYInput.value = "";
       if (pinXInput) pinXInput.value = "";
       removeTempMarker();
-      const clubRadio = document.querySelector('input[name="type"][value="club"]');
+      const clubRadio = document.querySelector(
+        'input[name="type"][value="club"]',
+      );
       if (clubRadio) {
         clubRadio.checked = true;
         clubRadio.dispatchEvent(new Event("change"));
@@ -519,12 +558,13 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   if (btnColumnAddOffice) {
-    btnColumnAddOffice.addEventListener("click", (e) => {
-      e.stopPropagation();
+    btnColumnAddOffice.addEventListener("click", () => {
       if (pinYInput) pinYInput.value = "";
       if (pinXInput) pinXInput.value = "";
       removeTempMarker();
-      const officeRadio = document.querySelector('input[name="type"][value="office"]');
+      const officeRadio = document.querySelector(
+        'input[name="type"][value="office"]',
+      );
       if (officeRadio) {
         officeRadio.checked = true;
         officeRadio.dispatchEvent(new Event("change"));
@@ -540,7 +580,7 @@ document.addEventListener("DOMContentLoaded", () => {
     tab.addEventListener("click", function () {
       filterTabs.forEach((t) => t.classList.remove("active"));
       this.classList.add("active");
-      
+
       activeFilter = this.dataset.filter;
       closePopover();
       updatePinVisibility();
@@ -551,7 +591,7 @@ document.addEventListener("DOMContentLoaded", () => {
   function openSidebar() {
     eventsSidebar.classList.remove("collapsed");
     if (btnToggleEvents) btnToggleEvents.classList.add("active");
-    
+
     // Update URL dynamically to ?view=events
     const url = new URL(window.location.href);
     if (url.searchParams.get("view") !== "events") {
@@ -561,15 +601,17 @@ document.addEventListener("DOMContentLoaded", () => {
         window.updateNavActiveStates();
       }
     }
-    
+
     // If the active filter hides events (i.e. is not 'all' and not 'event')
     if (activeFilter !== "all" && activeFilter !== "event") {
-      const eventFilterTab = document.querySelector('.filter-tab[data-filter="event"]');
+      const eventFilterTab = document.querySelector(
+        '.filter-tab[data-filter="event"]',
+      );
       if (eventFilterTab) {
         eventFilterTab.click();
       }
     }
-    
+
     // Animate event pins (pulse them to get bigger and smaller twice)
     setTimeout(() => {
       const eventPins = document.querySelectorAll(".pin-event");
@@ -587,7 +629,7 @@ document.addEventListener("DOMContentLoaded", () => {
   function closeSidebar() {
     eventsSidebar.classList.add("collapsed");
     if (btnToggleEvents) btnToggleEvents.classList.remove("active");
-    
+
     // Update URL dynamically to remove ?view=events
     const url = new URL(window.location.href);
     if (url.searchParams.has("view")) {
@@ -608,14 +650,12 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   if (btnToggleEvents) {
-    btnToggleEvents.addEventListener("click", (e) => {
-      e.stopPropagation();
+    btnToggleEvents.addEventListener("click", () => {
       toggleSidebar();
     });
   }
-  
-  btnCloseSidebar.addEventListener("click", (e) => {
-    e.stopPropagation();
+
+  btnCloseSidebar.addEventListener("click", () => {
     closeSidebar();
   });
 
@@ -624,7 +664,7 @@ document.addEventListener("DOMContentLoaded", () => {
     if (typeof window.updateNavActiveStates === "function") {
       window.updateNavActiveStates();
     }
-    
+
     const params = new URLSearchParams(window.location.search);
     if (params.get("view") === "events") {
       eventsSidebar.classList.remove("collapsed");
@@ -635,12 +675,15 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
 
-  // Intercept left sidebar navigation link clicks when we are already on the map page
-  document.querySelectorAll(".base-nav-item").forEach(link => {
+  // add event listener for every nav link, every time we press a link we check if we are in the /map route and see if we open the events bar or no
+  document.querySelectorAll(".base-nav-item").forEach((link) => {
     if (link.href) {
       try {
         const linkUrl = new URL(link.href, window.location.origin);
-        const currentUrl = new URL(window.location.href, window.location.origin);
+        const currentUrl = new URL(
+          window.location.href,
+          window.location.origin,
+        );
         if (linkUrl.pathname === currentUrl.pathname) {
           link.addEventListener("click", (e) => {
             e.preventDefault();
@@ -665,12 +708,12 @@ document.addEventListener("DOMContentLoaded", () => {
       enterPlacementMode("event");
     });
   }
-  
+
   btnSidebarAddEvent.addEventListener("click", (e) => {
     e.stopPropagation();
     enterPlacementMode("event");
   });
-  
+
   if (btnAddPin) {
     btnAddPin.addEventListener("click", (e) => {
       e.stopPropagation();
