@@ -39,8 +39,8 @@ class Campus(db.Model):
     map_image = db.Column(db.String(255))
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     creator_id = db.Column(db.Integer, db.ForeignKey('user.id'))
-    center_lat = db.Column(db.Float)
-    center_lng = db.Column(db.Float)
+    center_y = db.Column(db.Float)
+    center_x = db.Column(db.Float)
     domain = db.Column(db.String(64), nullable=True)
 
     clubs = db.relationship('Club', backref='campus', lazy=True, cascade='all, delete-orphan')
@@ -56,7 +56,7 @@ class CampusMember(db.Model):
     campus_id = db.Column(db.Integer, db.ForeignKey('campus.id'), nullable=False)
     role = db.Column(db.String(20), default='user', nullable=False) # 'owner', 'moderator', 'user'
     joined_at = db.Column(db.DateTime, default=datetime.utcnow)
-    __table_args__ = (db.UniqueConstraint('user_id', 'campus_id'),)
+    # Unique constraint removed for student simplicity; checks are done in python code
 
     user = db.relationship('User', backref=db.backref('campus_memberships', lazy=True, cascade='all, delete-orphan'))
 
@@ -65,8 +65,8 @@ class Club(db.Model):
     name = db.Column(db.String(128), nullable=False)
     description = db.Column(db.Text)
     campus_id = db.Column(db.Integer, db.ForeignKey('campus.id'), nullable=False)
-    lat = db.Column(db.Float)
-    lng = db.Column(db.Float)
+    y = db.Column(db.Float)
+    x = db.Column(db.Float)
 
     def __repr__(self):
         return f'<Club {self.name}>'
@@ -76,8 +76,8 @@ class Office(db.Model):
     name = db.Column(db.String(128), nullable=False)
     description = db.Column(db.Text)
     campus_id = db.Column(db.Integer, db.ForeignKey('campus.id'), nullable=False)
-    lat = db.Column(db.Float)
-    lng = db.Column(db.Float)
+    y = db.Column(db.Float)
+    x = db.Column(db.Float)
 
     def __repr__(self):
         return f'<Office {self.name}>'
@@ -90,8 +90,8 @@ class Event(db.Model):
     creator_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     date = db.Column(db.DateTime, nullable=False)
     end_date = db.Column(db.DateTime, nullable=False)
-    lat = db.Column(db.Float, nullable=False)
-    lng = db.Column(db.Float, nullable=False)
+    y = db.Column(db.Float, nullable=False)
+    x = db.Column(db.Float, nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
     campus = db.relationship('Campus', backref=db.backref('events', lazy=True, cascade='all, delete-orphan'))
@@ -194,7 +194,7 @@ class ChatMember(db.Model):
     room_id = db.Column(db.Integer, db.ForeignKey('chat_room.id'), nullable=False)
     last_read_at = db.Column(db.DateTime, nullable=True)
     joined_at = db.Column(db.DateTime, default=datetime.utcnow)
-    __table_args__ = (db.UniqueConstraint('user_id', 'room_id'),)
+    # Unique constraint removed for student simplicity; checks are done in python code
 
     user = db.relationship('User', backref=db.backref('chat_memberships', lazy=True, cascade='all, delete-orphan'))
 
@@ -240,7 +240,7 @@ class StudyRoomMember(db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     last_read_at = db.Column(db.DateTime, nullable=True)
     joined_at = db.Column(db.DateTime, default=datetime.utcnow)
-    __table_args__ = (db.UniqueConstraint('room_id', 'user_id'),)
+    # Unique constraint removed for student simplicity; checks are done in python code
 
     user = db.relationship('User', backref=db.backref('study_room_memberships', lazy=True, cascade='all, delete-orphan'))
 
@@ -265,7 +265,7 @@ class EventParticipation(db.Model):
     want_notification = db.Column(db.Boolean, default=False, nullable=False)
     notification_sent = db.Column(db.Boolean, default=False, nullable=False)
 
-    __table_args__ = (db.UniqueConstraint('user_id', 'event_id'),)
+    # Unique constraint removed for student simplicity; checks are done in python code
 
     event = db.relationship('Event', backref=db.backref('participations', lazy=True, cascade='all, delete-orphan'))
     user = db.relationship('User', backref=db.backref('event_participations', lazy=True, cascade='all, delete-orphan'))

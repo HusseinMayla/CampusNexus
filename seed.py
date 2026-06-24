@@ -37,8 +37,8 @@ def seed_database():
                 "name": "American University of Beirut",
                 "domain": "aub.edu.lb",
                 "description": "A prestigious private, non-sectarian, and independent university in Beirut, Lebanon.",
-                "center_lat": 33.8996,
-                "center_lng": 35.4793,
+                "center_y": 40,
+                "center_x": 35.4793,
                 "banner_image": None,
                 "map_image": None
             },
@@ -46,8 +46,8 @@ def seed_database():
                 "name": "Lebanese American University",
                 "domain": "lau.edu.lb",
                 "description": "A leading private, non-sectarian higher education institution in Lebanon, operating campuses in Beirut and Byblos.",
-                "center_lat": 33.8938,
-                "center_lng": 35.4764,
+                "center_y": 33.8938,
+                "center_x": 35.4764,
                 "banner_image": None,
                 "map_image": None
             },
@@ -55,8 +55,8 @@ def seed_database():
                 "name": "Lebanese University",
                 "domain": "ul.edu.lb",
                 "description": "The only public institution of higher learning in Lebanon, serving students across all regions.",
-                "center_lat": 33.8290,
-                "center_lng": 35.5262,
+                "center_y": 33.8290,
+                "center_x": 60,
                 "banner_image": None,
                 "map_image": None
             },
@@ -64,8 +64,8 @@ def seed_database():
                 "name": "Massachusetts Institute of Technology",
                 "domain": "mit.edu",
                 "description": "A world-renowned private research university in Cambridge, Massachusetts, dedicated to science, technology, and engineering.",
-                "center_lat": 42.3601,
-                "center_lng": -71.0942,
+                "center_y": 42.3601,
+                "center_x": 71.0942,
                 "banner_image": None,
                 "map_image": None
             },
@@ -73,8 +73,8 @@ def seed_database():
                 "name": "Stanford University",
                 "domain": "stanford.edu",
                 "description": "A prominent private research university in Stanford, California, known for its academic strength, wealth, and proximity to Silicon Valley.",
-                "center_lat": 37.4275,
-                "center_lng": -122.1697,
+                "center_y": 37.4275,
+                "center_x": 22.1697,
                 "banner_image": None,
                 "map_image": None
             }
@@ -86,8 +86,8 @@ def seed_database():
                 name=c_data["name"],
                 domain=c_data["domain"],
                 description=c_data["description"],
-                center_lat=c_data["center_lat"],
-                center_lng=c_data["center_lng"],
+                center_y=c_data["center_y"],
+                center_x=c_data["center_x"],
                 banner_image=c_data["banner_image"],
                 map_image=c_data["map_image"]
             )
@@ -214,22 +214,22 @@ def seed_database():
         # -------------------------------------------------------------
         print("Seeding Clubs and Offices on Campus Maps...")
         for c in campuses:
-            lat, lng = c.center_lat, c.center_lng
+            y, x = c.center_y, c.center_x
             
             # Add 2 clubs
             db.session.add(Club(
                 name="Computer Science & AI Club",
                 description=f"Connecting tech enthusiasts, programmers, and AI hobbyists at {c.name}.",
                 campus_id=c.id,
-                lat=lat + 0.0008,
-                lng=lng + 0.0006
+                y=y + 8,
+                x=x + 6
             ))
             db.session.add(Club(
                 name="Music & Performing Arts Club",
                 description=f"A home for musicians, singers, actors, and artists to practice, collaborate, and perform at {c.name}.",
                 campus_id=c.id,
-                lat=lat - 0.0007,
-                lng=lng - 0.0005
+                y=y - 7,
+                x=x - 5
             ))
 
             # Add 2 offices
@@ -237,15 +237,15 @@ def seed_database():
                 name="Admissions & Registrar Office",
                 description="Handling enrollment, transcripts, transfer credits, and general academic scheduling.",
                 campus_id=c.id,
-                lat=lat + 0.0003,
-                lng=lng - 0.0004
+                y=y + 3,
+                x=x - 4
             ))
             db.session.add(Office(
                 name="Student Affairs & Wellness Center",
                 description="Promoting student engagement, mental health counseling, athletics, and community support.",
                 campus_id=c.id,
-                lat=lat - 0.0004,
-                lng=lng + 0.0003
+                y=y - 4,
+                x=x + 3
             ))
 
         db.session.flush()
@@ -266,8 +266,8 @@ def seed_database():
                 creator_id=c.creator_id,
                 date=now.replace(hour=14, minute=0, second=0),
                 end_date=now.replace(hour=20, minute=0, second=0),
-                lat=c.center_lat + 0.0002,
-                lng=c.center_lng - 0.0002
+                y=c.center_y + 2,
+                x=c.center_x - 2
             )
             # Event 2: Tomorrow (Hackathon)
             e2 = Event(
@@ -277,8 +277,8 @@ def seed_database():
                 creator_id=c.creator_id,
                 date=now + timedelta(days=1, hours=2),
                 end_date=now + timedelta(days=3, hours=2),
-                lat=c.center_lat - 0.0003,
-                lng=c.center_lng + 0.0003
+                y=c.center_y - 13,
+                x=c.center_x + 13
             )
             # Event 3: Next Week (Career Fair)
             e3 = Event(
@@ -288,8 +288,8 @@ def seed_database():
                 creator_id=c.creator_id,
                 date=now + timedelta(days=7),
                 end_date=now + timedelta(days=7, hours=6),
-                lat=c.center_lat + 0.0004,
-                lng=c.center_lng + 0.0004
+                y=c.center_y + 24,
+                x=c.center_x + 24
             )
             db.session.add_all([e1, e2, e3])
             events.extend([e1, e2, e3])
