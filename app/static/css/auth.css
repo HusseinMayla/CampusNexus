@@ -98,8 +98,10 @@ body {
 
 /* ── Brand panel ─────────────────────────────────────────────── */
 .brand-panel {
-  background: linear-gradient(160deg, var(--oxford-mid) 0%, var(--oxford) 60%, #060e1a 100%);
-  border-right: 1px solid var(--border);
+  background-image: url('../images/University Capmus.jpg');
+  background-size: 100% 100%;
+  background-position: 40% 47%;
+  background-repeat: no-repeat;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
@@ -112,13 +114,7 @@ body {
   content: '';
   position: absolute;
   inset: 0;
-  background: repeating-linear-gradient(
-    45deg,
-    transparent,
-    transparent 60px,
-    rgba(200,169,110,0.018) 60px,
-    rgba(200,169,110,0.018) 61px
-  );
+  background: rgba(5, 12, 22, 0.65);
 }
 
 .brand-inner {
@@ -177,7 +173,6 @@ body {
 
 .site-tagline {
   font-size: 1.1rem;
-  color: var(--ink-muted);
   font-style: italic;
   letter-spacing: 0.02em;
 }
