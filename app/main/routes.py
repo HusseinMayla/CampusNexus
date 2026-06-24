@@ -20,7 +20,7 @@ def get_sidebar_data():
             'unread_notifications_count': 0
         }
 
-    from app.models import CampusMember, ChatMember, ChatMessage, StudyRoomMember, StudyRoomMessage, Notification
+    from app.models import CampusMember, ChatMember, StudyRoomMember, Notification
 
     # -- Ingest Chat Sidebar data --
     by_campus = {}
@@ -35,7 +35,7 @@ def get_sidebar_data():
             'rooms': []
         }
         
-    # Fetch active chat rooms the user has joined and check if they have unread messages
+    # Fetch active chat rooms the user has joined
     chat_memberships = ChatMember.query.filter_by(user_id=current_user.id).all()
     for cm in chat_memberships:
         room = cm.room
@@ -46,20 +46,11 @@ def get_sidebar_data():
                 'campus_name': room.campus.name,
                 'rooms': []
             }
-        
-        last_msg = ChatMessage.query.filter_by(room_id=room.id).order_by(ChatMessage.sent_at.desc()).first()
-        
-        has_unread = False
-        if last_msg:
-            if cm.last_read_at is None:
-                has_unread = True
-            elif last_msg.sent_at > cm.last_read_at:
-                has_unread = True
                 
         by_campus[cid]['rooms'].append({
             'id': room.id,
             'name': room.name,
-            'has_unread': has_unread
+            'has_unread': False  # Kept to prevent template breakage, or omit entirely
         })
 
     # -- Ingest Study Room Sidebar data --
@@ -72,15 +63,6 @@ def get_sidebar_data():
         if room.session_time < cutoff:
             continue
             
-        last_msg = StudyRoomMessage.query.filter_by(room_id=room.id).order_by(StudyRoomMessage.sent_at.desc()).first()
-        
-        has_unread = False
-        if last_msg:
-            if srm.last_read_at is None:
-                has_unread = True
-            elif last_msg.sent_at > srm.last_read_at:
-                has_unread = True
-                
         study_items.append({
             'room_id': room.id,
             'campus_id': room.campus_id,
@@ -90,7 +72,7 @@ def get_sidebar_data():
             'location': room.location,
             'member_count': room.member_count(),
             'max_members': room.max_members,
-            'has_unread': has_unread,
+            'has_unread': False,  # Kept to prevent template breakage, or omit entirely
         })
         
     study_items.sort(key=lambda item: item['session_time'])
@@ -103,7 +85,6 @@ def get_sidebar_data():
         'sidebar_study': study_items,
         'unread_notifications_count': unread_notifications_count
     }
-
 
 def _is_member(campus):
     return (campus.creator_id == current_user.id or

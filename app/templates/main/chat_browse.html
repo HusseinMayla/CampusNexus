@@ -25,7 +25,7 @@
     {% if room.id in joined_ids %}
     <a href="{{ url_for('main.chat_room', campus_id=campus.id, room_id=room.id) }}" class="base-button">Open</a>
     {% else %}
-    <form action="{{ url_for('main.chat_room_join', campus_id=campus.id, room_id=room.id) }}" method="POST" style="margin: 0;">
+    <form action="{{ url_for('main.chat_join', campus_id=campus.id, room_id=room.id) }}" method="POST" style="margin: 0;">
         <button type="submit" class="base-button-secondary btn-join">Join</button>
     </form>
     {% endif %}
@@ -38,7 +38,7 @@
 {% endfor %}
 </div>
 
-<form class="chat-browse-create" action="{{ url_for('main.chat_room_create', campus_id=campus.id) }}" method="POST">
+<form class="chat-browse-create" action="{{ url_for('main.chat_create', campus_id=campus.id) }}" method="POST">
     <p class="chat-browse-create-label">Create a chat group:</p>
     <div class="create-row">
         <input type="text" name="name" class="base-input" placeholder="e.g. CSCI205 or Computer Science" required>
