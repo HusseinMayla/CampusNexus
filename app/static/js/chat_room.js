@@ -117,39 +117,7 @@ async function poll() {
 
 setInterval(poll, 3000);
 
-async function confirmLeave() {
-    const res = await fetch(`/campus/${CAMPUS_ID}/chat/${ROOM_ID}/leave`, { method: 'POST' });
-    if (res.ok) {
-        window.location.href = `/campus/${CAMPUS_ID}/chat`;
-    }
-}
-
-async function confirmDelete() {
-    const res = await fetch(`/campus/${CAMPUS_ID}/chat/${ROOM_ID}/delete`, { method: 'POST' });
-    if (res.ok) {
-        window.location.href = `/campus/${CAMPUS_ID}/chat`;
-    }
-}
-
-// Overlay wiring
-document.getElementById('triggerLeaveBtn').addEventListener('click', () => {
-    document.getElementById('leaveOverlay').classList.add('open');
-});
-document.getElementById('cancelLeaveBtn').addEventListener('click', () => {
-    document.getElementById('leaveOverlay').classList.remove('open');
-});
-document.getElementById('confirmLeaveBtn').addEventListener('click', confirmLeave);
-
-const triggerDeleteBtn = document.getElementById('triggerDeleteBtn');
-if (triggerDeleteBtn) {
-    triggerDeleteBtn.addEventListener('click', () => {
-        document.getElementById('deleteOverlay').classList.add('open');
-    });
-    document.getElementById('cancelDeleteBtn').addEventListener('click', () => {
-        document.getElementById('deleteOverlay').classList.remove('open');
-    });
-    document.getElementById('confirmDeleteBtn').addEventListener('click', confirmDelete);
-}
+// Overlay wiring and functions removed since leave/delete are now standard forms.
 
 document.getElementById('msgInput').addEventListener('keydown', e => {
     if (e.key === 'Enter' && !e.shiftKey) {

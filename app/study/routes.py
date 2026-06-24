@@ -1,5 +1,5 @@
 from datetime import datetime, timedelta, timezone
-from flask import render_template, redirect, url_for, request, jsonify, abort, flash
+from flask import render_template, redirect, url_for, request, jsonify, abort, flash, Blueprint
 
 def parse_utc(dt_str):
     if not dt_str:
@@ -12,9 +12,11 @@ def parse_utc(dt_str):
     return dt
 from flask_login import login_required, current_user
 from app.extensions import db
+from app.main.routes import get_sidebar_data
 from app.models import (Campus, CampusMember, StudyRoom, StudyRoomMember,
                         StudyRoomMessage, Notification)
-from app.study import study_bp
+
+study_bp = Blueprint('study', __name__)
 
 
 def _member_or_403(campus_id):
@@ -62,7 +64,7 @@ def browse(campus_id):
     for m in StudyRoomMember.query.filter_by(user_id=current_user.id).all():
         joined_ids.append(m.room_id)
     return render_template('study/browse.html', campus=campus, rooms=rooms,
-                           joined_ids=joined_ids, active_page='study')
+                           joined_ids=joined_ids, active_page='study', **get_sidebar_data())
 
 
 # ── Create ────────────────────────────────────────────────────────────────────
@@ -71,7 +73,7 @@ def browse(campus_id):
 @login_required
 def create(campus_id):
     campus = _member_or_403(campus_id)
-    data = request.json or {}
+    data = request.form
 
     title = data.get('title', '').strip()
     location = data.get('location', '').strip()
@@ -79,25 +81,32 @@ def create(campus_id):
     max_members = data.get('max_members')
 
     if not title or not location or not session_time or not max_members:
-        return jsonify({'error': 'All fields are required'}), 400
+        flash('All fields are required.', 'error')
+        return redirect(url_for('study.browse', campus_id=campus_id))
 
     try:
         session_dt = parse_utc(session_time)
     except (ValueError, TypeError):
-        return jsonify({'error': 'Invalid session time'}), 400
+        flash('Invalid session time.', 'error')
+        return redirect(url_for('study.browse', campus_id=campus_id))
 
     now = datetime.utcnow()
-    if session_dt <= now:
-        return jsonify({'error': 'Session time must be in the future'}), 400
+    # Simple clock-drift buffer for creation
+    if session_dt <= now - timedelta(minutes=5):
+        flash('Session time must be in the future.', 'error')
+        return redirect(url_for('study.browse', campus_id=campus_id))
     if session_dt > now + timedelta(weeks=1):
-        return jsonify({'error': 'Session cannot be more than 1 week away'}), 400
+        flash('Session cannot be more than 1 week away.', 'error')
+        return redirect(url_for('study.browse', campus_id=campus_id))
 
     try:
         max_members = int(max_members)
     except (TypeError, ValueError):
-        return jsonify({'error': 'Invalid max members'}), 400
+        flash('Invalid max members.', 'error')
+        return redirect(url_for('study.browse', campus_id=campus_id))
     if max_members < 2 or max_members > 20:
-        return jsonify({'error': 'Max members must be between 2 and 20'}), 400
+        flash('Max members must be between 2 and 20.', 'error')
+        return redirect(url_for('study.browse', campus_id=campus_id))
 
     # Block if already a member of an active study room in this campus
     cutoff = datetime.utcnow() - timedelta(hours=2)
@@ -109,7 +118,8 @@ def create(campus_id):
             already_in_room = True
             break
     if already_in_room:
-        return jsonify({'error': 'You are already in an active study room'}), 400
+        flash('You are already in an active study room.', 'error')
+        return redirect(url_for('study.browse', campus_id=campus_id))
 
     room = StudyRoom(campus_id=campus_id, owner_id=current_user.id,
                      title=title, location=location,
@@ -119,8 +129,8 @@ def create(campus_id):
     db.session.add(StudyRoomMember(room_id=room.id, user_id=current_user.id))
     db.session.commit()
 
-    return jsonify({'id': room.id, 'redirect': url_for('study.room',
-                    campus_id=campus_id, room_id=room.id)}), 201
+    flash(f'Study room "{title}" created!', 'success')
+    return redirect(url_for('study.room', campus_id=campus_id, room_id=room.id))
 
 
 # ── Join ──────────────────────────────────────────────────────────────────────
@@ -132,12 +142,13 @@ def join(campus_id, room_id):
     room = StudyRoom.query.filter_by(id=room_id, campus_id=campus_id).first_or_404()
 
     if room.is_expired():
-        return jsonify({'error': 'This session has ended'}), 400
+        flash('This session has ended.', 'error')
+        return redirect(url_for('study.browse', campus_id=campus_id))
     if room.member_count() >= room.max_members:
-        return jsonify({'error': 'Room is full'}), 400
+        flash('Room is full.', 'error')
+        return redirect(url_for('study.browse', campus_id=campus_id))
     if StudyRoomMember.query.filter_by(user_id=current_user.id, room_id=room_id).first():
-        return jsonify({'ok': True, 'redirect': url_for('study.room',
-                        campus_id=campus_id, room_id=room_id)})
+        return redirect(url_for('study.room', campus_id=campus_id, room_id=room_id))
 
     # Block if user is already in a room with overlapping time
     new_start = room.session_time
@@ -148,7 +159,8 @@ def join(campus_id, room_id):
             continue
         other = StudyRoom.query.get(m.room_id)
         if other and other.session_time > new_start - timedelta(hours=2) and other.session_time < new_end:
-            return jsonify({'error': 'You already have a study room at that time'}), 400
+            flash('You already have a study room at that time.', 'error')
+            return redirect(url_for('study.browse', campus_id=campus_id))
 
     db.session.add(StudyRoomMember(room_id=room_id, user_id=current_user.id))
 
@@ -162,8 +174,8 @@ def join(campus_id, room_id):
         ))
 
     db.session.commit()
-    return jsonify({'ok': True, 'redirect': url_for('study.room',
-                    campus_id=campus_id, room_id=room_id)})
+    flash(f'Joined study room "{room.title}"!', 'success')
+    return redirect(url_for('study.room', campus_id=campus_id, room_id=room_id))
 
 
 # ── Leave ─────────────────────────────────────────────────────────────────────
@@ -180,7 +192,10 @@ def leave(campus_id, room_id):
     if room and room.member_count() == 0:
         db.session.delete(room)
         db.session.commit()
-    return jsonify({'ok': True})
+        flash('Left the study room (room deleted because no members remain).', 'success')
+    else:
+        flash('Left the study room.', 'success')
+    return redirect(url_for('study.browse', campus_id=campus_id))
 
 
 # ── Delete (owner) ────────────────────────────────────────────────────────────
@@ -193,7 +208,9 @@ def delete(campus_id, room_id):
         abort(403)
     db.session.delete(room)
     db.session.commit()
-    return jsonify({'ok': True})
+    flash(f'Study room "{room.title}" deleted.', 'success')
+    return redirect(url_for('study.browse', campus_id=campus_id))
+
 
 
 # ── Room chat page ────────────────────────────────────────────────────────────
@@ -218,7 +235,7 @@ def room(campus_id, room_id):
         last_id = 0
 
     return render_template('study/room.html', campus=campus, room=sr,
-                           messages=msgs, last_id=last_id, active_page='study')
+                           messages=msgs, last_id=last_id, active_page='study', **get_sidebar_data())
 
 
 @study_bp.route('/campus/<int:campus_id>/study-rooms/<int:room_id>/send', methods=['POST'])
@@ -227,7 +244,10 @@ def send_message(campus_id, room_id):
     srm = StudyRoomMember.query.filter_by(user_id=current_user.id, room_id=room_id).first()
     if not srm:
         return jsonify({'error': 'Not a member'}), 403
-    body = (request.json or {}).get('body', '').strip()
+    json_data = request.json
+    body = ""
+    if json_data is not None:
+        body = json_data.get('body', '').strip()
     if not body or len(body) > 2000:
         return jsonify({'error': 'Invalid message'}), 400
     msg = StudyRoomMessage(room_id=room_id, sender_id=current_user.id, body=body)

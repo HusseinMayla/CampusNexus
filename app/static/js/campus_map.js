@@ -21,16 +21,9 @@ function doMapConfirm() {
 
 document.addEventListener("DOMContentLoaded", () => {
   // ── DOM State ────────────────────────────────────────────────
-  const configEl = document.getElementById("workspaceConfig");
-  if (!configEl) return;
-
-  const CAMPUS_ID = parseInt(configEl.dataset.campusId, 10);
-  const IS_ADMIN = configEl.dataset.isAdmin === "true";
-
-  let pins = [];
   let placementMode = "none"; // 'none', 'event', 'pin'
   let activeFilter = "all";
-  let activePopover = null;
+  let activePinEl = null;
   let tempMarker = null;
 
   // ── Selectors ────────────────────────────────────────────────
@@ -69,18 +62,27 @@ document.addEventListener("DOMContentLoaded", () => {
   const btnSelectLocationOnMap = document.getElementById("btnSelectLocationOnMap");
   const btnClearPinLocation = document.getElementById("btnClearPinLocation");
   const pinLocationStatusText = document.getElementById("pinLocationStatusText");
-  const pinLatInput = document.getElementById("pinLat");
-  const pinLngInput = document.getElementById("pinLng");
+  const pinYInput = document.getElementById("pinY");
+  const pinXInput = document.getElementById("pinX");
 
   function updateModalLocationStatus() {
     if (!pinLocationStatusText) return;
-    const lat = pinLatInput ? pinLatInput.value : "";
-    const lng = pinLngInput ? pinLngInput.value : "";
-    const selectedRadio = document.querySelector('input[name="pinType"]:checked');
-    const type = selectedRadio ? selectedRadio.value : "club";
+    let y = "";
+    if (pinYInput) {
+      y = pinYInput.value;
+    }
+    let x = "";
+    if (pinXInput) {
+      x = pinXInput.value;
+    }
+    const selectedRadio = document.querySelector('input[name="type"]:checked');
+    let type = "club";
+    if (selectedRadio) {
+      type = selectedRadio.value;
+    }
     
-    if (lat && lng) {
-      pinLocationStatusText.textContent = `📍 Selected: ${parseFloat(lat).toFixed(1)}%, ${parseFloat(lng).toFixed(1)}%`;
+    if (y && x) {
+      pinLocationStatusText.textContent = `📍 Selected: ${parseFloat(x).toFixed(1)}%, ${parseFloat(y).toFixed(1)}%`;
       if (btnClearPinLocation) btnClearPinLocation.classList.remove("hidden");
     } else {
       if (type === "club") {
@@ -92,222 +94,25 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   }
 
-  // SVG Icons payload
-  const SVG_ICONS = {
-    club: `<svg viewBox="0 0 24 24"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg>`,
-    office: `<svg viewBox="0 0 24 24"><path d="M12 7V3H2v18h20V7H12zM6 19H4v-2h2v2zm0-4H4v-2h2v2zm0-4H4V9h2v2zm0-4H4V5h2v2zm4 12H8v-2h2v2zm0-4H8v-2h2v2zm0-4H8V9h2v2zm0-4H8V5h2v2zm10 12h-8v-2h2v-2h-2v-2h2v-2h-2V9h8v10zm-2-8h-2v2h2v-2zm0 4h-2v2h2v-2z"/></svg>`,
-    event: `<svg viewBox="0 0 24 24"><path d="M17 12h-5v5h5v-5zM16 1v2H8V1H6v2H5c-1.11 0-1.99.9-1.99 2L3 19c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2h-1V1h-2zm3 18H5V8h14v11z"/></svg>`,
-  };
-
-  // ── Init & Fetch Data ────────────────────────────────────────
-  async function init() {
-    await fetchAllPins();
-    
-    // Check URL parameters for starting state
-    const params = new URLSearchParams(window.location.search);
-    if (params.get("view") === "events") {
-      openSidebar();
-    } else {
-      // By default collapse the sidebar
-      eventsSidebar.classList.add("collapsed");
-    }
-  }
-
-  async function fetchAllPins() {
-    try {
-      const res = await fetch(`/api/map-data/${CAMPUS_ID}`);
-      if (!res.ok) throw new Error("Failed to load map data");
-      pins = await res.json();
-      renderAllPins();
-      renderEventsList();
-    } catch (err) {
-      console.error(err);
-    }
-  }
-
-  // ── Rendering Pins ───────────────────────────────────────────
-  function renderAllPins() {
-    // Clear old pins except overlays/temp markers
-    pinsContainer.innerHTML = "";
-    
-    pins.forEach((pin) => {
-      if (pin.lat === null || pin.lng === null || pin.lat === undefined || pin.lng === undefined) {
-        return;
-      }
-      const pinEl = document.createElement("div");
-      pinEl.className = `blueprint-pin pin-${pin.type}`;
-      
-      // Filter check
-      if (activeFilter !== "all" && pin.type !== activeFilter) {
-        pinEl.classList.add("filtered-out");
-      }
-      pinEl.style.left = `${pin.lng}%`;
-      pinEl.style.top = `${pin.lat}%`;
-      pinEl.dataset.type = pin.type;
-      pinEl.dataset.id = pin.id;
-      
-      // Dynamic Pin Sizing based on participation count (max size 56px, base 32px)
-      if (pin.type === "event") {
-        const baseSize = 32;
-        const maxSize = 56;
-        const count = pin.participation_count || 0;
-        const pinSize = Math.min(maxSize, baseSize + count * 4);
-        pinEl.style.width = `${pinSize}px`;
-        pinEl.style.height = `${pinSize}px`;
-      }
-      
-      pinEl.innerHTML = `
-        <svg viewBox="0 0 32 32" class="geometric-pin-svg" style="width: 100%; height: 100%; position: absolute; top: 0; left: 0; pointer-events: none; z-index: 1;">
-          <defs>
-            <linearGradient id="grad-club-${pin.id}" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stop-color="#c8a96e" />
-              <stop offset="100%" stop-color="#8a7048" />
-            </linearGradient>
-            <linearGradient id="grad-office-${pin.id}" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stop-color="#3b82f6" />
-              <stop offset="100%" stop-color="#1d4ed8" />
-            </linearGradient>
-            <linearGradient id="grad-event-${pin.id}" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stop-color="#f43f5e" />
-              <stop offset="100%" stop-color="#be123c" />
-            </linearGradient>
-          </defs>
-          <!-- 2 lines intersecting at bottom tip (16,32) and tangent to circle centered at (16,12) with radius 8 -->
-          <path d="M 16 32 L 8.67 15.2 A 8 8 0 1 1 23.33 15.2 Z" 
-                fill="url(#grad-${pin.type}-${pin.id})" 
-                stroke="var(--color-pin-border)" 
-                stroke-width="1.5" />
-        </svg>
-        <div class="blueprint-pin-icon">
-          ${SVG_ICONS[pin.type] || ""}
-        </div>
-      `;
-      
-      // Active Event Glow Effects & Pulses or Ended Gray States
-      if (pin.type === "event" && pin.date && pin.end_date) {
-        const now = new Date();
-        const isEventActive = new Date(pin.date) <= now && now <= new Date(pin.end_date);
-        const isEventEnded = now > new Date(pin.end_date);
-        if (isEventActive) {
-          pinEl.classList.add("active-now");
-          const halo = document.createElement("div");
-          halo.className = "active-halo";
-          pinEl.appendChild(halo);
-        } else if (isEventEnded) {
-          pinEl.classList.add("ended");
-        }
-      }
-      
-      // Below-pin text labels for premium readability
-      const labelEl = document.createElement("div");
-      labelEl.className = "pin-label";
-      labelEl.textContent = pin.name;
-      pinEl.appendChild(labelEl);
-      
-      // Setup click for Tooltip Popover
+  // ── Init ─────────────────────────────────────────────────────
+  function init() {
+    // 1. Hook up click listeners to existing DOM pins
+    document.querySelectorAll(".blueprint-pin").forEach(pinEl => {
       pinEl.addEventListener("click", (e) => {
         e.stopPropagation();
-        showPopover(pin, pinEl);
+        showPopoverFromEl(pinEl);
       });
-      
-      pinsContainer.appendChild(pinEl);
     });
-  }
 
-  // ── Rendering Events Sidebar List ───────────────────────────
-  function renderEventsList() {
-    eventsListContainer.innerHTML = "";
-    
-    const eventPins = pins.filter(p => p.type === "event");
-    
-    // Sort events: closest start time first
-    eventPins.sort((a, b) => new Date(a.date) - new Date(b.date));
-    
-    if (eventPins.length === 0) {
-      eventsListContainer.innerHTML = `<p class="empty-text">No upcoming campus events. Be the first to schedule one!</p>`;
-      return;
-    }
-    
-    eventPins.forEach((event) => {
-      const card = document.createElement("div");
-      card.className = "event-sidebar-card";
-      card.dataset.id = event.id;
+    // 2. Hook up hover & toggle listeners to existing sidebar cards
+    document.querySelectorAll(".event-sidebar-card").forEach(card => {
+      const eventId = card.dataset.id;
       
-      const now = new Date();
-      const isEventActive = new Date(event.date) <= now && now <= new Date(event.end_date);
-      const isEventEnded = now > new Date(event.end_date);
-      
-      let activeBadge = "";
-      if (isEventActive) {
-        activeBadge = `<span class="active-now-badge"><span class="active-now-dot"></span>Active Now</span>`;
-      } else if (isEventEnded) {
-        activeBadge = `<span class="ended-badge">Ended</span>`;
-        card.classList.add("ended");
-      }
-
-      const pCount = event.participation_count || 0;
-      const popPill = pCount > 0 
-        ? `<span class="card-popularity-badge has-interest">👥 ${pCount} interested</span>`
-        : `<span class="card-popularity-badge">👥 0 interested</span>`;
-
-      const isCreatorOrAdmin = event.is_creator || IS_ADMIN;
-      const deleteBtn = isCreatorOrAdmin 
-        ? `<button class="event-delete-btn" data-id="${event.id}">Delete</button>` 
-        : "";
-
-      // Action buttons toggle active states
-      const interestedClass = event.is_interested ? "active" : "";
-      const interestedIcon = event.is_interested ? "★" : "☆";
-      const interestedText = "Interested";
-      
-      const notifyClass = event.want_notification ? "active" : "";
-      const notifyIcon = event.want_notification ? "🔔" : "🔕";
-      const notifyText = event.want_notification ? "Notify Active" : "Notify Me";
-
-      const disabledAttr = isEventEnded ? "disabled style='opacity: 0.5; cursor: not-allowed;'" : "";
-
-      card.innerHTML = `
-        <div class="card-summary-row">
-          <div class="card-title-section">
-            <div class="card-title-badge-row">
-              <h4>${escapeHtml(event.name)}</h4>
-              ${activeBadge}
-            </div>
-            <div class="event-time">
-              <span>📅 ${formatEventDuration(event.date, event.end_date)}</span>
-            </div>
-            <div style="margin-top: 2px;">
-              ${popPill}
-            </div>
-          </div>
-          <span class="accordion-chevron">▼</span>
-        </div>
-        
-        <div class="card-expanded-content">
-          <p class="event-details-text">${escapeHtml(event.description || "No description provided.")}</p>
-          <div class="event-details-meta">
-            <div class="event-meta-item">👤 <strong>Host:</strong> ${escapeHtml(event.creator_name || "Anonymous")}</div>
-          </div>
-          <div class="event-actions-bar">
-            <button class="toggle-btn toggle-btn-interested ${interestedClass}" data-action="interested" ${disabledAttr}>
-              <span>${interestedIcon}</span> ${interestedText}
-            </button>
-            <button class="toggle-btn toggle-btn-notify ${notifyClass}" data-action="notify" ${disabledAttr}>
-              <span>${notifyIcon}</span> ${notifyText}
-            </button>
-          </div>
-          <div style="display:flex; justify-content: flex-end; margin-top: 4px;">
-            ${deleteBtn}
-          </div>
-        </div>
-      `;
-      
-      // Micro-interactions: hover event card highlights map pin
       card.addEventListener("mouseenter", () => {
-        highlightPin("event", event.id);
+        highlightPin("event", eventId);
       });
       card.addEventListener("mouseleave", () => {
-        unhighlightPin("event", event.id);
+        unhighlightPin("event", eventId);
       });
       
       // Click summary row toggles accordion expand & flies popover on map
@@ -322,9 +127,9 @@ document.addEventListener("DOMContentLoaded", () => {
           card.classList.add("expanded");
           
           // Open map popover
-          const pinEl = document.querySelector(`.blueprint-pin[data-type="event"][data-id="${event.id}"]`);
+          const pinEl = document.querySelector(`.blueprint-pin[data-type="event"][data-id="${eventId}"]`);
           if (pinEl) {
-            showPopover(event, pinEl);
+            showPopoverFromEl(pinEl);
             pinEl.classList.add("pulsing-appeal");
             setTimeout(() => pinEl.classList.remove("pulsing-appeal"), 1500);
           }
@@ -332,163 +137,40 @@ document.addEventListener("DOMContentLoaded", () => {
           closePopover();
         }
       });
-      
-      // Wire up toggle button actions
-      const btnInterest = card.querySelector(".toggle-btn-interested");
-      btnInterest.addEventListener("click", (e) => {
-        e.stopPropagation();
-        if (isEventEnded) return;
-        toggleInterestNotify(event.id, "interested");
-      });
-      
-      const btnNotify = card.querySelector(".toggle-btn-notify");
-      btnNotify.addEventListener("click", (e) => {
-        e.stopPropagation();
-        if (isEventEnded) return;
-        toggleInterestNotify(event.id, "notify");
-      });
-      
-      // Delete event button click
-      const delBtn = card.querySelector(".event-delete-btn");
-      if (delBtn) {
-        delBtn.addEventListener("click", (e) => {
-          e.stopPropagation();
-          deletePin("event", event.id);
-        });
-      }
-      
-      eventsListContainer.appendChild(card);
     });
+    
+    // Check URL parameters for starting state
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("view") === "events") {
+      openSidebar();
+    } else {
+      // By default collapse the sidebar
+      eventsSidebar.classList.add("collapsed");
+    }
   }
 
   // ── Custom Popover / Tooltip Logic ────────────────────────────
-  function showPopover(pin, pinEl) {
+  function showPopoverFromEl(pinEl) {
     closePopover();
     
-    const popover = document.createElement("div");
-    popover.className = "pin-popover";
-    
-    const isCreatorOrAdmin = pin.is_creator || IS_ADMIN;
-    const deleteHtml = isCreatorOrAdmin 
-      ? `<button class="popover-delete-btn">Delete location pin</button>`
-      : "";
-      
-    let metaHtml = "";
-    if (pin.type === "event" && pin.date) {
-      metaHtml = `<div class="popover-meta">📅 ${formatEventDuration(pin.date, pin.end_date)}</div>`;
-    }
-
-    let popoverHeaderRow = `<h4 class="popover-title">${escapeHtml(pin.name)}</h4>`;
-    let popoverActionsHtml = "";
-    
-    if (pin.type === "event") {
-      const now = new Date();
-      const isEventActive = new Date(pin.date) <= now && now <= new Date(pin.end_date);
-      const isEventEnded = now > new Date(pin.end_date);
-      
-      let activeBadge = "";
-      if (isEventActive) {
-        activeBadge = `<span class="popover-active-badge">Active</span>`;
-      } else if (isEventEnded) {
-        activeBadge = `<span class="popover-active-badge" style="background: rgba(100,116,139,0.12); border-color: rgba(100,116,139,0.4); color: #cbd5e1;">Ended</span>`;
-      }
-      
-      const pCount = pin.participation_count || 0;
-      const popText = `👥 ${pCount} interested`;
-      
-      popoverHeaderRow = `
-        <div class="popover-header-row">
-          <h4 class="popover-title" style="margin:0;">${escapeHtml(pin.name)}</h4>
-          ${activeBadge}
-        </div>
-        <div style="margin-top: 2px; margin-bottom: 6px;">
-          <span class="popover-popularity-count">${popText}</span>
-        </div>
-      `;
-      
-      const interestedClass = pin.is_interested ? "active" : "";
-      const interestedIcon = pin.is_interested ? "★" : "☆";
-      
-      const notifyClass = pin.want_notification ? "active" : "";
-      const notifyIcon = pin.want_notification ? "🔔" : "🔕";
-      
-      const disabledAttr = isEventEnded ? "disabled style='opacity: 0.5; cursor: not-allowed;'" : "";
-      
-      popoverActionsHtml = `
-        <div class="event-actions-bar" style="margin-top: 10px;">
-          <button class="toggle-btn toggle-btn-interested ${interestedClass}" data-action="interested" style="padding: 4px 8px; font-size: 0.72rem;" title="Interested" ${disabledAttr}>
-            <span>${interestedIcon}</span>
-          </button>
-          <button class="toggle-btn toggle-btn-notify ${notifyClass}" data-action="notify" style="padding: 4px 8px; font-size: 0.72rem;" title="Notify Me" ${disabledAttr}>
-            <span>${notifyIcon}</span>
-          </button>
-        </div>
-      `;
-    }
-
-    popover.innerHTML = `
-      <div class="popover-type-bar popover-bar-${pin.type}"></div>
-      ${popoverHeaderRow}
-      ${metaHtml}
-      <p class="popover-desc" style="margin:0; line-height: 1.4;">${escapeHtml(pin.description || "No description provided.")}</p>
-      ${popoverActionsHtml}
-      ${deleteHtml}
-    `;
-    
-    // Position popover relative to the pin
-    pinEl.appendChild(popover);
+    const popover = pinEl.querySelector(".pin-popover");
+    if (!popover) return;
     
     // Elevate clicked pin's z-index so popover stays on top
     pinEl.style.zIndex = "600";
     
-    // Triggers layout calculation so transition opacity works smoothly
-    popover.getBoundingClientRect();
     popover.classList.add("visible");
-    
-    activePopover = { popover, pinEl, pin };
-    
-    // Wire up popover event action buttons
-    if (pin.type === "event") {
-      const now = new Date();
-      const isEventEnded = now > new Date(pin.end_date);
-
-      const popBtnInterest = popover.querySelector(".toggle-btn-interested");
-      popBtnInterest.addEventListener("click", (e) => {
-        e.stopPropagation();
-        if (isEventEnded) return;
-        toggleInterestNotify(pin.id, "interested");
-      });
-      
-      const popBtnNotify = popover.querySelector(".toggle-btn-notify");
-      popBtnNotify.addEventListener("click", (e) => {
-        e.stopPropagation();
-        if (isEventEnded) return;
-        toggleInterestNotify(pin.id, "notify");
-      });
-    }
-    
-    // Delete action
-    const popDelBtn = popover.querySelector(".popover-delete-btn");
-    if (popDelBtn) {
-      popDelBtn.addEventListener("click", (e) => {
-        e.stopPropagation();
-        deletePin(pin.type, pin.id);
-      });
-    }
+    activePinEl = pinEl;
   }
 
   function closePopover() {
-    if (activePopover) {
-      const { popover, pinEl } = activePopover;
-      popover.classList.remove("visible");
-      // Reset z-index
-      pinEl.style.zIndex = "";
-      setTimeout(() => {
-        if (popover && popover.parentNode === pinEl) {
-          pinEl.removeChild(popover);
-        }
-      }, 200);
-      activePopover = null;
+    if (activePinEl) {
+      const popover = activePinEl.querySelector(".pin-popover");
+      if (popover) {
+        popover.classList.remove("visible");
+      }
+      activePinEl.style.zIndex = "";
+      activePinEl = null;
     }
   }
 
@@ -514,97 +196,16 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   // ── Delete Pin / Event ────────────────────────────────────────
-  async function deletePin(type, id) {
-    showMapConfirm(`Remove this ${type}?`, async () => {
-      try {
-        const res = await fetch(`/api/pin/delete/${type}/${id}`, { method: "DELETE" });
-
-        if (!res.ok) {
-          const err = await res.json();
-          throw new Error(err.error || "Failed to delete");
-        }
-
-        closePopover();
-        pins = pins.filter(p => !(p.type === type && p.id === id));
-        renderAllPins();
-        renderEventsList();
-        document.querySelector(`.legacy-list-card[data-pin-type="${type}"][data-pin-id="${id}"]`)?.remove();
-      } catch (err) {
-        alert(err.message);
-      }
-    });
-  }
-
-  // ── Toggle Interest & Notifications (AJAX POST) ───────────────
-  async function toggleInterestNotify(eventId, action) {
-    try {
-      const res = await fetch(`/api/event/${eventId}/interest`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: action })
-      });
-
-      if (!res.ok) throw new Error("Failed to toggle interest status");
-      const data = await res.json();
-      
-      // Update local state in pins array
-      const eventPin = pins.find(p => p.type === "event" && p.id === eventId);
-      if (eventPin) {
-        eventPin.is_interested = data.is_interested;
-        eventPin.want_notification = data.want_notification;
-        eventPin.participation_count = data.participation_count;
-        
-        // Re-render
-        renderAllPins();
-        renderEventsList();
-        
-        // Keep active popover open if matching
-        if (activePopover && activePopover.pin.type === "event" && activePopover.pin.id === eventId) {
-          const pinEl = document.querySelector(`.blueprint-pin[data-type="event"][data-id="${eventId}"]`);
-          if (pinEl) {
-            showPopover(eventPin, pinEl);
-          }
-        }
-        
-        // Keep sidebar card expanded
-        const cardEl = document.querySelector(`.event-sidebar-card[data-id="${eventId}"]`);
-        if (cardEl) {
-          cardEl.classList.add("expanded");
-        }
-      }
-    } catch (err) {
-      console.error(err);
-      alert(err.message);
+  function deletePin(deleteUrl) {
+    if (confirm("Remove this location pin?")) {
+      const form = document.createElement("form");
+      form.action = deleteUrl;
+      form.method = "POST";
+      document.body.appendChild(form);
+      form.submit();
     }
   }
-
-  // ── Add card to legacy clubs/offices list ─────────────────────
-  function prependLegacyCard(pin) {
-    const keyword = pin.type === 'club' ? 'Club' : 'Office';
-    let list = null;
-    document.querySelectorAll('.legacy-column').forEach(col => {
-      if (col.querySelector('h3')?.textContent.includes(keyword)) {
-        list = col.querySelector('.legacy-card-list');
-      }
-    });
-    if (!list) return;
-    list.querySelector('.empty-text')?.remove();
-    const card = document.createElement('div');
-    card.className = 'legacy-list-card';
-    card.dataset.pinType = pin.type;
-    card.dataset.pinId = pin.id;
-    card.innerHTML = `
-      <div class="card-header">
-        <h4>${escapeHtml(pin.name)}</h4>
-        ${IS_ADMIN ? `
-        <button class="card-delete-btn" onclick="showMapConfirm('Delete this ${pin.type}?', () => document.getElementById('delPin_${pin.type}_${pin.id}').submit())">🗑️</button>
-        <form id="delPin_${pin.type}_${pin.id}" action="/campus/${CAMPUS_ID}/delete-${pin.type}/${pin.id}" method="POST" style="display:none;"></form>
-        ` : ''}
-      </div>
-      <p>${escapeHtml(pin.description || 'No description provided.')}</p>
-    `;
-    list.prepend(card);
-  }
+  window.deletePin = deletePin;
 
   // ── Interactive Location Choosing ─────────────────────────────
   function enterPlacementMode(type) {
@@ -623,8 +224,11 @@ document.addEventListener("DOMContentLoaded", () => {
       if (type === "event") {
         placementGoldCaption.textContent = "Choose the event location by clicking on the blueprint map below...";
       } else if (type === "pin") {
-        const selectedRadio = document.querySelector('input[name="pinType"]:checked');
-        const subType = selectedRadio ? selectedRadio.value : "location";
+        const selectedRadio = document.querySelector('input[name="type"]:checked');
+        let subType = "location";
+        if (selectedRadio) {
+          subType = selectedRadio.value;
+        }
         placementGoldCaption.textContent = `Choose the ${subType} location by clicking on the blueprint map below...`;
       } else {
         placementGoldCaption.textContent = "Choose the location by clicking on the blueprint map below...";
@@ -649,8 +253,12 @@ document.addEventListener("DOMContentLoaded", () => {
     placementGoldCaption.classList.add("hidden");
     document.body.classList.remove("active-placement-mode");
     
-    // Restore all pins visibility
-    renderAllPins();
+    // Clear inline display style set during placement mode
+    const pinsEls = document.querySelectorAll(".blueprint-pin");
+    pinsEls.forEach(p => p.style.display = "");
+    
+    // Restore all pins visibility based on filter
+    updatePinVisibility();
     removeTempMarker();
   }
 
@@ -659,6 +267,17 @@ document.addEventListener("DOMContentLoaded", () => {
       tempMarker.remove();
       tempMarker = null;
     }
+  }
+
+  function updatePinVisibility() {
+    const pinsEls = document.querySelectorAll(".blueprint-pin");
+    pinsEls.forEach(pinEl => {
+      if (activeFilter === "all" || pinEl.dataset.type === activeFilter) {
+        pinEl.classList.remove("filtered-out");
+      } else {
+        pinEl.classList.add("filtered-out");
+      }
+    });
   }
 
   // ── Date inputs setup & duration toggling ─────────────────────
@@ -704,13 +323,13 @@ document.addEventListener("DOMContentLoaded", () => {
     // Display Modal popup with a slight visual expansion delay
     setTimeout(() => {
       if (placementMode === "event") {
-        document.getElementById("eventLat").value = yPercent;
-        document.getElementById("eventLng").value = xPercent;
+        document.getElementById("eventY").value = yPercent;
+        document.getElementById("eventX").value = xPercent;
         enforceMinDateLimit();
         openModal(eventModalOverlay);
       } else if (placementMode === "pin") {
-        document.getElementById("pinLat").value = yPercent;
-        document.getElementById("pinLng").value = xPercent;
+        document.getElementById("pinY").value = yPercent;
+        document.getElementById("pinX").value = xPercent;
         updateModalLocationStatus();
         openModal(pinModalOverlay);
       }
@@ -745,19 +364,26 @@ document.addEventListener("DOMContentLoaded", () => {
   // ── Forms Submissions (AJAX POST) ─────────────────────────────
   
   // Submit Create Event
-  eventCreationForm.addEventListener("submit", async (e) => {
-    e.preventDefault();
+  eventCreationForm.addEventListener("submit", (e) => {
     eventFormError.classList.add("hidden");
     eventFormError.textContent = "";
     
     const title = document.getElementById("eventTitle").value.trim();
-    const desc = document.getElementById("eventDescription").value.trim();
     const dateVal = eventDateInput.value; // start date string
-    const lat = parseFloat(document.getElementById("eventLat").value);
-    const lng = parseFloat(document.getElementById("eventLng").value);
+    const yVal = document.getElementById("eventY").value;
+    const xVal = document.getElementById("eventX").value;
+    let y = NaN;
+    if (yVal !== "") {
+      y = parseFloat(yVal);
+    }
+    let x = NaN;
+    if (xVal !== "") {
+      x = parseFloat(xVal);
+    }
 
-    if (!title || !dateVal || isNaN(lat) || isNaN(lng)) {
-      eventFormError.textContent = "Please fill in all required fields.";
+    if (!title || !dateVal || isNaN(x) || isNaN(y)) {
+      e.preventDefault();
+      eventFormError.textContent = "Please select a location on the map and fill in all fields.";
       eventFormError.classList.remove("hidden");
       return;
     }
@@ -765,8 +391,9 @@ document.addEventListener("DOMContentLoaded", () => {
     // Start time check
     const startDate = new Date(dateVal);
     const now = new Date();
-    // Allow a small 3-minute grace period for click timing difference
+    // Allow a small 3-minute grace period for clock drift
     if (startDate < new Date(now.getTime() - 180000)) {
+      e.preventDefault();
       eventFormError.textContent = "Event start time cannot be in the past.";
       eventFormError.classList.remove("hidden");
       return;
@@ -780,6 +407,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     if (isNaN(durationMinutes) || durationMinutes <= 0) {
+      e.preventDefault();
       eventFormError.textContent = "Please enter a valid event duration.";
       eventFormError.classList.remove("hidden");
       return;
@@ -788,128 +416,53 @@ document.addEventListener("DOMContentLoaded", () => {
     // Compute UTC end date
     const endDate = new Date(startDate.getTime() + durationMinutes * 60000);
     
-    const payload = {
-      type: "event",
-      name: title,
-      description: desc,
-      date: startDate.toISOString(),
-      end_date: endDate.toISOString(),
-      lat: lat,
-      lng: lng,
-      campus_id: CAMPUS_ID
-    };
-    
-    try {
-      const res = await fetch("/api/pin/add", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload)
-      });
-      
-      if (!res.ok) {
-        let errMsg = "Failed to publish event.";
-        try {
-          const err = await res.json();
-          errMsg = err.error || errMsg;
-        } catch {
-          const rawText = await res.text();
-          if (rawText && rawText.length < 200) {
-            errMsg = rawText;
-          }
-        }
-        throw new Error(errMsg);
-      }
-      
-      const newPin = await res.json();
-      pins.push(newPin);
-
-      eventCreationForm.reset();
-      customDurationGroup.classList.add("hidden");
-      closeModal(eventModalOverlay);
-      exitPlacementMode();
-      renderEventsList();
-      openSidebar();
-    } catch (err) {
-      eventFormError.textContent = err.message;
-      eventFormError.classList.remove("hidden");
-    }
+    // Set hidden fields for standard POST submission in UTC format
+    document.getElementById("eventDateUTC").value = startDate.toISOString();
+    document.getElementById("eventEndDateUTC").value = endDate.toISOString();
   });
 
-    // Submit Create Campus Location Pin (Admin only)
+  // Submit Create Campus Location Pin (Admin only)
   if (pinCreationForm) {
-    pinCreationForm.addEventListener("submit", async (e) => {
-      e.preventDefault();
+    pinCreationForm.addEventListener("submit", (e) => {
       pinFormError.classList.add("hidden");
       pinFormError.textContent = "";
       
-      const type = document.querySelector('input[name="pinType"]:checked').value;
+      const typeEl = document.querySelector('input[name="type"]:checked');
+      let type = "club";
+      if (typeEl) {
+        type = typeEl.value;
+      }
       const name = document.getElementById("pinName").value.trim();
-      const desc = document.getElementById("pinDescription").value.trim();
       
-      const latVal = document.getElementById("pinLat").value;
-      const lngVal = document.getElementById("pinLng").value;
-      const lat = latVal !== "" ? parseFloat(latVal) : null;
-      const lng = lngVal !== "" ? parseFloat(lngVal) : null;
+      const yVal = document.getElementById("pinY").value;
+      const xVal = document.getElementById("pinX").value;
+      let y = null;
+      if (yVal !== "") {
+        y = parseFloat(yVal);
+      }
+      let x = null;
+      if (xVal !== "") {
+        x = parseFloat(xVal);
+      }
       
       if (!name) {
+        e.preventDefault();
         pinFormError.textContent = "Name is required.";
         pinFormError.classList.remove("hidden");
         return;
       }
       
-      if (type !== "club" && (lat === null || lng === null || isNaN(lat) || isNaN(lng))) {
+      if (type !== "club" && (y === null || x === null || isNaN(y) || isNaN(x))) {
+        e.preventDefault();
         pinFormError.textContent = "Location is required on map for offices.";
         pinFormError.classList.remove("hidden");
         return;
-      }
-      
-      const payload = {
-        type: type,
-        name: name,
-        description: desc,
-        lat: lat,
-        lng: lng,
-        campus_id: CAMPUS_ID
-      };
-      
-      try {
-        const res = await fetch("/api/pin/add", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload)
-        });
-        
-        if (!res.ok) {
-          let errMsg = "Failed to add location pin.";
-          try {
-            const resCloned = res.clone();
-            const err = await resCloned.json();
-            errMsg = err.error || errMsg;
-          } catch {
-            const rawText = await res.text();
-            if (rawText && rawText.length < 200) {
-              errMsg = rawText;
-            }
-          }
-          throw new Error(errMsg);
-        }
-        
-        const newPin = await res.json();
-        pins.push(newPin);
- 
-        pinCreationForm.reset();
-        closeModal(pinModalOverlay);
-        exitPlacementMode();
-        prependLegacyCard(newPin);
-      } catch (err) {
-        pinFormError.textContent = err.message;
-        pinFormError.classList.remove("hidden");
       }
     });
   }
 
   // Radio button toggles in admin modal updates title label nicely
-  const pinRadios = document.querySelectorAll('input[name="pinType"]');
+  const pinRadios = document.querySelectorAll('input[name="type"]');
   pinRadios.forEach(radio => {
     radio.addEventListener("change", function() {
       const label = document.getElementById("pinNameLabel");
@@ -942,8 +495,8 @@ document.addEventListener("DOMContentLoaded", () => {
   if (btnClearPinLocation) {
     btnClearPinLocation.addEventListener("click", (e) => {
       e.stopPropagation();
-      if (pinLatInput) pinLatInput.value = "";
-      if (pinLngInput) pinLngInput.value = "";
+      if (pinYInput) pinYInput.value = "";
+      if (pinXInput) pinXInput.value = "";
       removeTempMarker();
       updateModalLocationStatus();
     });
@@ -952,10 +505,10 @@ document.addEventListener("DOMContentLoaded", () => {
   if (btnColumnAddClub) {
     btnColumnAddClub.addEventListener("click", (e) => {
       e.stopPropagation();
-      if (pinLatInput) pinLatInput.value = "";
-      if (pinLngInput) pinLngInput.value = "";
+      if (pinYInput) pinYInput.value = "";
+      if (pinXInput) pinXInput.value = "";
       removeTempMarker();
-      const clubRadio = document.querySelector('input[name="pinType"][value="club"]');
+      const clubRadio = document.querySelector('input[name="type"][value="club"]');
       if (clubRadio) {
         clubRadio.checked = true;
         clubRadio.dispatchEvent(new Event("change"));
@@ -968,10 +521,10 @@ document.addEventListener("DOMContentLoaded", () => {
   if (btnColumnAddOffice) {
     btnColumnAddOffice.addEventListener("click", (e) => {
       e.stopPropagation();
-      if (pinLatInput) pinLatInput.value = "";
-      if (pinLngInput) pinLngInput.value = "";
+      if (pinYInput) pinYInput.value = "";
+      if (pinXInput) pinXInput.value = "";
       removeTempMarker();
-      const officeRadio = document.querySelector('input[name="pinType"][value="office"]');
+      const officeRadio = document.querySelector('input[name="type"][value="office"]');
       if (officeRadio) {
         officeRadio.checked = true;
         officeRadio.dispatchEvent(new Event("change"));
@@ -990,7 +543,7 @@ document.addEventListener("DOMContentLoaded", () => {
       
       activeFilter = this.dataset.filter;
       closePopover();
-      renderAllPins();
+      updatePinVisibility();
     });
   });
 
@@ -1133,26 +686,6 @@ document.addEventListener("DOMContentLoaded", () => {
       .replace(/>/g, "&gt;")
       .replace(/"/g, "&quot;")
       .replace(/'/g, "&#039;");
-  }
-
-  function formatEventDuration(startIso, endIso) {
-    const start = new Date(startIso);
-    const end = new Date(endIso);
-    
-    const optionsDate = { month: "short", day: "numeric" };
-    const optionsTime = { hour: "2-digit", minute: "2-digit" };
-    
-    const startDateStr = start.toLocaleDateString("en-US", optionsDate);
-    const startTimeStr = start.toLocaleTimeString("en-US", optionsTime);
-    const endTimeStr = end.toLocaleTimeString("en-US", optionsTime);
-    
-    // Check if event finishes on the same day
-    if (start.toDateString() === end.toDateString()) {
-      return `${startDateStr}, ${startTimeStr} - ${endTimeStr}`;
-    } else {
-      const endDateStr = end.toLocaleDateString("en-US", optionsDate);
-      return `${startDateStr} ${startTimeStr} - ${endDateStr} ${endTimeStr}`;
-    }
   }
 
   // ── Boot ─────────────────────────────────────────────────────

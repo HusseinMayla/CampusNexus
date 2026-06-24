@@ -25,7 +25,9 @@
     {% if room.id in joined_ids %}
     <a href="{{ url_for('main.chat_room', campus_id=campus.id, room_id=room.id) }}" class="base-button">Open</a>
     {% else %}
-    <button class="base-button-secondary btn-join" data-room-id="{{ room.id }}">Join</button>
+    <form action="{{ url_for('main.chat_room_join', campus_id=campus.id, room_id=room.id) }}" method="POST" style="margin: 0;">
+        <button type="submit" class="base-button-secondary btn-join">Join</button>
+    </form>
     {% endif %}
 </div>
 {% else %}
@@ -36,16 +38,12 @@
 {% endfor %}
 </div>
 
-<div class="chat-browse-create">
+<form class="chat-browse-create" action="{{ url_for('main.chat_room_create', campus_id=campus.id) }}" method="POST">
     <p class="chat-browse-create-label">Create a chat group:</p>
     <div class="create-row">
-        <input type="text" id="newRoomName" class="base-input" placeholder="e.g. CSCI205 or Computer Science">
-        <button class="base-button" id="createBtn">Create</button>
+        <input type="text" name="name" class="base-input" placeholder="e.g. CSCI205 or Computer Science" required>
+        <button type="submit" class="base-button">Create</button>
     </div>
-    <span id="createErr" class="chat-browse-err"></span>
-</div>
+</form>
 {% endblock %}
 
-{% block extra_js %}
-<script src="{{ url_for('static', filename='js/chat_browse.js') }}"></script>
-{% endblock %}

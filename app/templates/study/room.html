@@ -20,9 +20,13 @@
     </div>
     <div class="chat-header-actions">
         {% if room.owner_id == current_user.id %}
-        <button class="base-button-danger btn-sm" id="triggerDeleteBtn">Delete</button>
+        <form action="{{ url_for('study.delete', campus_id=campus.id, room_id=room.id) }}" method="POST" style="display:inline;" onsubmit="return confirm('Delete {{ room.title }}? This will remove the room and all messages for everyone.');">
+            <button type="submit" class="base-button-danger btn-sm">Delete</button>
+        </form>
         {% endif %}
-        <button class="base-button-secondary btn-sm" id="triggerLeaveBtn">Leave</button>
+        <form action="{{ url_for('study.leave', campus_id=campus.id, room_id=room.id) }}" method="POST" style="display:inline;" onsubmit="return confirm('Leave {{ room.title }}? You can rejoin later if there\'s still space.');">
+            <button type="submit" class="base-button-secondary btn-sm">Leave</button>
+        </form>
     </div>
 </div>
 
@@ -73,30 +77,6 @@
     <input class="base-input" id="msgInput" placeholder="Type a message…">
     <button class="base-button" id="sendBtn">Send</button>
 </div>
-
-<div class="leave-overlay" id="leaveOverlay">
-    <div class="leave-box">
-        <h3>Leave this room?</h3>
-        <p>You can rejoin later if there's still space.</p>
-        <div class="leave-box-actions">
-            <button class="base-button-danger" id="confirmLeaveBtn">Leave</button>
-            <button class="base-button-secondary" id="cancelLeaveBtn">Cancel</button>
-        </div>
-    </div>
-</div>
-
-{% if room.owner_id == current_user.id %}
-<div class="leave-overlay" id="deleteOverlay">
-    <div class="leave-box">
-        <h3>Delete this room?</h3>
-        <p>This will remove the room and all messages for everyone.</p>
-        <div class="leave-box-actions">
-            <button class="base-button-danger" id="confirmDeleteBtn">Delete</button>
-            <button class="base-button-secondary" id="cancelDeleteBtn">Cancel</button>
-        </div>
-    </div>
-</div>
-{% endif %}
 {% endblock %}
 
 {% block extra_js %}

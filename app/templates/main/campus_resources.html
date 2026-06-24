@@ -33,7 +33,9 @@
 {% if post_type == 'resource' %}
 <div class="post-card" data-id="{{ post.id }}" data-type="resource">
     {% if post.uploader_id == current_user.id %}
-    <button class="post-delete-btn" data-post-id="{{ post.id }}" data-post-type="resource" title="Delete">✕</button>
+    <form action="{{ url_for('main.resource_delete', campus_id=campus.id, resource_id=post.id) }}" method="POST" style="display:inline;" onsubmit="return confirm('Delete this file? This is permanent.');">
+        <button type="submit" class="post-delete-btn" title="Delete">✕</button>
+    </form>
     {% endif %}
     <div class="post-header">
         <div class="post-avatar">{{ post.uploader.name[0] | upper }}</div>
@@ -77,7 +79,9 @@
 {% else %}
 <div class="post-card" data-id="{{ post.id }}" data-type="request">
     {% if post.poster_id == current_user.id %}
-    <button class="post-delete-btn" data-post-id="{{ post.id }}" data-post-type="request" title="Delete">✕</button>
+    <form action="{{ url_for('main.resource_request_delete', campus_id=campus.id, request_id=post.id) }}" method="POST" style="display:inline;" onsubmit="return confirm('Delete this request? This is permanent.');">
+        <button type="submit" class="post-delete-btn" title="Delete">✕</button>
+    </form>
     {% endif %}
     <div class="post-header">
         <div class="post-avatar">{{ post.poster.name[0] | upper }}</div>
@@ -119,69 +123,53 @@
 
 <!-- Share File Modal -->
 <div class="modal-overlay" id="shareModal">
-    <div class="modal-box">
-        <button class="modal-close" id="shareCloseBtn">×</button>
+    <form class="modal-box" action="{{ url_for('main.resource_create', campus_id=campus.id) }}" method="POST" enctype="multipart/form-data">
+        <button type="button" class="modal-close" id="shareCloseBtn">×</button>
         <div class="modal-title">Share a File</div>
         <p class="modal-subtitle">PDF, PPTX, PPT, DOCX, DOC, XLSX only.</p>
 
         <label class="modal-label">Course Code</label>
-        <input type="text" id="f-code" class="base-input input-uppercase" placeholder="e.g. CS101">
+        <input type="text" id="f-code" name="course_code" class="base-input input-uppercase" placeholder="e.g. CS101" required>
         <span class="field-err" id="err-share-code"></span>
 
         <label class="modal-label">File</label>
         <div class="file-drop" id="fileDrop">
-            <input type="file" id="f-file" accept=".pdf,.pptx,.ppt,.docx,.doc,.xlsx">
+            <input type="file" id="f-file" name="file" accept=".pdf,.pptx,.ppt,.docx,.doc,.xlsx" required>
             <div class="file-drop-label" id="fileDropLabel">Click to choose a file</div>
             <div class="file-name-display res-hidden" id="fileNameDisplay"></div>
         </div>
         <span class="field-err" id="err-share-file"></span>
 
         <label class="modal-label">Chapter Tags <span class="modal-label-opt">(optional)</span></label>
-        <div class="chapter-wrap" id="shareChapterWrap">
-            <input id="shareChapterInput" placeholder="e.g. Chapter 3 — press Enter to add">
-        </div>
+        <input type="text" id="f-share-chapters" name="chapters" class="base-input" placeholder="e.g. Chapter 3, Chapter 4 (comma separated)">
 
         <span class="field-err" id="err-share-general"></span>
-        <button class="btn-post-submit" id="shareSubmitBtn" disabled>Upload</button>
-    </div>
+        <button type="submit" class="btn-post-submit" id="shareSubmitBtn">Upload</button>
+    </form>
 </div>
 
 <!-- Request Material Modal -->
 <div class="modal-overlay" id="requestModal">
-    <div class="modal-box">
-        <button class="modal-close" id="requestCloseBtn">×</button>
+    <form class="modal-box" action="{{ url_for('main.resource_request_create', campus_id=campus.id) }}" method="POST">
+        <button type="button" class="modal-close" id="requestCloseBtn">×</button>
         <div class="modal-title">Request Material</div>
         <p class="modal-subtitle">Let your campus know what you're looking for.</p>
 
         <label class="modal-label">Your Email</label>
-        <input type="email" id="r-email" class="base-input" placeholder="you@university.edu">
+        <input type="email" id="r-email" name="email" class="base-input" placeholder="you@university.edu" required>
         <span class="field-err" id="err-req-email"></span>
 
         <label class="modal-label">Course Code</label>
-        <input type="text" id="r-code" class="base-input input-uppercase" placeholder="e.g. CS101">
+        <input type="text" id="r-code" name="course_code" class="base-input input-uppercase" placeholder="e.g. CS101" required>
         <span class="field-err" id="err-req-code"></span>
 
         <label class="modal-label">Chapters <span class="modal-label-opt">(optional)</span></label>
-        <div class="chapter-wrap" id="chapterWrap">
-            <input id="chapterInput" placeholder="e.g. Chapter 3 — press Enter to add">
-        </div>
+        <input type="text" id="f-request-chapters" name="chapters" class="base-input" placeholder="e.g. Chapter 3, Chapter 4 (comma separated)">
         <span class="field-err" id="err-req-chapters"></span>
 
         <span class="field-err" id="err-req-general"></span>
-        <button class="btn-post-submit" id="requestSubmitBtn" disabled>Post Request</button>
-    </div>
-</div>
-
-<!-- Confirm Delete -->
-<div class="confirm-overlay" id="confirmOverlay">
-    <div class="confirm-box">
-        <h3>Delete this post?</h3>
-        <p>This is permanent and cannot be undone.</p>
-        <div class="confirm-actions">
-            <button class="btn-del-yes" id="confirmYes">Delete</button>
-            <button class="btn-del-no" id="confirmNo">Cancel</button>
-        </div>
-    </div>
+        <button type="submit" class="btn-post-submit" id="requestSubmitBtn">Post Request</button>
+    </form>
 </div>
 
 {% endblock %}
@@ -189,3 +177,4 @@
 {% block extra_js %}
 <script src="{{ url_for('static', filename='js/campus_resources.js') }}"></script>
 {% endblock %}
+

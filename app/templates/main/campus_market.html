@@ -36,7 +36,9 @@
 {% for post in posts %}
 <div class="post-card" data-role="{{ post.role }}" data-id="{{ post.id }}">
     {% if post.poster_id == current_user.id %}
-    <button class="post-delete-btn" data-post-id="{{ post.id }}" title="Delete post">✕</button>
+    <form action="{{ url_for('main.market_post_delete', campus_id=campus.id, post_id=post.id) }}" method="POST" style="display:inline;" onsubmit="return confirm('Delete this post? This is permanent.');">
+        <button type="submit" class="post-delete-btn" title="Delete post">✕</button>
+    </form>
     {% endif %}
     <div class="post-header">
         <div class="post-avatar">{{ post.poster.name[0] | upper }}</div>
@@ -74,56 +76,44 @@
 
 <!-- Add Post Modal -->
 <div class="modal-overlay" id="modalOverlay">
-    <div class="modal-box">
-        <button class="modal-close" id="modalCloseBtn">×</button>
+    <form class="modal-box" action="{{ url_for('main.market_post_create', campus_id=campus.id) }}" method="POST">
+        <button type="button" class="modal-close" id="modalCloseBtn">×</button>
         <div class="modal-title">New Post</div>
         <p class="modal-subtitle">All fields are required.</p>
 
         <label class="modal-label">Full Name</label>
-        <input type="text" id="f-name" class="base-input" placeholder="Your full name">
+        <input type="text" id="f-name" name="full_name" class="base-input" placeholder="Your full name" required>
         <span class="field-err" id="err-name"></span>
 
         <label class="modal-label">Email</label>
-        <input type="email" id="f-email" class="base-input" placeholder="you@university.edu">
+        <input type="email" id="f-email" name="email" class="base-input" placeholder="you@university.edu" required>
         <span class="field-err" id="err-email"></span>
 
         <label class="modal-label">I am a…</label>
+        <input type="hidden" name="role" id="f-role" required>
         <div class="choice-group" data-group="role">
-            <button class="choice-btn" data-val="tutor">Tutor</button>
-            <button class="choice-btn" data-val="student">Student</button>
+            <button type="button" class="choice-btn" data-val="tutor">Tutor</button>
+            <button type="button" class="choice-btn" data-val="student">Student</button>
         </div>
         <span class="field-err" id="err-role"></span>
 
         <label class="modal-label">Course Codes</label>
-        <div class="course-wrap" id="courseWrap">
-            <input id="courseInput" placeholder="e.g. CSCI212 — press Enter to add">
-        </div>
+        <input type="text" id="f-courses" name="courses" class="base-input" placeholder="e.g. CSCI212, MATH101 (comma separated)" required>
         <span class="field-err" id="err-courses"></span>
 
         <label class="modal-label">Preferred Method</label>
+        <input type="hidden" name="method" id="f-method" required>
         <div class="choice-group" data-group="method">
-            <button class="choice-btn" data-val="online">Online</button>
-            <button class="choice-btn" data-val="in-person">In-Person</button>
-            <button class="choice-btn" data-val="hybrid">Hybrid</button>
-            <button class="choice-btn" data-val="no-preference">No Preference</button>
+            <button type="button" class="choice-btn" data-val="online">Online</button>
+            <button type="button" class="choice-btn" data-val="in-person">In-Person</button>
+            <button type="button" class="choice-btn" data-val="hybrid">Hybrid</button>
+            <button type="button" class="choice-btn" data-val="no-preference">No Preference</button>
         </div>
         <span class="field-err" id="err-method"></span>
 
         <span class="field-err" id="err-general"></span>
-        <button class="btn-post-submit" id="submitBtn" disabled>Post</button>
-    </div>
-</div>
-
-<!-- Confirm Delete -->
-<div class="confirm-overlay" id="confirmOverlay">
-    <div class="confirm-box">
-        <h3>Delete this post?</h3>
-        <p>This is permanent and cannot be undone.</p>
-        <div class="confirm-actions">
-            <button class="btn-del-yes" id="confirmYes">Delete</button>
-            <button class="btn-del-no" id="confirmNo">Cancel</button>
-        </div>
-    </div>
+        <button type="submit" class="btn-post-submit" id="submitBtn">Post</button>
+    </form>
 </div>
 
 {% endblock %}
@@ -131,3 +121,4 @@
 {% block extra_js %}
 <script src="{{ url_for('static', filename='js/campus_market.js') }}"></script>
 {% endblock %}
+

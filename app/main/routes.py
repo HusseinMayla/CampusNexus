@@ -12,6 +12,99 @@ from sqlalchemy import func
 main_bp = Blueprint('main', __name__)
 
 
+def get_sidebar_data():
+    if not current_user.is_authenticated:
+        return {
+            'sidebar_chat': [],
+            'sidebar_study': [],
+            'unread_notifications_count': 0
+        }
+
+    from app.models import CampusMember, ChatMember, ChatMessage, StudyRoomMember, StudyRoomMessage, Notification
+
+    # -- Ingest Chat Sidebar data --
+    by_campus = {}
+    
+    # Fetch campuses that the current logged-in user belongs to
+    memberships = CampusMember.query.filter_by(user_id=current_user.id).all()
+    for m in memberships:
+        c = m.campus
+        by_campus[c.id] = {
+            'campus_id': c.id,
+            'campus_name': c.name,
+            'rooms': []
+        }
+        
+    # Fetch active chat rooms the user has joined and check if they have unread messages
+    chat_memberships = ChatMember.query.filter_by(user_id=current_user.id).all()
+    for cm in chat_memberships:
+        room = cm.room
+        cid = room.campus_id
+        if cid not in by_campus:
+            by_campus[cid] = {
+                'campus_id': cid,
+                'campus_name': room.campus.name,
+                'rooms': []
+            }
+        
+        last_msg = ChatMessage.query.filter_by(room_id=room.id).order_by(ChatMessage.sent_at.desc()).first()
+        
+        has_unread = False
+        if last_msg:
+            if cm.last_read_at is None:
+                has_unread = True
+            elif last_msg.sent_at > cm.last_read_at:
+                has_unread = True
+                
+        by_campus[cid]['rooms'].append({
+            'id': room.id,
+            'name': room.name,
+            'has_unread': has_unread
+        })
+
+    # -- Ingest Study Room Sidebar data --
+    # Hide study rooms whose sessions occurred more than 2 hours ago
+    cutoff = datetime.utcnow() - timedelta(hours=2)
+    study_items = []
+    study_memberships = StudyRoomMember.query.filter_by(user_id=current_user.id).all()
+    for srm in study_memberships:
+        room = srm.room
+        if room.session_time < cutoff:
+            continue
+            
+        last_msg = StudyRoomMessage.query.filter_by(room_id=room.id).order_by(StudyRoomMessage.sent_at.desc()).first()
+        
+        has_unread = False
+        if last_msg:
+            if srm.last_read_at is None:
+                has_unread = True
+            elif last_msg.sent_at > srm.last_read_at:
+                has_unread = True
+                
+        study_items.append({
+            'room_id': room.id,
+            'campus_id': room.campus_id,
+            'campus_name': room.campus.name,
+            'title': room.title,
+            'session_time': room.session_time,
+            'location': room.location,
+            'member_count': room.member_count(),
+            'max_members': room.max_members,
+            'has_unread': has_unread,
+        })
+        
+    study_items.sort(key=lambda item: item['session_time'])
+
+    # -- Unread Notification Badge Count --
+    unread_notifications_count = Notification.query.filter_by(user_id=current_user.id, is_read=False).count()
+
+    return {
+        'sidebar_chat': list(by_campus.values()),
+        'sidebar_study': study_items,
+        'unread_notifications_count': unread_notifications_count
+    }
+
+
 def _is_member(campus):
     return (campus.creator_id == current_user.id or
             CampusMember.query.filter_by(user_id=current_user.id, campus_id=campus.id).first() is not None)
@@ -69,7 +162,8 @@ def index():
         'index.html',
         active_page='home',
         todays_events=todays_events,
-        joined_campuses_count=joined_campuses_count
+        joined_campuses_count=joined_campuses_count,
+        **get_sidebar_data()
     )
 
 
@@ -88,7 +182,7 @@ def dashboard():
     created_ids = set()
     for c in created:
         created_ids.add(c.id)
-    return render_template('main/dashboard.html', campuses=campuses, created_ids=created_ids)
+    return render_template('main/dashboard.html', campuses=campuses, created_ids=created_ids, **get_sidebar_data())
 
 @main_bp.route('/create-campus', methods=['GET', 'POST'])
 @login_required
@@ -171,7 +265,7 @@ def create_campus():
         flash('Campus created successfully!')
         return redirect(url_for('main.dashboard'))
 
-    return render_template('main/create_campus.html')
+    return render_template('main/create_campus.html', **get_sidebar_data())
 
 @main_bp.route('/join-campus', methods=['GET'])
 @login_required
@@ -208,7 +302,7 @@ def join_campus():
             'role': display_role
         })
 
-    return render_template('main/join_campus.html', campuses=campus_list)
+    return render_template('main/join_campus.html', campuses=campus_list, **get_sidebar_data())
 
 
 @main_bp.route('/campuses/<int:campus_id>/join', methods=['POST'])
@@ -251,7 +345,7 @@ def join_campus_by_id(campus_id):
 @main_bp.route('/settings')
 @login_required
 def settings():
-    return render_template('main/settings.html')
+    return render_template('main/settings.html', **get_sidebar_data())
 
 
 @main_bp.route('/campus/<int:campus_id>/settings', methods=['GET', 'POST'])
@@ -313,7 +407,7 @@ def campus_settings(campus_id):
     # GET request
     moderators = CampusMember.query.filter_by(campus_id=campus.id, role='moderator').all()
     owner_membership = CampusMember.query.filter_by(campus_id=campus.id, role='owner').first()
-    return render_template('main/campus_settings.html', campus=campus, moderators=moderators, owner_membership=owner_membership, active_page='campus_settings')
+    return render_template('main/campus_settings.html', campus=campus, moderators=moderators, owner_membership=owner_membership, active_page='campus_settings', **get_sidebar_data())
 
 
 @main_bp.route('/campus/<int:campus_id>/settings/add-moderator', methods=['POST'])
@@ -429,7 +523,7 @@ def delete_campus(campus_id):
 @login_required
 def notifications():
     user_notifs = Notification.query.filter_by(user_id=current_user.id).order_by(Notification.created_at.desc()).all()
-    return render_template('main/notifications.html', notifications=user_notifs)
+    return render_template('main/notifications.html', notifications=user_notifs, **get_sidebar_data())
 
 
 @main_bp.route('/notifications/<int:notification_id>/read', methods=['POST'])
@@ -522,7 +616,7 @@ def campus_resources(campus_id):
     for r in requests:
         posts.append(('request', r, r.created_at))
     posts.sort(key=lambda post: post[2], reverse=True)
-    return render_template('main/campus_resources.html', campus=campus, posts=posts, active_page='resources')
+    return render_template('main/campus_resources.html', campus=campus, posts=posts, active_page='resources', **get_sidebar_data())
 
 
 @main_bp.route('/campus/<int:campus_id>/resources/request', methods=['POST'])
@@ -530,20 +624,25 @@ def campus_resources(campus_id):
 def resource_request_create(campus_id):
     campus = Campus.query.get_or_404(campus_id)
     if not _is_member(campus):
-        return jsonify({'error': 'Unauthorized'}), 403
+        flash('Unauthorized.', 'error')
+        return redirect(url_for('main.campus_resources', campus_id=campus_id))
 
-    data = request.get_json()
+    data = request.form
     email = data.get('email', '').strip()
     course_code = data.get('course_code', '').strip().upper()
+    
     chapters = []
-    for c in data.get('chapters', []):
+    chapters_raw = data.get('chapters', '')
+    for c in chapters_raw.split(','):
         if c.strip():
             chapters.append(c.strip())
 
     if not re.match(r'^[\w.+\-]+@[\w\-]+(\.[a-zA-Z]{2,}){1,3}$', email):
-        return jsonify({'error': 'Invalid email address.'}), 400
+        flash('Invalid email address.', 'error')
+        return redirect(url_for('main.campus_resources', campus_id=campus_id))
     if not course_code:
-        return jsonify({'error': 'Course code is required.'}), 400
+        flash('Course code is required.', 'error')
+        return redirect(url_for('main.campus_resources', campus_id=campus_id))
 
     if chapters:
         chapters_str = ','.join(chapters)
@@ -560,25 +659,21 @@ def resource_request_create(campus_id):
     db.session.add(rr)
     db.session.commit()
 
-    return jsonify({
-        'id': rr.id,
-        'email': rr.email,
-        'course_code': rr.course_code,
-        'chapters': rr.chapters.split(',') if rr.chapters else [],
-        'poster_id': rr.poster_id,
-        'poster_name': current_user.name,
-    }), 201
+    flash('Material request posted successfully!', 'success')
+    return redirect(url_for('main.campus_resources', campus_id=campus_id))
 
 
-@main_bp.route('/campus/<int:campus_id>/resources/request/<int:request_id>', methods=['DELETE'])
+@main_bp.route('/campus/<int:campus_id>/resources/request/<int:request_id>/delete', methods=['POST'])
 @login_required
 def resource_request_delete(campus_id, request_id):
     rr = ResourceRequest.query.filter_by(id=request_id, campus_id=campus_id).first_or_404()
     if rr.poster_id != current_user.id:
-        return jsonify({'error': 'Unauthorized'}), 403
+        flash('Unauthorized.', 'error')
+        return redirect(url_for('main.campus_resources', campus_id=campus_id))
     db.session.delete(rr)
     db.session.commit()
-    return jsonify({'success': True})
+    flash('Material request deleted.', 'success')
+    return redirect(url_for('main.campus_resources', campus_id=campus_id))
 
 
 @main_bp.route('/campus/<int:campus_id>/resources/upload', methods=['POST'])
@@ -586,23 +681,27 @@ def resource_request_delete(campus_id, request_id):
 def resource_create(campus_id):
     campus = Campus.query.get_or_404(campus_id)
     if not _is_member(campus):
-        return jsonify({'error': 'Unauthorized'}), 403
+        flash('Unauthorized.', 'error')
+        return redirect(url_for('main.campus_resources', campus_id=campus_id))
 
     course_code = request.form.get('course_code', '').strip().upper()
     chapters = request.form.get('chapters', '').strip()
     file = request.files.get('file')
 
     if not course_code:
-        return jsonify({'error': 'Course code is required.'}), 400
+        flash('Course code is required.', 'error')
+        return redirect(url_for('main.campus_resources', campus_id=campus_id))
     if not file or not file.filename:
-        return jsonify({'error': 'No file uploaded.'}), 400
+        flash('No file uploaded.', 'error')
+        return redirect(url_for('main.campus_resources', campus_id=campus_id))
     if not allowed_resource(file.filename):
-        return jsonify({'error': 'File type not allowed. Use PDF, PPTX, DOCX, DOC, PPT, or XLSX.'}), 400
+        flash('File type not allowed. Use PDF, PPTX, DOCX, DOC, PPT, or XLSX.', 'error')
+        return redirect(url_for('main.campus_resources', campus_id=campus_id))
 
     original_filename = file.filename
     ext = original_filename.rsplit('.', 1)[1].lower()
     safe = secure_filename(original_filename)
-    stored_name = f"{uuid.uuid4().hex}_{safe}"
+    stored_name = f"{uuid.uuid4().hex}_{safe}"    #  unique ID/name for name redundancy
 
     upload_dir = os.path.join(current_app.static_folder, 'uploads', 'resources')
     os.makedirs(upload_dir, exist_ok=True)
@@ -626,30 +725,26 @@ def resource_create(campus_id):
     db.session.add(resource)
     db.session.commit()
 
-    return jsonify({
-        'id': resource.id,
-        'course_code': resource.course_code,
-        'chapters': resource.chapters or '',
-        'file_type': resource.file_type,
-        'original_filename': resource.original_filename,
-        'uploader_id': resource.uploader_id,
-        'uploader_name': current_user.name,
-    }), 201
+    flash('File shared successfully!', 'success')
+    return redirect(url_for('main.campus_resources', campus_id=campus_id))
 
 
-@main_bp.route('/campus/<int:campus_id>/resources/<int:resource_id>', methods=['DELETE'])
+@main_bp.route('/campus/<int:campus_id>/resources/<int:resource_id>/delete', methods=['POST'])
 @login_required
 def resource_delete(campus_id, resource_id):
     resource = Resource.query.filter_by(id=resource_id, campus_id=campus_id).first_or_404()
     if resource.uploader_id != current_user.id:
-        return jsonify({'error': 'Unauthorized'}), 403
+        flash('Unauthorized.', 'error')
+        return redirect(url_for('main.campus_resources', campus_id=campus_id))
     if resource.file_url:
         file_path = os.path.join(current_app.static_folder, resource.file_url)
         if os.path.exists(file_path):
             os.remove(file_path)
     db.session.delete(resource)
     db.session.commit()
-    return jsonify({'success': True})
+    flash('Resource deleted successfully!', 'success')
+    return redirect(url_for('main.campus_resources', campus_id=campus_id))
+
 
 
 @main_bp.route('/campus/<int:campus_id>/resources/<int:resource_id>/download')
@@ -673,7 +768,7 @@ def campus_market(campus_id):
         flash('You must join this campus to view its marketplace.', 'error')
         return redirect(url_for('main.join_campus'))
     posts = TutorPost.query.filter_by(campus_id=campus_id).order_by(TutorPost.created_at.desc()).all()
-    return render_template('main/campus_market.html', campus=campus, posts=posts, active_page='market')
+    return render_template('main/campus_market.html', campus=campus, posts=posts, active_page='market', **get_sidebar_data())
 
 
 @main_bp.route('/campus/<int:campus_id>/market/post', methods=['POST'])
@@ -681,28 +776,36 @@ def campus_market(campus_id):
 def market_post_create(campus_id):
     campus = Campus.query.get_or_404(campus_id)
     if not _is_member(campus):
-        return jsonify({'error': 'Unauthorized'}), 403
+        flash('Unauthorized.', 'error')
+        return redirect(url_for('main.campus_market', campus_id=campus_id))
 
-    data = request.get_json()
+    data = request.form
     full_name = data.get('full_name', '').strip()
     email = data.get('email', '').strip()
     role = data.get('role', '').strip()
+    
     courses = []
-    for c in data.get('courses', []):
+    courses_raw = data.get('courses', '')
+    for c in courses_raw.split(','):
         if c.strip():
-            courses.append(c.strip())
+            courses.append(c.strip().upper())
     method = data.get('method', '').strip()
 
     if len(full_name) < 2:
-        return jsonify({'error': 'Name must be at least 2 characters.'}), 400
+        flash('Name must be at least 2 characters.', 'error')
+        return redirect(url_for('main.campus_market', campus_id=campus_id))
     if not re.match(r'^[\w.+\-]+@[\w\-]+(\.[a-zA-Z]{2,}){1,3}$', email):
-        return jsonify({'error': 'Invalid email address.'}), 400
+        flash('Invalid email address.', 'error')
+        return redirect(url_for('main.campus_market', campus_id=campus_id))
     if role not in ('tutor', 'student'):
-        return jsonify({'error': 'Invalid role.'}), 400
+        flash('Invalid role selected.', 'error')
+        return redirect(url_for('main.campus_market', campus_id=campus_id))
     if not courses:
-        return jsonify({'error': 'At least one course is required.'}), 400
+        flash('At least one course is required.', 'error')
+        return redirect(url_for('main.campus_market', campus_id=campus_id))
     if method not in ('online', 'in-person', 'hybrid', 'no-preference'):
-        return jsonify({'error': 'Invalid method.'}), 400
+        flash('Invalid method selected.', 'error')
+        return redirect(url_for('main.campus_market', campus_id=campus_id))
 
     post = TutorPost(
         campus_id=campus_id,
@@ -716,27 +819,22 @@ def market_post_create(campus_id):
     db.session.add(post)
     db.session.commit()
 
-    return jsonify({
-        'id': post.id,
-        'full_name': post.full_name,
-        'email': post.email,
-        'role': post.role,
-        'courses': post.courses.split(','),
-        'method': post.method,
-        'poster_id': post.poster_id,
-        'poster_name': current_user.name
-    }), 201
+    flash('Post created successfully!', 'success')
+    return redirect(url_for('main.campus_market', campus_id=campus_id))
 
 
-@main_bp.route('/campus/<int:campus_id>/market/post/<int:post_id>', methods=['DELETE'])
+@main_bp.route('/campus/<int:campus_id>/market/post/<int:post_id>/delete', methods=['POST'])
 @login_required
 def market_post_delete(campus_id, post_id):
     post = TutorPost.query.filter_by(id=post_id, campus_id=campus_id).first_or_404()
     if post.poster_id != current_user.id:
-        return jsonify({'error': 'Unauthorized'}), 403
+        flash('Unauthorized.', 'error')
+        return redirect(url_for('main.campus_market', campus_id=campus_id))
     db.session.delete(post)
     db.session.commit()
-    return jsonify({'success': True})
+    flash('Post deleted successfully!', 'success')
+    return redirect(url_for('main.campus_market', campus_id=campus_id))
+
 
 
 # ── Chat helpers ──────────────────────────────────────────────────────────────
@@ -760,24 +858,27 @@ def chat_browse(campus_id):
     for cm in ChatMember.query.filter_by(user_id=current_user.id).all():
         joined_ids.append(cm.room_id)
     return render_template('main/chat_browse.html', campus=campus, rooms=rooms,
-                           joined_ids=joined_ids, member=member, active_page='chat')
+                           joined_ids=joined_ids, member=member, active_page='chat', **get_sidebar_data())
 
 
 @main_bp.route('/campus/<int:campus_id>/chat/create', methods=['POST'])
 @login_required
 def chat_create(campus_id):
     _campus_member_or_403(campus_id)
-    name = (request.json or {}).get('name', '').strip()
+    name = request.form.get('name', '').strip()
     if not name:
-        return jsonify({'error': 'Name required'}), 400
+        flash('Chat room name is required.', 'error')
+        return redirect(url_for('main.chat_browse', campus_id=campus_id))
     if ChatRoom.query.filter_by(campus_id=campus_id, name=name).first():
-        return jsonify({'error': 'A room with that name already exists'}), 400
+        flash('A room with that name already exists.', 'error')
+        return redirect(url_for('main.chat_browse', campus_id=campus_id))
     room = ChatRoom(campus_id=campus_id, name=name)
     db.session.add(room)
     db.session.commit()
     db.session.add(ChatMember(user_id=current_user.id, room_id=room.id))
     db.session.commit()
-    return jsonify({'id': room.id, 'name': room.name}), 201
+    flash(f'Chat room "{name}" created!', 'success')
+    return redirect(url_for('main.chat_room', campus_id=campus_id, room_id=room.id))
 
 
 @main_bp.route('/campus/<int:campus_id>/chat/<int:room_id>/join', methods=['POST'])
@@ -787,12 +888,12 @@ def chat_join(campus_id, room_id):
     ChatRoom.query.filter_by(id=room_id, campus_id=campus_id).first_or_404()
     count = ChatMember.query.filter_by(user_id=current_user.id).count()
     if count >= 14:
-        return jsonify({'error': 'You can join at most 14 chat groups.'}), 400
-    if ChatMember.query.filter_by(user_id=current_user.id, room_id=room_id).first():
-        return jsonify({'ok': True})
-    db.session.add(ChatMember(user_id=current_user.id, room_id=room_id))
-    db.session.commit()
-    return jsonify({'ok': True})
+        flash('You can join at most 14 chat groups.', 'error')
+        return redirect(url_for('main.chat_browse', campus_id=campus_id))
+    if not ChatMember.query.filter_by(user_id=current_user.id, room_id=room_id).first():
+        db.session.add(ChatMember(user_id=current_user.id, room_id=room_id))
+        db.session.commit()
+    return redirect(url_for('main.chat_room', campus_id=campus_id, room_id=room_id))
 
 
 @main_bp.route('/campus/<int:campus_id>/chat/<int:room_id>/delete', methods=['POST'])
@@ -804,7 +905,8 @@ def chat_delete(campus_id, room_id):
     room = ChatRoom.query.filter_by(id=room_id, campus_id=campus_id).first_or_404()
     db.session.delete(room)
     db.session.commit()
-    return jsonify({'ok': True})
+    flash(f'Chat room "{room.name}" deleted.', 'success')
+    return redirect(url_for('main.chat_browse', campus_id=campus_id))
 
 
 @main_bp.route('/campus/<int:campus_id>/chat/<int:room_id>/leave', methods=['POST'])
@@ -813,7 +915,9 @@ def chat_leave(campus_id, room_id):
     cm = ChatMember.query.filter_by(user_id=current_user.id, room_id=room_id).first_or_404()
     db.session.delete(cm)
     db.session.commit()
-    return jsonify({'ok': True})
+    flash('Left the chat room.', 'success')
+    return redirect(url_for('main.chat_browse', campus_id=campus_id))
+
 
 
 @main_bp.route('/campus/<int:campus_id>/chat/<int:room_id>')
@@ -828,7 +932,7 @@ def chat_room(campus_id, room_id):
     db.session.commit()
     msgs = ChatMessage.query.filter_by(room_id=room_id).order_by(ChatMessage.sent_at.asc()).all()
     return render_template('main/chat_room.html', campus=campus, room=room,
-                           messages=msgs, member=member, active_page='chat')
+                           messages=msgs, member=member, active_page='chat', **get_sidebar_data())
 
 
 @main_bp.route('/campus/<int:campus_id>/chat/<int:room_id>/send', methods=['POST'])
@@ -837,7 +941,10 @@ def chat_send(campus_id, room_id):
     cm = ChatMember.query.filter_by(user_id=current_user.id, room_id=room_id).first()
     if not cm:
         return jsonify({'error': 'Not a member'}), 403
-    body = (request.json or {}).get('body', '').strip()
+    json_data = request.json
+    body = ""
+    if json_data is not None:
+        body = json_data.get('body', '').strip()
     if not body or len(body) > 2000:
         return jsonify({'error': 'Invalid message'}), 400
     msg = ChatMessage(room_id=room_id, sender_id=current_user.id, body=body)
@@ -874,7 +981,7 @@ def chat_poll(campus_id, room_id):
 
 # ── Hook: Event Start Notifications ───────────────────────────────────────────
 
-@main_bp.before_app_request
+@main_bp.before_app_request   # this function runs before we enter any route.  it updates notification counts and notifications 
 def check_event_notifications():
     if current_user.is_authenticated:
         now = datetime.utcnow()

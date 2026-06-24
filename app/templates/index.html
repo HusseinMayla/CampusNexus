@@ -100,14 +100,20 @@
                                 </div>
                             </div>
                             <div class="event-card-actions">
-                                <button class="action-toggle-btn btn-interest {% if item.is_interested %}active{% endif %}" data-action="interested" data-event-id="{{ event.id }}" {% if item.is_ended %}disabled{% endif %}>
-                                    <span class="btn-icon">{% if item.is_interested %}★{% else %}☆{% endif %}</span>
-                                    <span class="btn-text">Interested</span>
-                                </button>
-                                <button class="action-toggle-btn btn-notify {% if item.want_notification %}active{% endif %}" data-action="notify" data-event-id="{{ event.id }}" {% if item.is_ended %}disabled{% endif %}>
-                                    <span class="btn-icon">{% if item.want_notification %}🔔{% else %}🔕{% endif %}</span>
-                                    <span class="btn-text">Notify Me</span>
-                                </button>
+                                <form action="{{ url_for('map.toggle_event_interest', campus_id=event.campus_id, event_id=event.id) }}" method="POST" style="display:inline;">
+                                    <input type="hidden" name="action" value="interested">
+                                    <button type="submit" class="action-toggle-btn btn-interest {% if item.is_interested %}active{% endif %}" {% if item.is_ended %}disabled{% endif %}>
+                                        <span class="btn-icon">{% if item.is_interested %}★{% else %}☆{% endif %}</span>
+                                        <span class="btn-text">Interested</span>
+                                    </button>
+                                </form>
+                                <form action="{{ url_for('map.toggle_event_interest', campus_id=event.campus_id, event_id=event.id) }}" method="POST" style="display:inline;">
+                                    <input type="hidden" name="action" value="notify">
+                                    <button type="submit" class="action-toggle-btn btn-notify {% if item.want_notification %}active{% endif %}" {% if item.is_ended %}disabled{% endif %}>
+                                        <span class="btn-icon">{% if item.want_notification %}🔔{% else %}🔕{% endif %}</span>
+                                        <span class="btn-text">Notify Me</span>
+                                    </button>
+                                </form>
                                 <a href="{{ url_for('map.campus_map', campus_id=event.campus_id, view='events') }}" class="action-map-btn" title="View on Map">
                                     <span>📍</span> Map
                                 </a>
@@ -203,75 +209,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
     filterTodayEvents();
     checkEndedEvents();
-
-    // Action toggle handlers
-    const toggleBtns = document.querySelectorAll(".action-toggle-btn");
-
-    for (let i = 0; i < toggleBtns.length; i++) {
-        const btn = toggleBtns[i];
-        btn.addEventListener("click", async (e) => {
-            e.preventDefault();
-
-            if (btn.disabled) {
-                return;
-            }
-
-            const eventId = btn.dataset.eventId;
-            const action = btn.dataset.action;
-
-            btn.style.opacity = "0.7";
-
-            try {
-                const res = await fetch(`/api/event/${eventId}/interest`, {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ action: action })
-                });
-
-                if (!res.ok) {
-                    throw new Error("Failed to update status");
-                }
-
-                const data = await res.json();
-
-                const card = btn.closest(".event-interactive-card");
-                const interestBtn = card.querySelector(".btn-interest");
-                const notifyBtn = card.querySelector(".btn-notify");
-                const popularityBadge = card.querySelector(`#popularity-${eventId}`);
-
-                if (data.is_interested) {
-                    interestBtn.classList.add("active");
-                    interestBtn.querySelector(".btn-icon").textContent = "★";
-                } else {
-                    interestBtn.classList.remove("active");
-                    interestBtn.querySelector(".btn-icon").textContent = "☆";
-                }
-
-                if (data.want_notification) {
-                    notifyBtn.classList.add("active");
-                    notifyBtn.querySelector(".btn-icon").textContent = "🔔";
-                } else {
-                    notifyBtn.classList.remove("active");
-                    notifyBtn.querySelector(".btn-icon").textContent = "🔕";
-                }
-
-                if (popularityBadge) {
-                    popularityBadge.textContent = `👥 ${data.participation_count} interested`;
-                    if (data.participation_count > 0) {
-                        popularityBadge.classList.add("has-interest");
-                    } else {
-                        popularityBadge.classList.remove("has-interest");
-                    }
-                }
-
-            } catch (err) {
-                console.error(err);
-                alert("Could not update participation status. Please try again.");
-            } finally {
-                btn.style.opacity = "";
-            }
-        });
-    }
 });
 </script>
 {% endblock %}

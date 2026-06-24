@@ -11,7 +11,7 @@
         <h1><span class="sb-emoji">🎓</span> Study Rooms</h1>
         <p class="sb-subtitle">Temporary sessions — schedule a study group with a set time and location.</p>
     </div>
-    <button class="base-button" id="scrollToCreate">＋ Create study room</button>
+    <button class="base-button" onclick="document.getElementById('createPanel').scrollIntoView({ behavior: 'smooth' });">＋ Create study room</button>
 </div>
 
 {% if rooms %}
@@ -26,7 +26,9 @@
         <a href="{{ url_for('study.room', campus_id=campus.id, room_id=room.id) }}"
            class="base-button sb-room-link">Open</a>
         {% else %}
-        <button class="base-button sb-join-btn" data-room-id="{{ room.id }}">Join</button>
+        <form action="{{ url_for('study.join', campus_id=campus.id, room_id=room.id) }}" method="POST" style="margin: 0;">
+            <button type="submit" class="base-button sb-join-btn">Join</button>
+        </form>
         {% endif %}
     </div>
     {% endfor %}
@@ -36,31 +38,28 @@
 {% endif %}
 
 <!-- ── Create Study Room ──────────────────────────────────────── -->
-<div class="create-panel" id="createPanel" data-campus-id="{{ campus.id }}">
+<form class="create-panel" id="createPanel" action="{{ url_for('study.create', campus_id=campus.id) }}" method="POST">
     <h3>Create a Study Room</h3>
     <div class="create-grid">
         <div class="base-form-group">
             <label class="base-label">Title</label>
-            <input type="text" id="cr-title" class="base-input" placeholder="e.g. CSCI301 Midterm Prep">
+            <input type="text" id="cr-title" name="title" class="base-input" placeholder="e.g. CSCI301 Midterm Prep" required>
         </div>
         <div class="base-form-group">
             <label class="base-label">Location</label>
-            <input type="text" id="cr-location" class="base-input" placeholder="e.g. Library Room 3, Zoom">
+            <input type="text" id="cr-location" name="location" class="base-input" placeholder="e.g. Library Room 3, Zoom" required>
         </div>
         <div class="base-form-group">
             <label class="base-label">Session Time</label>
-            <input type="datetime-local" id="cr-time" class="base-input">
+            <input type="datetime-local" id="cr-time" name="session_time" class="base-input" required>
         </div>
         <div class="base-form-group">
             <label class="base-label">Max Members <span class="sb-label-opt">(2–20)</span></label>
-            <input type="number" id="cr-max" class="base-input" min="2" max="20" placeholder="e.g. 6">
+            <input type="number" id="cr-max" name="max_members" class="base-input" min="2" max="20" placeholder="e.g. 6" required>
         </div>
     </div>
     <span id="createErr" class="sb-create-err"></span>
-    <button class="base-button" id="createRoomBtn">Create Room</button>
-</div>
+    <button type="submit" class="base-button" id="createRoomBtn">Create Room</button>
+</form>
 {% endblock %}
 
-{% block extra_js %}
-<script src="{{ url_for('static', filename='js/study_browse.js') }}"></script>
-{% endblock %}

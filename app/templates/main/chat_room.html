@@ -12,9 +12,13 @@
     </h2>
     <div class="chat-header-actions">
         {% if member.role in ('owner', 'moderator') %}
-        <button class="base-button-danger btn-sm" id="triggerDeleteBtn">Delete</button>
+        <form action="{{ url_for('main.chat_delete', campus_id=campus.id, room_id=room.id) }}" method="POST" style="display:inline;" onsubmit="return confirm('Delete {{ room.name }}? This will remove the room and all messages for everyone.');">
+            <button type="submit" class="base-button-danger btn-sm">Delete</button>
+        </form>
         {% endif %}
-        <button class="base-button-secondary btn-sm" id="triggerLeaveBtn">Leave</button>
+        <form action="{{ url_for('main.chat_leave', campus_id=campus.id, room_id=room.id) }}" method="POST" style="display:inline;" onsubmit="return confirm('Leave {{ room.name }}? You won\'t see this room anymore unless you rejoin.');">
+            <button type="submit" class="base-button-secondary btn-sm">Leave</button>
+        </form>
     </div>
 </div>
 
@@ -64,30 +68,6 @@
 <div class="chat-input-row">
     <input class="base-input" id="msgInput" placeholder="Type a message…">
     <button class="base-button" id="sendBtn">Send</button>
-</div>
-
-{% if member.role in ('owner', 'moderator') %}
-<div class="leave-overlay" id="deleteOverlay">
-    <div class="leave-box">
-        <h3>Delete {{ room.name }}?</h3>
-        <p>This will remove the room and all messages for everyone.</p>
-        <div class="leave-box-actions">
-            <button class="base-button-danger" id="confirmDeleteBtn">Delete</button>
-            <button class="base-button-secondary" id="cancelDeleteBtn">Cancel</button>
-        </div>
-    </div>
-</div>
-{% endif %}
-
-<div class="leave-overlay" id="leaveOverlay">
-    <div class="leave-box">
-        <h3>Leave {{ room.name }}?</h3>
-        <p>You won't see this room anymore unless you rejoin.</p>
-        <div class="leave-box-actions">
-            <button class="base-button-danger" id="confirmLeaveBtn">Leave</button>
-            <button class="base-button-secondary" id="cancelLeaveBtn">Cancel</button>
-        </div>
-    </div>
 </div>
 {% endblock %}
 

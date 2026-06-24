@@ -53,7 +53,96 @@
                     
                     <!-- Overlay Pins Container (Absolute Positioned) -->
                     <div class="pins-container" id="pinsContainer">
-                        <!-- Dynamic pins go here via JS -->
+                        {% for pin in pins_data %}
+                        {% set pin_scale = 1.0 %}
+                        {% if pin.type == 'event' and pin.participation_count > 0 %}
+                            {% set pin_scale = 1.0 + (pin.participation_count * 0.08) %}
+                            {% if pin_scale > 1.8 %}{% set pin_scale = 1.8 %}{% endif %}
+                        {% endif %}
+                        <div class="blueprint-pin pin-{{ pin.type }} {% if pin.type == 'event' %}{% if pin.is_active %}active-now{% elif pin.is_ended %}ended{% endif %}{% endif %}"
+                             data-id="{{ pin.id }}"
+                             data-type="{{ pin.type }}"
+                             style="left: {{ pin.x }}%; top: {{ pin.y }}%; --pin-scale: {{ pin_scale }};">
+                            
+                            <svg viewBox="0 0 32 32" class="geometric-pin-svg" style="width: 100%; height: 100%; position: absolute; top: 0; left: 0; pointer-events: none; z-index: 1;">
+                                <defs>
+                                    <linearGradient id="grad-{{ pin.type }}-{{ pin.id }}" x1="0" y1="0" x2="0" y2="1">
+                                        {% if pin.type == 'club' %}
+                                        <stop offset="0%" stop-color="#c8a96e" />
+                                        <stop offset="100%" stop-color="#8a7048" />
+                                        {% elif pin.type == 'office' %}
+                                        <stop offset="0%" stop-color="#3b82f6" />
+                                        <stop offset="100%" stop-color="#1d4ed8" />
+                                        {% else %}
+                                        <stop offset="0%" stop-color="#f43f5e" />
+                                        <stop offset="100%" stop-color="#be123c" />
+                                        {% endif %}
+                                    </linearGradient>
+                                </defs>
+                                <path d="M 16 32 L 8.67 15.2 A 8 8 0 1 1 23.33 15.2 Z" 
+                                      fill="url(#grad-{{ pin.type }}-{{ pin.id }})" 
+                                      stroke="var(--color-pin-border)" 
+                                      stroke-width="1.5" />
+                            </svg>
+                            <div class="blueprint-pin-icon">
+                                {% if pin.type == 'club' %}
+                                👥
+                                {% elif pin.type == 'office' %}
+                                🏢
+                                {% else %}
+                                📅
+                                {% endif %}
+                            </div>
+                            {% if pin.type == 'event' and pin.is_active %}
+                            <div class="active-halo"></div>
+                            {% endif %}
+
+                            <!-- The pre-rendered Popover -->
+                            <div class="pin-popover">
+                                <div class="popover-type-bar popover-bar-{{ pin.type }}"></div>
+                                
+                                {% if pin.type == 'event' %}
+                                    <div class="popover-header-row">
+                                        <h4 class="popover-title" style="margin:0;">{{ pin.name }}</h4>
+                                        {% if pin.is_active %}
+                                        <span class="popover-active-badge">Active</span>
+                                        {% elif pin.is_ended %}
+                                        <span class="popover-active-badge" style="background: rgba(100,116,139,0.12); border-color: rgba(100,116,139,0.4); color: #cbd5e1;">Ended</span>
+                                        {% endif %}
+                                    </div>
+                                    <div style="margin-top: 2px; margin-bottom: 6px;">
+                                        <span class="popover-popularity-count">👥 {{ pin.participation_count or 0 }} interested</span>
+                                    </div>
+                                    <div class="popover-meta">📅 {{ pin.formatted_duration }}</div>
+                                {% else %}
+                                    <h4 class="popover-title">{{ pin.name }}</h4>
+                                {% endif %}
+                                
+                                <p class="popover-desc" style="margin:0; line-height: 1.4;">{{ pin.description or "No description provided." }}</p>
+                                
+                                {% if pin.type == 'event' %}
+                                <div class="event-actions-bar" style="margin-top: 10px;">
+                                    <form action="{{ url_for('map.toggle_event_interest', campus_id=campus.id, event_id=pin.id) }}" method="POST" style="display:inline;" onclick="event.stopPropagation();">
+                                        <input type="hidden" name="action" value="interested">
+                                        <button type="submit" class="toggle-btn toggle-btn-interested {% if pin.is_interested %}active{% endif %}" style="padding: 4px 8px; font-size: 0.72rem;" title="Interested" {% if pin.is_ended %}disabled style="opacity: 0.5; cursor: not-allowed;"{% endif %}>
+                                            <span>{% if pin.is_interested %}★{% else %}☆{% endif %}</span>
+                                        </button>
+                                    </form>
+                                    <form action="{{ url_for('map.toggle_event_interest', campus_id=campus.id, event_id=pin.id) }}" method="POST" style="display:inline;" onclick="event.stopPropagation();">
+                                        <input type="hidden" name="action" value="notify">
+                                        <button type="submit" class="toggle-btn toggle-btn-notify {% if pin.want_notification %}active{% endif %}" style="padding: 4px 8px; font-size: 0.72rem;" title="Notify Me" {% if pin.is_ended %}disabled style="opacity: 0.5; cursor: not-allowed;"{% endif %}>
+                                            <span>{% if pin.want_notification %}🔔{% else %}🔕{% endif %}</span>
+                                        </button>
+                                    </form>
+                                </div>
+                                {% endif %}
+                                
+                                {% if (pin.type == 'event' and pin.is_creator) or is_admin %}
+                                <button class="popover-delete-btn" onclick="deletePin('{{ url_for('map.delete_pin', campus_id=campus.id, pin_type=pin.type, pin_id=pin.id) }}'); event.stopPropagation();">Delete location pin</button>
+                                {% endif %}
+                            </div>
+                        </div>
+                        {% endfor %}
                     </div>
                 </div>
             </div>
@@ -74,14 +163,68 @@
                     
                     <!-- Active Events List -->
                     <div class="events-list-container" id="eventsListContainer">
-                        <div class="loading-placeholder">
-                            <div class="spinner"></div>
-                            <p>Loading events...</p>
-                        </div>
+                        {% set event_pins = pins_data | selectattr('type', 'equalto', 'event') | list %}
+                        {% if event_pins %}
+                            {% for event in event_pins | sort(attribute='date') %}
+                                {% set is_event_active = event.is_active %}
+                                {% set is_event_ended = event.is_ended %}
+                                <div class="event-sidebar-card {% if is_event_ended %}ended{% endif %}" data-id="{{ event.id }}">
+                                    <div class="card-summary-row">
+                                        <div class="card-title-section">
+                                            <div class="card-title-badge-row">
+                                                <h4>{{ event.name }}</h4>
+                                                {% if is_event_active %}
+                                                <span class="active-now-badge"><span class="active-now-dot"></span>Active Now</span>
+                                                {% elif is_event_ended %}
+                                                <span class="ended-badge">Ended</span>
+                                                {% endif %}
+                                            </div>
+                                            <div class="event-time">
+                                                <span>📅 {{ event.formatted_duration }}</span>
+                                            </div>
+                                            <div style="margin-top: 2px;">
+                                                <span class="card-popularity-badge {% if event.participation_count > 0 %}has-interest{% endif %}">
+                                                    👥 {{ event.participation_count }} interested
+                                                </span>
+                                            </div>
+                                        </div>
+                                        <span class="accordion-chevron">▼</span>
+                                    </div>
+                                    
+                                    <div class="card-expanded-content">
+                                        <p class="event-details-text">{{ event.description or "No description provided." }}</p>
+                                        <div class="event-details-meta">
+                                            <div class="event-meta-item">👤 <strong>Host:</strong> {{ event.creator_name }}</div>
+                                        </div>
+                                        <div class="event-actions-bar">
+                                            <form action="{{ url_for('map.toggle_event_interest', campus_id=campus.id, event_id=event.id) }}" method="POST" style="display:inline;" onclick="event.stopPropagation();">
+                                                <input type="hidden" name="action" value="interested">
+                                                <button type="submit" class="toggle-btn toggle-btn-interested {% if event.is_interested %}active{% endif %}" {% if is_event_ended %}disabled style="opacity: 0.5; cursor: not-allowed;"{% endif %}>
+                                                    <span>{% if event.is_interested %}★{% else %}☆{% endif %}</span> Interested
+                                                </button>
+                                            </form>
+                                            <form action="{{ url_for('map.toggle_event_interest', campus_id=campus.id, event_id=event.id) }}" method="POST" style="display:inline;" onclick="event.stopPropagation();">
+                                                <input type="hidden" name="action" value="notify">
+                                                <button type="submit" class="toggle-btn toggle-btn-notify {% if event.want_notification %}active{% endif %}" {% if is_event_ended %}disabled style="opacity: 0.5; cursor: not-allowed;"{% endif %}>
+                                                    <span>{% if event.want_notification %}🔔{% else %}🔕{% endif %}</span> {% if event.want_notification %}Notify Active{% else %}Notify Me{% endif %}
+                                                </button>
+                                            </form>
+                                        </div>
+                                        {% if event.is_creator or is_admin %}
+                                        <div style="display:flex; justify-content: flex-end; margin-top: 4px;">
+                                            <button class="event-delete-btn" onclick="deletePin('event', {{ event.id }}); event.stopPropagation();">Delete</button>
+                                        </div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        {% else %}
+                            <p class="empty-text">No upcoming campus events. Be the first to schedule one!</p>
+                        {% endif %}
                     </div>
                 </div>
             </div>
-        </div>
+        </div> <!-- closes .workspace-middle-container -->
         
         <!-- Side-by-side lists of Clubs and Offices (Legacy list, responsive grid) -->
         <div class="legacy-lists-grid">
@@ -102,8 +245,7 @@
                             <div class="card-header">
                                 <h4>{{ club.name }}</h4>
                                 {% if is_admin %}
-                                <button class="card-delete-btn" onclick="showMapConfirm('Delete this club?', () => document.getElementById('delClub{{ club.id }}').submit())">🗑️</button>
-                                <form id="delClub{{ club.id }}" action="{{ url_for('map.delete_club', campus_id=campus.id, club_id=club.id) }}" method="POST" style="display:none;"></form>
+                                <button class="card-delete-btn" onclick="deletePin('club', {{ club.id }})">🗑️</button>
                                 {% endif %}
                             </div>
                             <p>{{ club.description or 'No description provided.' }}</p>
@@ -132,8 +274,7 @@
                             <div class="card-header">
                                 <h4>{{ office.name }}</h4>
                                 {% if is_admin %}
-                                <button class="card-delete-btn" onclick="showMapConfirm('Delete this office?', () => document.getElementById('delOffice{{ office.id }}').submit())">🗑️</button>
-                                <form id="delOffice{{ office.id }}" action="{{ url_for('map.delete_office', campus_id=campus.id, office_id=office.id) }}" method="POST" style="display:none;"></form>
+                                <button class="card-delete-btn" onclick="deletePin('office', {{ office.id }})">🗑️</button>
                                 {% endif %}
                             </div>
                             <p>{{ office.description or 'No description provided.' }}</p>
@@ -158,18 +299,21 @@
             <button class="modal-close-btn" id="btnCloseEventModal">✕</button>
         </div>
         <div class="modal-body">
-            <form id="eventCreationForm">
-                <input type="hidden" id="eventLat">
-                <input type="hidden" id="eventLng">
+            <form id="eventCreationForm" action="{{ url_for('map.add_pin', campus_id=campus.id) }}" method="POST">
+                <input type="hidden" name="type" value="event">
+                <input type="hidden" name="y" id="eventY">
+                <input type="hidden" name="x" id="eventX">
+                <input type="hidden" name="date" id="eventDateUTC">
+                <input type="hidden" name="end_date" id="eventEndDateUTC">
                 
                 <div class="form-group">
                     <label for="eventTitle">Event Title *</label>
-                    <input type="text" id="eventTitle" placeholder="e.g. Computer Science Networking Night" required class="form-input">
+                    <input type="text" name="name" id="eventTitle" placeholder="e.g. Computer Science Networking Night" required class="form-input">
                 </div>
                 
                 <div class="form-group">
                     <label for="eventDescription">Description</label>
-                    <textarea id="eventDescription" placeholder="Provide details like what attendees should bring, what is being served..." class="form-textarea"></textarea>
+                    <textarea name="description" id="eventDescription" placeholder="Provide details like what attendees should bring, what is being served..." class="form-textarea"></textarea>
                 </div>
                 
                 <div class="form-row">
@@ -217,19 +361,19 @@
             <button class="modal-close-btn" id="btnClosePinModal">✕</button>
         </div>
         <div class="modal-body">
-            <form id="pinCreationForm">
-                <input type="hidden" id="pinLat">
-                <input type="hidden" id="pinLng">
+            <form id="pinCreationForm" action="{{ url_for('map.add_pin', campus_id=campus.id) }}" method="POST">
+                <input type="hidden" name="y" id="pinY">
+                <input type="hidden" name="x" id="pinX">
                 
                 <div class="form-group">
                     <label>Pin Type *</label>
                     <div class="radio-group">
                         <label class="radio-label">
-                            <input type="radio" name="pinType" value="club" checked>
+                            <input type="radio" name="type" value="club" checked>
                             <span class="radio-custom club-radio">👥 Club</span>
                         </label>
                         <label class="radio-label">
-                            <input type="radio" name="pinType" value="office">
+                            <input type="radio" name="type" value="office">
                             <span class="radio-custom office-radio">🏢 Office</span>
                         </label>
                     </div>
@@ -237,12 +381,12 @@
                 
                 <div class="form-group">
                     <label for="pinName" id="pinNameLabel">Club/Office Name *</label>
-                    <input type="text" id="pinName" placeholder="e.g. Robotics Club" required class="form-input">
+                    <input type="text" name="name" id="pinName" placeholder="e.g. Robotics Club" required class="form-input">
                 </div>
                 
                 <div class="form-group">
                     <label for="pinDescription">Description</label>
-                    <textarea id="pinDescription" placeholder="Add room numbers, open hours, or meeting times..." class="form-textarea"></textarea>
+                    <textarea name="description" id="pinDescription" placeholder="Add room numbers, open hours, or meeting times..." class="form-textarea"></textarea>
                 </div>
                 
                 <div class="form-group">
@@ -272,12 +416,7 @@
 </div>
 {% endif %}
 
-<!-- Config payload for JS -->
-<div id="workspaceConfig" 
-     data-campus-id="{{ campus.id }}" 
-     data-is-admin="{{ 'true' if is_admin else 'false' }}"
-     style="display: none;">
-</div>
+
 
 <!-- Map Confirm Overlay -->
 <div id="mapConfirmOverlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:2000;align-items:center;justify-content:center;">

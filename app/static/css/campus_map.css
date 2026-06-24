@@ -387,9 +387,9 @@ body.active-placement-mode .workspace-sidebar {
 /* Premium Custom Map Pin Drop marker */
 .blueprint-pin {
   position: absolute;
-  width: 32px;
-  height: 32px;
-  transform: translate(-50%, -100%);
+  width: 56px;
+  height: 56px;
+  transform: translate(-50%, -100%) scale(var(--pin-scale, 1.0));
   cursor: pointer;
   z-index: 10;
   transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275), filter 0.3s ease;
@@ -397,7 +397,7 @@ body.active-placement-mode .workspace-sidebar {
 }
 
 .blueprint-pin:hover {
-  transform: translate(-50%, -100%) scale(1.25);
+  transform: translate(-50%, -100%) scale(calc(var(--pin-scale, 1.0) * 1.25));
   filter: drop-shadow(0 8px 14px rgba(0, 0, 0, 0.65));
   z-index: 100;
 }
@@ -407,7 +407,7 @@ body.active-placement-mode .workspace-sidebar {
 }
 
 .blueprint-pin.filtered-out.hover-reveal,
-.blueprint-pin.filtered-out:has(.pin-popover) {
+.blueprint-pin.filtered-out:has(.pin-popover.visible) {
   display: block !important;
 }
 
@@ -422,6 +422,8 @@ body.active-placement-mode .workspace-sidebar {
   justify-content: center;
   z-index: 2;
   pointer-events: none;
+  font-size: clamp(6px, calc(16px * var(--pin-scale, 1)), 30px);
+  line-height: 1;
 }
 
 .blueprint-pin-icon svg {
@@ -1079,10 +1081,10 @@ body.active-placement-mode .workspace-sidebar {
 
 .active-halo {
   position: absolute;
-  top: 16px; /* Centered with the circular part of the SVG */
-  left: 16px;
-  width: 32px;
-  height: 32px;
+  top: 28px; /* Centered with the circular part of the SVG */
+  left: 28px;
+  width: 56px;
+  height: 56px;
   border-radius: 50%;
   background: radial-gradient(circle, rgba(244, 63, 94, 0.6) 0%, rgba(244, 63, 94, 0) 70%);
   transform: translate(-50%, -50%) scale(1);
@@ -1443,6 +1445,9 @@ body.active-placement-mode .workspace-sidebar {
 
 /* ── Mobile Map Pin Sizing & Sizing Scales ────────────────────────── */
 @media (max-width: 768px) {
+  .blueprint-pin-icon{
+    font-size: clamp(6px, calc(10px * var(--pin-scale, 1)), 30px);
+  }
   /* Scale down default size */
   .blueprint-pin {
     width: 24px !important;
