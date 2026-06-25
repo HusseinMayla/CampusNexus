@@ -3,8 +3,11 @@ from flask_login import login_required, current_user
 from app.extensions import db
 from app.models import Campus, Club, Office, Event, CampusMember, EventParticipation, EventCreationLog
 from datetime import datetime, timedelta, timezone
-from app.main.routes import get_sidebar_data
+from app.main.routes import get_sidebar_data  # Reuses sidebar data builder from main blueprint
 
+
+# Parses an ISO 8601 datetime string (from JavaScript) into a naive UTC datetime.
+# Handles the 'Z' suffix that JS Date.toISOString() appends (e.g. "2026-06-25T14:00:00Z")
 def parse_utc(dt_str):
     if not dt_str:
         return None
@@ -19,11 +22,15 @@ def parse_utc(dt_str):
 map_bp = Blueprint('map', __name__)
 
 
+# Returns True if the current user is the campus creator, owner, or moderator
 def _is_admin(campus):
     membership = CampusMember.query.filter_by(user_id=current_user.id, campus_id=campus.id).first()
     return campus.creator_id == current_user.id or (membership and membership.role in ('moderator', 'owner'))
 
 
+# Builds the list of all map pins (clubs, offices, events) for a given campus.
+# Events that ended more than 1 hour ago are excluded.
+# Each pin dict contains all data the frontend needs to render the popup
 def get_map_pins(campus_id):
     pins = []
 
@@ -54,7 +61,7 @@ def get_map_pins(campus_id):
             is_interested = False
             if user_part:
                 is_interested = user_part.is_interested
-            
+
             want_notification = False
             if user_part:
                 want_notification = user_part.want_notification
@@ -72,7 +79,7 @@ def get_map_pins(campus_id):
             end_date_val = None
             if e.end_date:
                 end_date_val = e.end_date.isoformat() + 'Z'
-            
+
             creator_name_val = 'Anonymous'
             if e.creator:
                 creator_name_val = e.creator.name
@@ -98,6 +105,7 @@ def get_map_pins(campus_id):
 
 # ── Page ──────────────────────────────────────────────────────────────────────
 
+# Renders the campus map page. `?view=events` switches the active nav tab to events
 @map_bp.route('/campus/<int:campus_id>/map')
 @login_required
 def campus_map(campus_id):
@@ -111,13 +119,11 @@ def campus_map(campus_id):
     return render_template('main/campus_map.html', campus=campus, is_admin=is_admin, active_page=active_page, pins_data=pins_data, **get_sidebar_data())
 
 
-
-
-
-
-
 # ── Page Actions: add pin / delete pin / interest ─────────────────────────────
 
+# Adds a club, office, or event pin to the map.
+# - Clubs and offices: admin/moderator only
+# - Events: any member, but students are limited to 1 event every 4 days
 @map_bp.route('/campus/<int:campus_id>/pin/add', methods=['POST'])
 @login_required
 def add_pin(campus_id):
@@ -134,7 +140,8 @@ def add_pin(campus_id):
     pin_type = request.form.get('type')
     name = request.form.get('name', '').strip()
     desc = request.form.get('description', '').strip()
-    
+
+    # Parse x/y coordinates (pixel position on the campus image map)
     x_val = request.form.get('x')
     y_val = request.form.get('y')
     x = None
@@ -171,6 +178,7 @@ def add_pin(campus_id):
         flash(f'Office "{name}" added successfully!', 'success')
 
     elif pin_type == 'event':
+        # Students can only create one event every 4 days — check the creation log
         if not is_admin:
             four_days_ago = datetime.utcnow() - timedelta(days=4)
             recent_event = EventCreationLog.query.filter(
@@ -181,7 +189,7 @@ def add_pin(campus_id):
             if recent_event:
                 time_passed = datetime.utcnow() - recent_event.created_at
                 time_remaining = timedelta(days=4) - time_passed
-                
+
                 days = time_remaining.days
                 hours = time_remaining.seconds // 3600
                 minutes = (time_remaining.seconds % 3600) // 60
@@ -200,7 +208,7 @@ def add_pin(campus_id):
         if not date_str or not end_date_str:
             flash('Event start and end times are required.', 'error')
             return redirect(url_for('map.campus_map', campus_id=campus_id))
-        
+
         try:
             event_date = parse_utc(date_str)
             event_end_date = parse_utc(end_date_str)
@@ -232,8 +240,8 @@ def add_pin(campus_id):
             created_at=datetime.utcnow()
         )
         db.session.add(obj)
-        
-        # Log event creation for students
+
+        # Log event creation for students (used to enforce the 4-day cooldown)
         if not is_admin:
             log = EventCreationLog(user_id=current_user.id, created_at=datetime.utcnow())
             db.session.add(log)
@@ -244,6 +252,8 @@ def add_pin(campus_id):
     return redirect(url_for('map.campus_map', campus_id=campus_id))
 
 
+# Deletes a pin (club, office, or event).
+# Admins can delete any pin. Event creators can delete their own events
 @map_bp.route('/campus/<int:campus_id>/pin/delete/<pin_type>/<int:pin_id>', methods=['POST'])
 @login_required
 def delete_pin(campus_id, pin_type, pin_id):
@@ -276,6 +286,7 @@ def delete_pin(campus_id, pin_type, pin_id):
         flash('Unauthorized action.', 'error')
         return redirect(url_for('map.campus_map', campus_id=campus_id))
 
+    # Use 'title' for events, 'name' for clubs/offices
     name = getattr(obj, 'name', None)
     if not name:
         name = getattr(obj, 'title', 'Item')
@@ -285,6 +296,9 @@ def delete_pin(campus_id, pin_type, pin_id):
     return redirect(url_for('map.campus_map', campus_id=campus_id))
 
 
+# Toggles the user's interest or notification subscription for an event.
+# 'interested': marks/unmarks interest (also clears notify if unmarked)
+# 'notify': subscribes/unsubscribes to a start notification (also auto-marks interest)
 @map_bp.route('/campus/<int:campus_id>/event/<int:event_id>/interest', methods=['POST'])
 @login_required
 def toggle_event_interest(campus_id, event_id):
@@ -293,6 +307,7 @@ def toggle_event_interest(campus_id, event_id):
 
     participation = EventParticipation.query.filter_by(event_id=event_id, user_id=current_user.id).first()
 
+    # Create participation record if this is the first interaction with this event
     if not participation:
         participation = EventParticipation(event_id=event_id, user_id=current_user.id)
         db.session.add(participation)
@@ -315,4 +330,3 @@ def toggle_event_interest(campus_id, event_id):
 
     db.session.commit()
     return redirect(request.referrer or url_for('map.campus_map', campus_id=campus_id))
-

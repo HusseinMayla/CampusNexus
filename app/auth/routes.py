@@ -1,12 +1,11 @@
-import re
-import os
-from flask import Blueprint, render_template, redirect, url_for, flash, request, current_app
+import re #email regex
+from flask import Blueprint, render_template, redirect, url_for, flash, request, current_app 
 from flask_login import login_user, logout_user, login_required, current_user
-from itsdangerous import URLSafeTimedSerializer, SignatureExpired, BadSignature
-from flask_mail import Message
+from itsdangerous import URLSafeTimedSerializer, SignatureExpired, BadSignature #generatse & verifies secure tokens for email verification & password reset links
+from flask_mail import Message #Used to build email messages to send.
 from app.extensions import db, mail
 from app.models import User, UserEmail, Campus
-import bcrypt
+import bcrypt #For hashing and checking passwords securely.
 
 auth_bp = Blueprint('auth', __name__, url_prefix='/auth')
 
@@ -373,15 +372,10 @@ def delete_account():
         flash(f"Cannot delete account. You are the owner of the following campus(es): {campus_names}. You must delete them first.", "error")
         return redirect(url_for('main.settings'))
 
-    # 2. Cleanup physical file uploads for user resources
-    for resource in current_user.resources:
-        if resource.file_url:
-            file_path = os.path.join(current_app.static_folder, resource.file_url)
-            if os.path.exists(file_path):
-                try:
-                    os.remove(file_path)
-                except Exception:
-                    pass
+    # 2. Orphan resources so they remain after account deletion
+    from app.models import Resource
+    Resource.query.filter_by(uploader_id=current_user.id).update({'uploader_id': None})
+    db.session.flush()
 
     # 3. Perform logout and user deletion (dependent records will be cascade deleted)
     user = db.session.get(User, current_user.id)
