@@ -7,5 +7,18 @@
 
 ## Deployment
 
-deployed on [https://campus-nexus-mocha.vercel.app/](https://campus-nexus-mocha.vercel.app/) and [https://web-production-b6113.up.railway.app/](https://web-production-b6113.up.railway.app/) 
+deployed on [https://web-production-b6113.up.railway.app/](https://web-production-b6113.up.railway.app/)
 
+# Git Workflow Guide
+
+```
+    git pull
+```
+
+Make your changes, then:
+
+```
+    git add .
+    git commit -m "Commit Message"
+    git push
+```
