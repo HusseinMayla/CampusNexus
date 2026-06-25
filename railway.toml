@@ -2,6 +2,6 @@
 builder = "nixpacks"
 
 [deploy]
-startCommand = "python seed.py && gunicorn --worker-class geventwebsocket.gunicorn.workers.GeventWebSocketWorker -w 1 index:app --bind 0.0.0.0:$PORT"
+startCommand = "python seed.py && gunicorn -w 2 --threads 4 index:app --bind 0.0.0.0:$PORT"
 restartPolicyType = "ON_FAILURE"
 restartPolicyMaxRetries = 10

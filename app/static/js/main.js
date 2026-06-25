@@ -140,3 +140,35 @@ window.formatLocalTimes = function() {
 document.addEventListener("DOMContentLoaded", () => {
     window.formatLocalTimes();
 });
+
+// Unified client-side campus search and filtering helper
+window.filterCampuses = function() {
+    const input = document.getElementById('campusSearch');
+    if (!input) return;
+    const filter = input.value.toLowerCase();
+    const grid = document.getElementById('campusGrid');
+    if (!grid) return;
+    const items = grid.getElementsByClassName('campus-item');
+    const noResults = document.getElementById('noResults');
+    let visibleCount = 0;
+
+    for (let i = 0; i < items.length; i++) {
+        const nameEl = items[i].querySelector('.campus-name');
+        const descEl = items[i].querySelector('.base-card-desc');
+        const name = nameEl ? nameEl.textContent.toLowerCase() : '';
+        const desc = descEl ? descEl.textContent.toLowerCase() : '';
+        
+        if (name.includes(filter) || desc.includes(filter)) {
+            items[i].style.display = "";
+            visibleCount++;
+        } else {
+            items[i].style.display = "none";
+        }
+    }
+
+    if (noResults) {
+        noResults.style.display = visibleCount === 0 ? "block" : "none";
+    }
+    grid.style.display = visibleCount === 0 ? "none" : "grid";
+};
+

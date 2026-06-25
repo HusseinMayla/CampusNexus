@@ -3,10 +3,5 @@ flask-mail
 python-dotenv
 flask-sqlalchemy
 flask-login
-flask-wtf
-email-validator
 gunicorn
 bcrypt
-psycopg2-binary
-gevent
-gevent-websocket

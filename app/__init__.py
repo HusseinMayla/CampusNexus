@@ -1,9 +1,8 @@
 import os
-from datetime import datetime, timedelta
-from flask import Flask, request
-from flask_login import current_user
+from flask import Flask
 from config import Config
 from app.extensions import db, login_manager, mail
+
 
 
 def create_app(config_class=Config):

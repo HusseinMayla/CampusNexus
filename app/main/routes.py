@@ -6,7 +6,7 @@ from flask import Blueprint, render_template, redirect, url_for, flash, request,
 from flask_login import login_required, current_user
 from werkzeug.utils import secure_filename
 from app.extensions import db
-from app.models import Campus, CampusMember, Notification, Resource, TutorPost, ResourceRequest, ChatRoom, ChatMember, ChatMessage, Event, EventParticipation
+from app.models import Campus, CampusMember, Notification, Resource, TutorPost, ResourceRequest, ChatRoom, ChatMember, ChatMessage, Event, EventParticipation, StudyRoomMember, StudyRoom
 from sqlalchemy import func
 
 main_bp = Blueprint('main', __name__)
@@ -20,69 +20,60 @@ def get_sidebar_data():
             'unread_notifications_count': 0
         }
 
-    from app.models import CampusMember, ChatMember, StudyRoomMember, Notification
-
-    # -- Ingest Chat Sidebar data --
-    by_campus = {}
-    
     # Fetch campuses that the current logged-in user belongs to
     memberships = CampusMember.query.filter_by(user_id=current_user.id).all()
-    for m in memberships:
-        c = m.campus
-        by_campus[c.id] = {
-            'campus_id': c.id,
-            'campus_name': c.name,
-            'rooms': []
-        }
-        
-    # Fetch active chat rooms the user has joined
-    chat_memberships = ChatMember.query.filter_by(user_id=current_user.id).all()
-    for cm in chat_memberships:
-        room = cm.room
-        cid = room.campus_id
-        if cid not in by_campus:
-            by_campus[cid] = {
-                'campus_id': cid,
-                'campus_name': room.campus.name,
-                'rooms': []
-            }
-                
-        by_campus[cid]['rooms'].append({
-            'id': room.id,
-            'name': room.name,
-            'has_unread': False  # Kept to prevent template breakage, or omit entirely
-        })
 
-    # -- Ingest Study Room Sidebar data --
-    # Hide study rooms whose sessions occurred more than 2 hours ago
+    sidebar_chat = []
+    sidebar_study = []
     cutoff = datetime.utcnow() - timedelta(hours=2)
-    study_items = []
-    study_memberships = StudyRoomMember.query.filter_by(user_id=current_user.id).all()
-    for srm in study_memberships:
-        room = srm.room
-        if room.session_time < cutoff:
-            continue
-            
-        study_items.append({
-            'room_id': room.id,
-            'campus_id': room.campus_id,
-            'campus_name': room.campus.name,
-            'title': room.title,
-            'session_time': room.session_time,
-            'location': room.location,
-            'member_count': room.member_count(),
-            'max_members': room.max_members,
-            'has_unread': False,  # Kept to prevent template breakage, or omit entirely
-        })
-        
-    study_items.sort(key=lambda item: item['session_time'])
 
-    # -- Unread Notification Badge Count --
+    for m in memberships:
+        campus = m.campus
+
+        # Fetch chat rooms the user has joined inside this campus
+        chat_rooms_data = []
+        chat_memberships = ChatMember.query.filter_by(user_id=current_user.id)\
+            .join(ChatRoom).filter(ChatRoom.campus_id == campus.id).all()
+        for cm in chat_memberships:
+            chat_rooms_data.append({
+                'id': cm.room.id,
+                'name': cm.room.name,
+                'has_unread': False
+            })
+
+        sidebar_chat.append({
+            'campus_id': campus.id,
+            'campus_name': campus.name,
+            'rooms': chat_rooms_data
+        })
+
+        # Fetch study rooms the user has joined inside this campus
+        study_memberships = StudyRoomMember.query.filter_by(user_id=current_user.id)\
+            .join(StudyRoom).filter(StudyRoom.campus_id == campus.id).all()
+        for srm in study_memberships:
+            room = srm.room
+            if room.session_time >= cutoff:
+                sidebar_study.append({
+                    'room_id': room.id,
+                    'campus_id': campus.id,
+                    'campus_name': campus.name,
+                    'title': room.title,
+                    'session_time': room.session_time,
+                    'location': room.location,
+                    'member_count': room.member_count(),
+                    'max_members': room.max_members,
+                    'has_unread': False,
+                })
+
+    # Sort study rooms chronologically
+    sidebar_study.sort(key=lambda item: item['session_time'])
+
+    # Fetch unread notifications count
     unread_notifications_count = Notification.query.filter_by(user_id=current_user.id, is_read=False).count()
 
     return {
-        'sidebar_chat': list(by_campus.values()),
-        'sidebar_study': study_items,
+        'sidebar_chat': sidebar_chat,
+        'sidebar_study': sidebar_study,
         'unread_notifications_count': unread_notifications_count
     }
 

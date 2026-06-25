@@ -77,32 +77,4 @@
 {% endif %}
 {% endblock %}
 
-{% block extra_js %}
-<script>
-function filterCampuses() {
-    const input = document.getElementById('campusSearch');
-    const filter = input.value.toLowerCase();
-    const grid = document.getElementById('campusGrid');
-    const items = grid ? grid.getElementsByClassName('campus-item') : [];
-    const noResults = document.getElementById('noResults');
-    let visibleCount = 0;
- 
-    for (let i = 0; i < items.length; i++) {
-        const name = items[i].querySelector('.campus-name').textContent.toLowerCase();
-        const desc = items[i].querySelector('.base-card-desc').textContent.toLowerCase();
-        
-        if (name.includes(filter) || desc.includes(filter)) {
-            items[i].style.display = "";
-            visibleCount++;
-        } else {
-            items[i].style.display = "none";
-        }
-    }
- 
-    if (noResults && grid) {
-        noResults.style.display = visibleCount === 0 ? "block" : "none";
-        grid.style.display = visibleCount === 0 ? "none" : "grid";
-    }
-}
-</script>
-{% endblock %}
+

@@ -1,0 +1,19 @@
+.create-campus-grid {
+    display: grid;
+    grid-template-columns: 1fr 400px;
+    gap: 40px;
+    align-items: start;
+}
+
+@media (max-width: 768px) {
+    .create-campus-grid {
+        grid-template-columns: 1fr;
+        gap: 24px;
+    }
+    .base-preview-side {
+        grid-row: 1;
+    }
+    .base-form-side {
+        grid-row: 2;
+    }
+}

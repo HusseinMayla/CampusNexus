@@ -72,7 +72,7 @@ def browse(campus_id):
 @study_bp.route('/campus/<int:campus_id>/study-rooms/create', methods=['POST'])
 @login_required
 def create(campus_id):
-    campus = _member_or_403(campus_id)
+    _member_or_403(campus_id)
     data = request.form
 
     title = data.get('title', '').strip()
