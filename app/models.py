@@ -133,13 +133,13 @@ class Resource(db.Model):
     file_url = db.Column(db.String(255))
     uploaded_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
     campus_id = db.Column(db.Integer, db.ForeignKey('campus.id'), nullable=False)
-    uploader_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    uploader_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)
     course_code = db.Column(db.String(32), nullable=True)
     chapters = db.Column(db.String(512), nullable=True)
     file_type = db.Column(db.String(16), nullable=True)
     original_filename = db.Column(db.String(255), nullable=True)
 
-    uploader = db.relationship('User', backref=db.backref('resources', lazy=True, cascade='all, delete-orphan'))
+    uploader = db.relationship('User', backref=db.backref('resources', lazy=True))
     campus = db.relationship('Campus', backref=db.backref('resources', lazy=True, cascade='all, delete-orphan'))
 
     def __repr__(self):

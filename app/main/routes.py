@@ -1,17 +1,20 @@
-import os
-import re
-import uuid
+import os                        # File/folder operations (uploads, deletions)
+import re                        # Regex for email validation
+import uuid                      # Generates unique filenames for uploaded resources
 from datetime import datetime, timedelta
 from flask import Blueprint, render_template, redirect, url_for, flash, request, current_app, jsonify, send_from_directory, abort
 from flask_login import login_required, current_user
-from werkzeug.utils import secure_filename
+from werkzeug.utils import secure_filename  # Sanitizes uploaded filenames to prevent path traversal attacks
 from app.extensions import db
 from app.models import Campus, CampusMember, Notification, Resource, TutorPost, ResourceRequest, ChatRoom, ChatMember, ChatMessage, Event, EventParticipation
-from sqlalchemy import func
+from sqlalchemy import func      # SQL aggregate functions (e.g. COUNT for member counts)
 
 main_bp = Blueprint('main', __name__)
 
 
+# Builds sidebar data (chat rooms, study rooms, notification count) for the current user.
+# Called manually in this blueprint instead of using the global context processor,
+# because some routes need finer control over what gets passed to templates.
 def get_sidebar_data():
     if not current_user.is_authenticated:
         return {
@@ -24,7 +27,7 @@ def get_sidebar_data():
 
     # -- Ingest Chat Sidebar data --
     by_campus = {}
-    
+
     # Fetch campuses that the current logged-in user belongs to
     memberships = CampusMember.query.filter_by(user_id=current_user.id).all()
     for m in memberships:
@@ -34,7 +37,7 @@ def get_sidebar_data():
             'campus_name': c.name,
             'rooms': []
         }
-        
+
     # Fetch active chat rooms the user has joined
     chat_memberships = ChatMember.query.filter_by(user_id=current_user.id).all()
     for cm in chat_memberships:
@@ -46,7 +49,7 @@ def get_sidebar_data():
                 'campus_name': room.campus.name,
                 'rooms': []
             }
-                
+
         by_campus[cid]['rooms'].append({
             'id': room.id,
             'name': room.name,
@@ -62,7 +65,7 @@ def get_sidebar_data():
         room = srm.room
         if room.session_time < cutoff:
             continue
-            
+
         study_items.append({
             'room_id': room.id,
             'campus_id': room.campus_id,
@@ -74,7 +77,7 @@ def get_sidebar_data():
             'max_members': room.max_members,
             'has_unread': False,  # Kept to prevent template breakage, or omit entirely
         })
-        
+
     study_items.sort(key=lambda item: item['session_time'])
 
     # -- Unread Notification Badge Count --
@@ -86,12 +89,15 @@ def get_sidebar_data():
         'unread_notifications_count': unread_notifications_count
     }
 
+# Returns True if the current user is a member or creator of the given campus
 def _is_member(campus):
     return (campus.creator_id == current_user.id or
             CampusMember.query.filter_by(user_id=current_user.id, campus_id=campus.id).first() is not None)
 
 
+# Allowed file extensions for banner/map image uploads
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
+# Allowed file extensions for resource (notes/documents) uploads
 RESOURCE_EXTENSIONS = {'pdf', 'pptx', 'ppt', 'docx', 'doc', 'xlsx'}
 
 def allowed_file(filename):
@@ -99,6 +105,9 @@ def allowed_file(filename):
 
 def allowed_resource(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in RESOURCE_EXTENSIONS
+
+
+# ── Landing / Home ────────────────────────────────────────────────────────────
 
 @main_bp.route('/')
 @main_bp.route('/index')
@@ -110,7 +119,7 @@ def index():
         created_campus_ids = [c.id for c in Campus.query.filter_by(creator_id=current_user.id).all()]
         all_campus_ids = list(set(joined_campus_ids + created_campus_ids))
         joined_campuses_count = len(all_campus_ids)
-        
+
         if all_campus_ids:
             now_utc = datetime.utcnow()
             # Fetch events from 24 hours ago to 24 hours in the future (wide window to cover all timezones' "today")
@@ -119,7 +128,7 @@ def index():
                 Event.date >= now_utc - timedelta(hours=24),
                 Event.date <= now_utc + timedelta(hours=24)
             ).order_by(Event.date.asc()).all()
-            
+
             for e in events:
                 part_count = EventParticipation.query.filter_by(event_id=e.id, is_interested=True).count()
                 user_part = EventParticipation.query.filter_by(event_id=e.id, user_id=current_user.id).first()
@@ -130,7 +139,7 @@ def index():
                 if user_part:
                     want_notification = user_part.want_notification
                 is_ended = e.end_date < now_utc
-                
+
                 todays_events.append({
                     'event': e,
                     'participation_count': part_count,
@@ -138,7 +147,7 @@ def index():
                     'want_notification': want_notification,
                     'is_ended': is_ended
                 })
-                
+
     return render_template(
         'index.html',
         active_page='home',
@@ -148,6 +157,9 @@ def index():
     )
 
 
+# ── Dashboard ─────────────────────────────────────────────────────────────────
+
+# Shows all campuses the user owns or has joined, deduplicating owned ones
 @main_bp.route('/dashboard')
 @login_required
 def dashboard():
@@ -165,6 +177,10 @@ def dashboard():
         created_ids.add(c.id)
     return render_template('main/dashboard.html', campuses=campuses, created_ids=created_ids, **get_sidebar_data())
 
+
+# ── Campus Management ─────────────────────────────────────────────────────────
+
+# GET: renders the create campus form. POST: validates input, handles image uploads, saves campus
 @main_bp.route('/create-campus', methods=['GET', 'POST'])
 @login_required
 def create_campus():
@@ -187,7 +203,7 @@ def create_campus():
         if domain:
             if domain.startswith('@'):
                 domain = domain[1:]
-                
+
             # Security / Domain-Lock check: Creator must possess a verified email under this domain
             if not current_user.has_verified_domain(domain):
                 flash(f'To restrict this campus to @{domain}, you must first verify an email ending in @{domain}.', 'error')
@@ -248,24 +264,26 @@ def create_campus():
 
     return render_template('main/create_campus.html', **get_sidebar_data())
 
+
+# Shows all campuses sorted by member count, with the user's join status for each
 @main_bp.route('/join-campus', methods=['GET'])
 @login_required
 def join_campus():
     # Sort campuses by popularity (member count)
     campuses_with_counts = db.session.query(
-        Campus, 
+        Campus,
         func.count(CampusMember.id).label('member_count')
     ).outerjoin(CampusMember)\
      .group_by(Campus.id)\
      .order_by(func.count(CampusMember.id).desc())\
      .all()
-     
+
     # Fetch joined ids for current user
     joined_memberships = CampusMember.query.filter_by(user_id=current_user.id).all()
     joined_roles = {}
     for m in joined_memberships:
         joined_roles[m.campus_id] = m.role
-    
+
     campus_list = []
     for campus, count in campuses_with_counts:
         role = joined_roles.get(campus.id)
@@ -286,29 +304,30 @@ def join_campus():
     return render_template('main/join_campus.html', campuses=campus_list, **get_sidebar_data())
 
 
+# Handles the actual join action. Checks domain restriction before allowing
 @main_bp.route('/campuses/<int:campus_id>/join', methods=['POST'])
 @login_required
 def join_campus_by_id(campus_id):
     campus = Campus.query.get_or_404(campus_id)
-    
+
     if campus.creator_id == current_user.id:
         flash('You are already the owner of this campus.', 'error')
         return redirect(url_for('main.join_campus'))
-        
+
     already = CampusMember.query.filter_by(user_id=current_user.id, campus_id=campus.id).first()
     if already:
         flash('You have already joined this campus.', 'error')
         return redirect(url_for('main.dashboard'))
-        
+
     # Domain restriction check
     if campus.domain and not current_user.has_verified_domain(campus.domain):
         flash(f'To join this campus, you must verify an email address ending in @{campus.domain}.', 'error')
         return redirect(url_for('main.join_campus'))
-        
+
     # Join
     db.session.add(CampusMember(user_id=current_user.id, campus_id=campus.id, role='user'))
     db.session.commit()
-    
+
     # Notify creator/owner of new member
     if campus.creator_id:
         notif = Notification(
@@ -319,16 +338,21 @@ def join_campus_by_id(campus_id):
         )
         db.session.add(notif)
         db.session.commit()
-    
+
     flash(f'You successfully joined {campus.name}!', 'success')
     return redirect(url_for('main.dashboard'))
 
+
+# ── Settings ──────────────────────────────────────────────────────────────────
+
+# User account settings page
 @main_bp.route('/settings')
 @login_required
 def settings():
     return render_template('main/settings.html', **get_sidebar_data())
 
 
+# Campus settings: rename, change domain, replace banner/map image (owner only)
 @main_bp.route('/campus/<int:campus_id>/settings', methods=['GET', 'POST'])
 @login_required
 def campus_settings(campus_id):
@@ -391,6 +415,9 @@ def campus_settings(campus_id):
     return render_template('main/campus_settings.html', campus=campus, moderators=moderators, owner_membership=owner_membership, active_page='campus_settings', **get_sidebar_data())
 
 
+# ── Moderator Management ──────────────────────────────────────────────────────
+
+# Promotes an existing campus member to moderator by email (owner only)
 @main_bp.route('/campus/<int:campus_id>/settings/add-moderator', methods=['POST'])
 @login_required
 def add_moderator(campus_id):
@@ -439,6 +466,7 @@ def add_moderator(campus_id):
     return redirect(url_for('main.campus_settings', campus_id=campus.id))
 
 
+# Demotes a moderator back to regular member (owner only)
 @main_bp.route('/campuses/<int:campus_id>/members/<int:user_id>/demote', methods=['POST'])
 @login_required
 def demote_member(campus_id, user_id):
@@ -464,7 +492,7 @@ def demote_member(campus_id, user_id):
 
     # Demote
     target_membership.role = 'user'
-    
+
     # Generate Notification
     campus = Campus.query.get(campus_id)
     notif = Notification(
@@ -480,6 +508,7 @@ def demote_member(campus_id, user_id):
     return redirect(request.referrer or url_for('main.campus_settings', campus_id=campus_id))
 
 
+# Deletes the campus and all its data (owner only). Cascade handles related records
 @main_bp.route('/campuses/<int:campus_id>/delete', methods=['POST', 'DELETE'])
 @login_required
 def delete_campus(campus_id):
@@ -491,7 +520,7 @@ def delete_campus(campus_id):
         return redirect(url_for('main.dashboard'))
 
     campus_name = campus.name
-    
+
     # Delete campus
     db.session.delete(campus)
     db.session.commit()
@@ -500,6 +529,9 @@ def delete_campus(campus_id):
     return redirect(url_for('main.dashboard'))
 
 
+# ── Notifications ─────────────────────────────────────────────────────────────
+
+# Shows all notifications for the current user, newest first
 @main_bp.route('/notifications', methods=['GET'])
 @login_required
 def notifications():
@@ -507,31 +539,34 @@ def notifications():
     return render_template('main/notifications.html', notifications=user_notifs, **get_sidebar_data())
 
 
+# Marks a single notification as read and redirects back to notifications page
 @main_bp.route('/notifications/<int:notification_id>/read', methods=['POST'])
 @login_required
 def read_notification(notification_id):
     notif = Notification.query.get_or_404(notification_id)
-    
+
     if notif.user_id != current_user.id:
         flash('Unauthorized action.', 'error')
         return redirect(url_for('main.dashboard'))
-        
+
     notif.is_read = True
     db.session.commit()
-    
+
     return redirect(url_for('main.notifications'))
 
 
+# Deletes all notifications for the current user at once
 @main_bp.route('/notifications/clear', methods=['POST'])
 @login_required
 def clear_notifications():
     Notification.query.filter_by(user_id=current_user.id).delete()
     db.session.commit()
-    
+
     flash('All notifications cleared.', 'success')
     return redirect(url_for('main.notifications'))
 
 
+# JSON endpoint: returns the current unread notification count (used for live badge updates)
 @main_bp.route('/api/notifications/unread-count', methods=['GET'])
 @login_required
 def api_unread_notifications_count():
@@ -540,6 +575,9 @@ def api_unread_notifications_count():
     return jsonify({'count': count})
 
 
+# ── Profile ───────────────────────────────────────────────────────────────────
+
+# Updates the user's display name and primary email
 @main_bp.route('/settings/update-profile', methods=['POST'])
 @login_required
 def update_profile():
@@ -548,40 +586,43 @@ def update_profile():
 
     name = request.form.get('name', '').strip()
     email = request.form.get('email', '').strip().lower()
-    
+
     if not name or not email:
         flash('Display name and email address are required.', 'error')
         return redirect(url_for('main.settings'))
-        
+
     if len(name) < 2:
         flash('Please enter a valid full name.', 'error')
         return redirect(url_for('main.settings'))
-        
+
     if not EMAIL_RE.match(email):
         flash('Please enter a valid email address.', 'error')
         return redirect(url_for('main.settings'))
-        
+
     # Check if login email already in use by another user's primary email
     other_user = User.query.filter(User.id != current_user.id, User.email == email).first()
     if other_user:
         flash('This email address is already in use by another account.', 'error')
         return redirect(url_for('main.settings'))
-        
+
     # Check if login email already in use by anyone's secondary email
     other_secondary = UserEmail.query.filter_by(email=email).first()
     if other_secondary:
         flash('This email address is already in use.', 'error')
         return redirect(url_for('main.settings'))
-        
+
     # Update current user
     current_user.name = name
     current_user.email = email
     db.session.commit()
-    
+
     flash('Profile updated successfully!', 'success')
     return redirect(url_for('main.settings'))
 
 
+# ── Resources ─────────────────────────────────────────────────────────────────
+
+# Shows all resources and resource requests for a campus, merged and sorted by date
 @main_bp.route('/campus/<int:campus_id>/resources')
 @login_required
 def campus_resources(campus_id):
@@ -600,6 +641,7 @@ def campus_resources(campus_id):
     return render_template('main/campus_resources.html', campus=campus, posts=posts, active_page='resources', **get_sidebar_data())
 
 
+# Creates a resource request post (asking others to share specific notes/materials)
 @main_bp.route('/campus/<int:campus_id>/resources/request', methods=['POST'])
 @login_required
 def resource_request_create(campus_id):
@@ -611,7 +653,7 @@ def resource_request_create(campus_id):
     data = request.form
     email = data.get('email', '').strip()
     course_code = data.get('course_code', '').strip().upper()
-    
+
     chapters = []
     chapters_raw = data.get('chapters', '')
     for c in chapters_raw.split(','):
@@ -644,6 +686,7 @@ def resource_request_create(campus_id):
     return redirect(url_for('main.campus_resources', campus_id=campus_id))
 
 
+# Deletes a resource request (only the poster can delete their own)
 @main_bp.route('/campus/<int:campus_id>/resources/request/<int:request_id>/delete', methods=['POST'])
 @login_required
 def resource_request_delete(campus_id, request_id):
@@ -657,6 +700,7 @@ def resource_request_delete(campus_id, request_id):
     return redirect(url_for('main.campus_resources', campus_id=campus_id))
 
 
+# Uploads a resource file. Generates a UUID-prefixed filename to avoid collisions
 @main_bp.route('/campus/<int:campus_id>/resources/upload', methods=['POST'])
 @login_required
 def resource_create(campus_id):
@@ -710,6 +754,7 @@ def resource_create(campus_id):
     return redirect(url_for('main.campus_resources', campus_id=campus_id))
 
 
+# Deletes a resource record and its physical file from disk (uploader only)
 @main_bp.route('/campus/<int:campus_id>/resources/<int:resource_id>/delete', methods=['POST'])
 @login_required
 def resource_delete(campus_id, resource_id):
@@ -727,7 +772,7 @@ def resource_delete(campus_id, resource_id):
     return redirect(url_for('main.campus_resources', campus_id=campus_id))
 
 
-
+# Serves the file as a download using the original filename (not the UUID-prefixed stored name)
 @main_bp.route('/campus/<int:campus_id>/resources/<int:resource_id>/download')
 @login_required
 def resource_download(campus_id, resource_id):
@@ -741,6 +786,9 @@ def resource_download(campus_id, resource_id):
                                download_name=resource.original_filename or stored_name)
 
 
+# ── Tutor Market ──────────────────────────────────────────────────────────────
+
+# Shows all tutor/student posts for a campus (newest first)
 @main_bp.route('/campus/<int:campus_id>/market')
 @login_required
 def campus_market(campus_id):
@@ -752,6 +800,7 @@ def campus_market(campus_id):
     return render_template('main/campus_market.html', campus=campus, posts=posts, active_page='market', **get_sidebar_data())
 
 
+# Creates a tutor or student-seeking-tutor post
 @main_bp.route('/campus/<int:campus_id>/market/post', methods=['POST'])
 @login_required
 def market_post_create(campus_id):
@@ -764,7 +813,7 @@ def market_post_create(campus_id):
     full_name = data.get('full_name', '').strip()
     email = data.get('email', '').strip()
     role = data.get('role', '').strip()
-    
+
     courses = []
     courses_raw = data.get('courses', '')
     for c in courses_raw.split(','):
@@ -804,6 +853,7 @@ def market_post_create(campus_id):
     return redirect(url_for('main.campus_market', campus_id=campus_id))
 
 
+# Deletes a tutor post (poster only)
 @main_bp.route('/campus/<int:campus_id>/market/post/<int:post_id>/delete', methods=['POST'])
 @login_required
 def market_post_delete(campus_id, post_id):
@@ -817,9 +867,9 @@ def market_post_delete(campus_id, post_id):
     return redirect(url_for('main.campus_market', campus_id=campus_id))
 
 
-
 # ── Chat helpers ──────────────────────────────────────────────────────────────
 
+# Verifies the user is a campus member before entering any chat route. Aborts with 403 if not
 def _campus_member_or_403(campus_id):
     campus = Campus.query.get_or_404(campus_id)
     member = CampusMember.query.filter_by(user_id=current_user.id, campus_id=campus_id).first()
@@ -830,6 +880,7 @@ def _campus_member_or_403(campus_id):
 
 # ── Chat routes ───────────────────────────────────────────────────────────────
 
+# Lists all chat rooms in a campus with join status for each
 @main_bp.route('/campus/<int:campus_id>/chat')
 @login_required
 def chat_browse(campus_id):
@@ -842,6 +893,7 @@ def chat_browse(campus_id):
                            joined_ids=joined_ids, member=member, active_page='chat', **get_sidebar_data())
 
 
+# Creates a new chat room and auto-joins the creator
 @main_bp.route('/campus/<int:campus_id>/chat/create', methods=['POST'])
 @login_required
 def chat_create(campus_id):
@@ -862,6 +914,7 @@ def chat_create(campus_id):
     return redirect(url_for('main.chat_room', campus_id=campus_id, room_id=room.id))
 
 
+# Joins a chat room. Enforces a 14-room limit per user
 @main_bp.route('/campus/<int:campus_id>/chat/<int:room_id>/join', methods=['POST'])
 @login_required
 def chat_join(campus_id, room_id):
@@ -877,6 +930,7 @@ def chat_join(campus_id, room_id):
     return redirect(url_for('main.chat_room', campus_id=campus_id, room_id=room_id))
 
 
+# Deletes a chat room (owner/moderator only)
 @main_bp.route('/campus/<int:campus_id>/chat/<int:room_id>/delete', methods=['POST'])
 @login_required
 def chat_delete(campus_id, room_id):
@@ -890,6 +944,7 @@ def chat_delete(campus_id, room_id):
     return redirect(url_for('main.chat_browse', campus_id=campus_id))
 
 
+# Removes the user from a chat room
 @main_bp.route('/campus/<int:campus_id>/chat/<int:room_id>/leave', methods=['POST'])
 @login_required
 def chat_leave(campus_id, room_id):
@@ -900,7 +955,7 @@ def chat_leave(campus_id, room_id):
     return redirect(url_for('main.chat_browse', campus_id=campus_id))
 
 
-
+# Renders the chat room page and marks all messages as read
 @main_bp.route('/campus/<int:campus_id>/chat/<int:room_id>')
 @login_required
 def chat_room(campus_id, room_id):
@@ -916,6 +971,7 @@ def chat_room(campus_id, room_id):
                            messages=msgs, member=member, active_page='chat', **get_sidebar_data())
 
 
+# JSON endpoint: receives a message body and saves it. Called by JavaScript, not a form
 @main_bp.route('/campus/<int:campus_id>/chat/<int:room_id>/send', methods=['POST'])
 @login_required
 def chat_send(campus_id, room_id):
@@ -935,6 +991,7 @@ def chat_send(campus_id, room_id):
     return jsonify({'id': msg.id, 'body': msg.body, 'sender': current_user.name})
 
 
+# JSON endpoint: returns only messages newer than the given ID (used for live polling)
 @main_bp.route('/campus/<int:campus_id>/chat/<int:room_id>/poll')
 @login_required
 def chat_poll(campus_id, room_id):
@@ -962,7 +1019,9 @@ def chat_poll(campus_id, room_id):
 
 # ── Hook: Event Start Notifications ───────────────────────────────────────────
 
-@main_bp.before_app_request   # this function runs before we enter any route.  it updates notification counts and notifications 
+# Runs before every request. Checks if any events the user subscribed to have started,
+# and creates an in-app notification for each one (only fires once per event)
+@main_bp.before_app_request
 def check_event_notifications():
     if current_user.is_authenticated:
         now = datetime.utcnow()
@@ -992,4 +1051,3 @@ def check_event_notifications():
             except Exception as e:
                 db.session.rollback()
                 current_app.logger.error(f"Failed to save auto event notification: {e}")
-
