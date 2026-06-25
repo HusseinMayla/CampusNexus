@@ -38,7 +38,7 @@ def create_app(config_class=Config):
     from app.auth.routes import auth_bp
     from app.main.routes import main_bp
     from app.map.routes import map_bp
-    from app.study import study_bp
+    from app.study.routes import study_bp
 
     # Register Blueprints with the Flask application
     app.register_blueprint(auth_bp)
