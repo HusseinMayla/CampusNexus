@@ -102,6 +102,7 @@ def allowed_resource(filename):
 
 @main_bp.route('/')
 @main_bp.route('/index')
+@login_required
 def index():
     todays_events = []
     joined_campuses_count = 0
