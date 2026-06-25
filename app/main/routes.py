@@ -568,43 +568,22 @@ def api_unread_notifications_count():
 
 # ── Profile ───────────────────────────────────────────────────────────────────
 
-# Updates the user's display name and primary email
+# Updates the user's display name
 @main_bp.route('/settings/update-profile', methods=['POST'])
 @login_required
 def update_profile():
-    from app.models import User, UserEmail
-    from app.auth.routes import EMAIL_RE
-
     name = request.form.get('name', '').strip()
-    email = request.form.get('email', '').strip().lower()
 
-    if not name or not email:
-        flash('Display name and email address are required.', 'error')
+    if not name:
+        flash('Display name is required.', 'error')
         return redirect(url_for('main.settings'))
 
     if len(name) < 2:
         flash('Please enter a valid full name.', 'error')
         return redirect(url_for('main.settings'))
 
-    if not EMAIL_RE.match(email):
-        flash('Please enter a valid email address.', 'error')
-        return redirect(url_for('main.settings'))
-
-    # Check if login email already in use by another user's primary email
-    other_user = User.query.filter(User.id != current_user.id, User.email == email).first()
-    if other_user:
-        flash('This email address is already in use by another account.', 'error')
-        return redirect(url_for('main.settings'))
-
-    # Check if login email already in use by anyone's secondary email
-    other_secondary = UserEmail.query.filter_by(email=email).first()
-    if other_secondary:
-        flash('This email address is already in use.', 'error')
-        return redirect(url_for('main.settings'))
-
     # Update current user
     current_user.name = name
-    current_user.email = email
     db.session.commit()
 
     flash('Profile updated successfully!', 'success')
