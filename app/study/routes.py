@@ -1,6 +1,13 @@
-from datetime import datetime, timedelta, timezone
-from flask import render_template, redirect, url_for, request, jsonify, abort, flash, Blueprint
+from datetime import datetime, timedelta, timezone  # datetime for timestamps, timedelta for time math (e.g. "2 hours ago"), timezone for converting JS dates to UTC
+from flask import render_template, redirect, url_for, request, jsonify, abort, flash, Blueprint  # standard Flask tools — render pages, redirect, build URLs, read form/JSON data, return JSON, abort with error codes, flash messages, blueprint
+from flask_login import login_required, current_user  # login_required blocks logged-out users, current_user is the logged-in user object
+from app.extensions import db  # database object for queries and saving records
+from app.main.routes import get_sidebar_data  # reuses sidebar builder from main blueprint instead of duplicating it
+from app.models import (Campus, CampusMember, StudyRoom, StudyRoomMember,
+                        StudyRoomMessage, Notification)  # campus/membership for access checks, study room tables for room logic, notifications for alerting room owner
 
+# Parses an ISO 8601 datetime string (from JavaScript) into a naive UTC datetime.
+# Handles the 'Z' suffix that JS Date.toISOString() appends (e.g. "2026-06-25T14:00:00Z")
 def parse_utc(dt_str):
     if not dt_str:
         return None
@@ -10,15 +17,11 @@ def parse_utc(dt_str):
     if dt.tzinfo is not None:
         dt = dt.astimezone(timezone.utc).replace(tzinfo=None)
     return dt
-from flask_login import login_required, current_user
-from app.extensions import db
-from app.main.routes import get_sidebar_data
-from app.models import (Campus, CampusMember, StudyRoom, StudyRoomMember,
-                        StudyRoomMessage, Notification)
 
 study_bp = Blueprint('study', __name__)
 
 
+# Verifies the current user is a campus member before entering any study route. Aborts 403 if not
 def _member_or_403(campus_id):
     campus = Campus.query.get_or_404(campus_id)
     if not CampusMember.query.filter_by(user_id=current_user.id, campus_id=campus_id).first():
@@ -26,6 +29,8 @@ def _member_or_403(campus_id):
     return campus
 
 
+# Deletes study rooms whose session ended more than 2 hours ago.
+# Called before listing rooms so expired rooms never appear in the UI
 def delete_old_rooms(campus_id):
     cutoff = datetime.utcnow() - timedelta(hours=2)
     old_rooms = StudyRoom.query.filter(
@@ -38,6 +43,9 @@ def delete_old_rooms(campus_id):
         db.session.commit()
 
 
+# Returns only rooms the user should see:
+# - Rooms they're already a member of, OR rooms that still have space
+# - Expired rooms are cleaned up first, then filtered out
 def _visible_rooms(campus_id, user_id):
     delete_old_rooms(campus_id)
     cutoff = datetime.utcnow() - timedelta(hours=2)
@@ -55,6 +63,7 @@ def _visible_rooms(campus_id, user_id):
 
 # ── Browse ────────────────────────────────────────────────────────────────────
 
+# Lists all visible study rooms for a campus, with which ones the user has joined
 @study_bp.route('/campus/<int:campus_id>/study-rooms')
 @login_required
 def browse(campus_id):
@@ -69,6 +78,10 @@ def browse(campus_id):
 
 # ── Create ────────────────────────────────────────────────────────────────────
 
+# Creates a new study room. Validates:
+# - Session time is in the future and within 1 week
+# - Max members is between 2 and 20
+# - User is not already in an active study room in this campus
 @study_bp.route('/campus/<int:campus_id>/study-rooms/create', methods=['POST'])
 @login_required
 def create(campus_id):
@@ -126,6 +139,7 @@ def create(campus_id):
                      session_time=session_dt, max_members=max_members)
     db.session.add(room)
     db.session.commit()
+    # Auto-join the creator as the first member
     db.session.add(StudyRoomMember(room_id=room.id, user_id=current_user.id))
     db.session.commit()
 
@@ -135,6 +149,11 @@ def create(campus_id):
 
 # ── Join ──────────────────────────────────────────────────────────────────────
 
+# Joins a study room. Checks:
+# - Room hasn't expired
+# - Room isn't full
+# - User doesn't already have an overlapping study room at that time
+# Notifies the room owner when someone joins
 @study_bp.route('/campus/<int:campus_id>/study-rooms/<int:room_id>/join', methods=['POST'])
 @login_required
 def join(campus_id, room_id):
@@ -150,7 +169,7 @@ def join(campus_id, room_id):
     if StudyRoomMember.query.filter_by(user_id=current_user.id, room_id=room_id).first():
         return redirect(url_for('study.room', campus_id=campus_id, room_id=room_id))
 
-    # Block if user is already in a room with overlapping time
+    # Block if user is already in a room with overlapping time (within 2 hour window)
     new_start = room.session_time
     new_end = new_start + timedelta(hours=2)
     my_memberships = StudyRoomMember.query.filter_by(user_id=current_user.id).all()
@@ -180,6 +199,7 @@ def join(campus_id, room_id):
 
 # ── Leave ─────────────────────────────────────────────────────────────────────
 
+# Removes the user from the room. If they were the last member, the room is deleted
 @study_bp.route('/campus/<int:campus_id>/study-rooms/<int:room_id>/leave', methods=['POST'])
 @login_required
 def leave(campus_id, room_id):
@@ -200,6 +220,7 @@ def leave(campus_id, room_id):
 
 # ── Delete (owner) ────────────────────────────────────────────────────────────
 
+# Deletes the room entirely (owner only). Cascade removes all members and messages
 @study_bp.route('/campus/<int:campus_id>/study-rooms/<int:room_id>/delete', methods=['POST'])
 @login_required
 def delete(campus_id, room_id):
@@ -212,9 +233,10 @@ def delete(campus_id, room_id):
     return redirect(url_for('study.browse', campus_id=campus_id))
 
 
-
 # ── Room chat page ────────────────────────────────────────────────────────────
 
+# Renders the study room chat page. Marks all messages as read on entry.
+# Passes last_id to the template so JavaScript knows where to start polling from
 @study_bp.route('/campus/<int:campus_id>/study-rooms/<int:room_id>')
 @login_required
 def room(campus_id, room_id):
@@ -238,6 +260,7 @@ def room(campus_id, room_id):
                            messages=msgs, last_id=last_id, active_page='study', **get_sidebar_data())
 
 
+# JSON endpoint: receives a message body and saves it. Called by JavaScript, not a form
 @study_bp.route('/campus/<int:campus_id>/study-rooms/<int:room_id>/send', methods=['POST'])
 @login_required
 def send_message(campus_id, room_id):
@@ -257,6 +280,7 @@ def send_message(campus_id, room_id):
     return jsonify({'id': msg.id, 'body': msg.body, 'sender': current_user.name})
 
 
+# JSON endpoint: returns only messages newer than the given ID (used for live polling)
 @study_bp.route('/campus/<int:campus_id>/study-rooms/<int:room_id>/poll')
 @login_required
 def poll_messages(campus_id, room_id):

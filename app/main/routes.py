@@ -1,18 +1,18 @@
-import os                        # File/folder operations (uploads, deletions)
-import re                        # Regex for email validation
-import uuid                      # Generates unique filenames for uploaded resources
+import os # File/folder operations (uploads, deletions)
+import re # Regex for email validation
+import uuid # Generates unique filenames for uploaded resources
 from datetime import datetime, timedelta
 from flask import Blueprint, render_template, redirect, url_for, flash, request, current_app, jsonify, send_from_directory, abort
 from flask_login import login_required, current_user
 from werkzeug.utils import secure_filename  # Sanitizes uploaded filenames to prevent path traversal attacks
 from app.extensions import db
 from app.models import Campus, CampusMember, Notification, Resource, TutorPost, ResourceRequest, ChatRoom, ChatMember, ChatMessage, Event, EventParticipation, StudyRoomMember, StudyRoom
-from sqlalchemy import func
+from sqlalchemy import func  # SQL aggregate functions (e.g. COUNT for member counts)
 
 main_bp = Blueprint('main', __name__)
 
 
-# Builds sidebar data (chat rooms, study rooms, notification count) for the current user.
+# Builds sidebar data (chat rooms, study rooms, notification count) for the current user
 # Called manually in this blueprint instead of using the global context processor,
 # because some routes need finer control over what gets passed to templates.
 def get_sidebar_data():
