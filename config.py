@@ -1,4 +1,7 @@
 import os
+from dotenv import load_dotenv
+
+load_dotenv()
 
 class Config:
     # SECRET_KEY signs session cookies and tokens. In production, set this in the .env file.
@@ -18,6 +21,7 @@ class Config:
     MAIL_SERVER   = 'smtp.gmail.com'
     MAIL_PORT     = 587
     MAIL_USE_TLS  = True
-    MAIL_USERNAME = os.environ.get('MAIL_USERNAME')         # sender Gmail address
-    MAIL_PASSWORD = os.environ.get('MAIL_PASSWORD')         # Gmail app password (not the account password)
-    MAIL_DEFAULT_SENDER = os.environ.get('MAIL_USERNAME')   # "From:" field in outgoing emails
+    MAIL_USERNAME = os.environ.get('MAIL_USERNAME', 'agora.campusnexus@gmail.com')         # sender Gmail address
+    MAIL_PASSWORD = os.environ.get('MAIL_PASSWORD')                                         # Gmail app password (not the account password)
+    MAIL_DEFAULT_SENDER = os.environ.get('MAIL_DEFAULT_SENDER') or os.environ.get('MAIL_USERNAME', 'agora.campusnexus@gmail.com')   # "From:" field in outgoing emails
+

@@ -24,7 +24,7 @@ def send_verification_email(email):
     s = URLSafeTimedSerializer(current_app.config['SECRET_KEY'])
     token = s.dumps(email, salt='email-verify')
     link = url_for('auth.verify_token', token=token, _external=True)
-    sender = current_app.config['MAIL_USERNAME']
+    sender = current_app.config.get('MAIL_DEFAULT_SENDER') or current_app.config.get('MAIL_USERNAME') or 'agora.campusnexus@gmail.com'
     msg = Message('Verify your Agora account', sender=sender, recipients=[email])
     msg.body = f'Hi! Click the link below to verify your email address:\n\n{link}\n\nThis link expires in 1 hour.'
     mail.send(msg)
@@ -34,7 +34,7 @@ def send_secondary_verification_email(user_email):
     s = URLSafeTimedSerializer(current_app.config['SECRET_KEY'])
     token = s.dumps(user_email.id, salt='secondary-email-verify')
     link = url_for('auth.verify_secondary_token', token=token, _external=True)
-    sender = current_app.config['MAIL_USERNAME']
+    sender = current_app.config.get('MAIL_DEFAULT_SENDER') or current_app.config.get('MAIL_USERNAME') or 'agora.campusnexus@gmail.com'
     msg = Message('Verify your secondary email address', sender=sender, recipients=[user_email.email])
     msg.body = f'Hi! Click the link below to verify your secondary email address:\n\n{link}\n\nThis link expires in 1 hour.'
     mail.send(msg)
@@ -49,7 +49,7 @@ def page():
 
 @auth_bp.route('/login', methods=['POST'])
 def login():
-    email = request.form.get('email', '').strip()
+    email = request.form.get('email', '').strip().lower()
     password = request.form.get('password', '')
     next_url = request.form.get('next', '').strip()
 
@@ -61,7 +61,14 @@ def login():
         flash('Please use a university email address (.edu or .ac.xx).', 'error')
         return redirect(url_for('auth.page'))
 
+    # Check primary email first
     user = User.query.filter_by(email=email).first()
+    # If not found, check secondary email if verified
+    if not user:
+        user_email = UserEmail.query.filter_by(email=email, is_verified=True).first()
+        if user_email:
+            user = user_email.user
+
     if not user or not bcrypt.checkpw(password.encode('utf-8'), user.password_hash.encode('utf-8')):
         flash('Invalid email or password.', 'error')
         return redirect(url_for('auth.page'))
@@ -79,7 +86,7 @@ def login():
 @auth_bp.route('/register', methods=['POST'])
 def register():
     name = request.form.get('name', '').strip()
-    email = request.form.get('email', '').strip()
+    email = request.form.get('email', '').strip().lower()
     password = request.form.get('password', '')
     signup_url = url_for('auth.page') + '?tab=signup'
 
@@ -282,7 +289,7 @@ def forgot_password_request():
             link = url_for('auth.reset_password', token=token, _external=True)
             
             # Send the reset email
-            sender = current_app.config['MAIL_USERNAME']
+            sender = current_app.config.get('MAIL_DEFAULT_SENDER') or current_app.config.get('MAIL_USERNAME') or 'agora.campusnexus@gmail.com'
             msg = Message('Reset your Agora password', sender=sender, recipients=[email])
             msg.body = f'Hi {user.name}!\n\nClick the link below to reset your password:\n\n{link}\n\nThis link expires in 1 hour.'
             try:
